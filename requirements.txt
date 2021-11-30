@@ -2,3 +2,4 @@ sqlalchemy>=1.4.0
 flask
 flask-sqlalchemy-session
 psycopg2
+black

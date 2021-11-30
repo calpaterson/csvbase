@@ -9,5 +9,4 @@ export FLASK_ENV = development
 	touch $@
 
 serve: .venv
-	python3 -m webbrowser -t 'http://localhost:6001'
 	. .venv/bin/activate; flask run -p 6001
