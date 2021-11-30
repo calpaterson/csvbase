@@ -1,3 +1,4 @@
+import io
 from datetime import datetime, timezone
 import csv
 from logging import getLogger
@@ -70,6 +71,20 @@ def table_exists(sesh, user_uuid, table_name):
     ).scalar()
 
 
+def get_columns(sesh, username, table_name):
+    # lifted from https://dba.stackexchange.com/a/22420/28877
+    stmt = f"""
+    SELECT attname AS column_name, atttypid::regtype AS sql_type
+    FROM   pg_attribute
+    WHERE  attrelid = 'public.{username}__{table_name}'::regclass
+    AND    attnum > 0
+    AND    NOT attisdropped
+    ORDER  BY attnum;
+    """
+    rs = sesh.execute(stmt)
+    return [r[0] for r in rs]
+
+
 def make_drop_table_ddl(username, table_name):
     return f"DROP TABLE {username}__{table_name};"
 
@@ -100,3 +115,27 @@ def upsert_table(sesh, user_uuid, username, table_name, csv_buf):
     # FIXME: error handling, sometimes people curl stuff with just --data
     # instead of --data-binary, which eats the newlines
     cursor.copy_from(csv_buf, f"{username}__{table_name}", sep=dialect.delimiter)
+
+
+def get_table(sesh, user_uuid, username, table_name):
+    csv_buf = io.StringIO()
+
+    columns = get_columns(sesh, username, table_name)
+
+    # this allows for putting the columns in with proper csv escaping
+    header_writer = csv.writer(csv_buf)
+    header_writer.writerow(columns)
+
+    cursor = sesh.connection().connection.cursor()
+    cursor.copy_to(csv_buf, f"{username}__{table_name}", sep=",", columns=columns)
+    csv_buf.seek(0)
+    return csv_buf
+
+
+def is_public(sesh, username, table_name):
+    return (
+        sesh.query(models.Table.public)
+        .join(models.User)
+        .filter(models.User.username == username, models.Table.table_name == table_name)
+        .scalar()
+    )

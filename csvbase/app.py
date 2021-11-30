@@ -26,9 +26,14 @@ def landing():
     return "<p>Hello, World!</p>"
 
 
-@app.route("/<username>/<table_name>")
+@app.route("/<username>/<table_name>", methods=["GET"])
 def get_table(username, table_name):
-    ...
+    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    return make_csv_response(
+        svc.get_table(
+            sesh, svc.user_uuid_for_name(sesh, username), username, table_name
+        )
+    )
 
 
 # FIXME: assert table name and user name match regex
@@ -73,3 +78,13 @@ def make_text_response(text: str, status=200):
     resp = make_response("200 OK: " + text + "\n")
     resp.headers["Content-Type"] = "text/plain"
     return resp
+
+
+def make_csv_response(csv_buf, status=200):
+    def generate():
+        minibuf = csv_buf.read(4096)
+        while minibuf:
+            yield minibuf
+            minibuf = csv_buf.read(4096)
+
+    return app.response_class(generate(), mimetype="text/csv")
