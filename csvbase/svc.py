@@ -149,7 +149,7 @@ def upsert_table(sesh, user_uuid, username, table_name, csv_buf):
     )
 
 
-def get_table(sesh, user_uuid, username, table_name):
+def table_as_csv(sesh, user_uuid, username, table_name):
     csv_buf = io.StringIO()
 
     columns = get_columns(sesh, username, table_name)
@@ -162,6 +162,15 @@ def get_table(sesh, user_uuid, username, table_name):
     cursor.copy_to(csv_buf, f"{username}__{table_name}", sep=",", columns=columns)
     csv_buf.seek(0)
     return csv_buf
+
+
+def table_as_rows(sesh, user_uuid, username, table_name):
+    columns = get_columns(sesh, username, table_name)
+
+    # FIXME: do this properly
+    col_text = ", ".join(f'"{col}"' for col in columns)
+    rv = sesh.execute(f'select {col_text} from "{username}__{table_name}"')
+    yield from rv
 
 
 def is_public(sesh, username, table_name):
