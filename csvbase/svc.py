@@ -136,6 +136,9 @@ def upsert_table(sesh, user_uuid, username, table_name, csv_buf):
     cursor = sesh.connection().connection.cursor()
     csv_buf.readline()  # pop the header, with is not expected by copy_from
 
+    # FIXME: truncate extra newlines from end of file here, see:
+    # https://unix.stackexchange.com/a/82317
+
     # FIXME: error handling, sometimes people curl stuff with just --data
     # instead of --data-binary, which eats the newlines
     cursor.copy_from(csv_buf, f"{username}__{table_name}", sep=dialect.delimiter)
