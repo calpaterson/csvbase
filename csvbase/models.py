@@ -45,6 +45,6 @@ class Table(Base):
 
     user_uuid = Column(PGUUID, ForeignKey("users.user_uuid"), primary_key=True)
     table_name = Column(
-        satypes.String(length=200), nullable=False, unique=True, index=True
+        satypes.String(length=200), nullable=False, index=True, primary_key=True
     )
     public = Column(satypes.Boolean, nullable=False)

@@ -27,7 +27,7 @@ BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
 
 def types_for_csv(csv_buf, dialect, has_headers=True):
     # look just at the first 5 lines - that hopefully is easy to explain
-    reader = csv.reader(csv_buf)
+    reader = csv.reader(csv_buf, dialect)
     headers = next(reader)
     first_five = zip(*(row for row, _ in zip(reader, range(5))))
     as_dict = dict(zip(headers, first_five))
@@ -67,7 +67,7 @@ def user_uuid_for_name(sesh, username):
 
 
 def make_create_table_ddl(username, table_name, types):
-    ddl = [f"CREATE TABLE {username}__{table_name} ("]
+    ddl = [f'CREATE TABLE "{username}__{table_name}" (']
     for index, (column_name, column_type) in enumerate(types.items()):
         ddl.append('"')
         ddl.append(column_name)
@@ -110,7 +110,11 @@ def make_drop_table_ddl(username, table_name):
 
 
 def upsert_table(sesh, user_uuid, username, table_name, csv_buf):
-    dialect = csv.Sniffer().sniff(csv_buf.read(1024))
+    try:
+        dialect = csv.Sniffer().sniff(csv_buf.read(1024))
+    except csv.Error:
+        logger.warning("unable to sniff dialect, falling back to excel")
+        dialect = csv.excel
     logger.info("sniffed dialect: %s", dialect)
     csv_buf.seek(0)
     types = types_for_csv(csv_buf, dialect)
