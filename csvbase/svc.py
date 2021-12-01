@@ -1,4 +1,6 @@
+import re
 import io
+import itertools
 from datetime import datetime, timezone
 import csv
 from logging import getLogger
@@ -16,14 +18,32 @@ PYTHON_TO_SQL_TYPEMAP = {
     bool: "BOOLEAN",
 }
 
+INT_REGEX = re.compile("^\d+$")
 
-def types_for_csv(csv_buf, dialect):
-    reader = csv.reader(csv_buf, dialect=dialect)
-    # FIXME: hardcoded
-    return {
-        "cow name": str,
-        "cow id": int,
-    }
+FLOAT_REGEX = re.compile("^(\d+\.)|(\.\d+)|(\d+\.\d?)$")
+
+BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
+
+
+def types_for_csv(csv_buf, dialect, has_headers=True):
+    # look just at the first 5 lines - that hopefully is easy to explain
+    reader = csv.reader(csv_buf)
+    headers = next(reader)
+    first_five = zip(*(row for row, _ in zip(reader, range(5))))
+    as_dict = dict(zip(headers, first_five))
+    rv = {}
+    # FIXME: add support for dates here... (probably using date-util)
+    for key, values in as_dict.items():
+        if all(FLOAT_REGEX.match(v) for v in values):
+            rv[key] = float
+        elif all(INT_REGEX.match(v) for v in values):
+            rv[key] = int
+        elif all(BOOL_REGEX.match(v) for v in values):
+            rv[key] = bool
+        else:
+            rv[key] = str
+    logger.info("inferred: %s", rv)
+    return rv
 
 
 def create_user(sesh, username, password):

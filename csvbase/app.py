@@ -1,4 +1,4 @@
-from io import StringIO
+import io
 import shutil
 import codecs
 from logging import basicConfig, INFO
@@ -41,7 +41,7 @@ def get_table(username, table_name):
 def upsert_table(username, table_name):
     am_user_or_400(username)
     # FIXME: add checking for forms here
-    buf = StringIO()
+    buf = io.StringIO()
     # FIXME: assuming utf-8, unlikely
     in_buf = codecs.getreader("utf-8")(request.stream)
     shutil.copyfileobj(in_buf, buf)
