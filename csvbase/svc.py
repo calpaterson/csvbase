@@ -67,7 +67,7 @@ def user_uuid_for_name(sesh, username):
 
 
 def make_create_table_ddl(username, table_name, types):
-    ddl = [f'CREATE TABLE "{username}__{table_name}" (']
+    ddl = [f'CREATE TABLE "{username}__{table_name}" (csvbase_row_id serial, ']
     for index, (column_name, column_type) in enumerate(types.items()):
         ddl.append('"')
         ddl.append(column_name)
@@ -102,7 +102,7 @@ def get_columns(sesh, username, table_name):
     ORDER  BY attnum;
     """
     rs = sesh.execute(stmt)
-    return [r[0] for r in rs]
+    return [r[0] for r in rs if not r[0].startswith("csvbase_")]
 
 
 def make_drop_table_ddl(username, table_name):
@@ -141,7 +141,12 @@ def upsert_table(sesh, user_uuid, username, table_name, csv_buf):
 
     # FIXME: error handling, sometimes people curl stuff with just --data
     # instead of --data-binary, which eats the newlines
-    cursor.copy_from(csv_buf, f"{username}__{table_name}", sep=dialect.delimiter)
+    cursor.copy_from(
+        csv_buf,
+        f"{username}__{table_name}",
+        sep=dialect.delimiter,
+        columns=get_columns(sesh, username, table_name),
+    )
 
 
 def get_table(sesh, user_uuid, username, table_name):
