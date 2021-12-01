@@ -10,6 +10,7 @@ from . import models
 
 logger = getLogger(__name__)
 
+# FIXME: add dates and uuids, which are both easy
 PYTHON_TO_SQL_TYPEMAP = {
     int: "BIGINT",
     str: "TEXT",
@@ -91,7 +92,7 @@ def table_exists(sesh, user_uuid, table_name):
     ).scalar()
 
 
-def get_columns(sesh, username, table_name):
+def get_columns(sesh, username, table_name, include_row_id=False):
     # lifted from https://dba.stackexchange.com/a/22420/28877
     stmt = f"""
     SELECT attname AS column_name, atttypid::regtype AS sql_type
@@ -102,7 +103,8 @@ def get_columns(sesh, username, table_name):
     ORDER  BY attnum;
     """
     rs = sesh.execute(stmt)
-    return [r[0] for r in rs if not r[0].startswith("csvbase_")]
+    return [
+        r[0] for r in rs if (not r[0].startswith("csvbase_") or include_row_id)]
 
 
 def make_drop_table_ddl(username, table_name):
@@ -165,7 +167,7 @@ def table_as_csv(sesh, user_uuid, username, table_name):
 
 
 def table_as_rows(sesh, user_uuid, username, table_name):
-    columns = get_columns(sesh, username, table_name)
+    columns = get_columns(sesh, username, table_name, include_row_id=True)
 
     # FIXME: do this properly
     col_text = ", ".join(f'"{col}"' for col in columns)

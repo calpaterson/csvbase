@@ -45,7 +45,7 @@ def get_table(username, table_name):
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     user_uuid = svc.user_uuid_for_name(sesh, username)
     if is_browser():
-        cols = svc.get_columns(sesh, username, table_name)
+        cols = svc.get_columns(sesh, username, table_name, include_row_id=True)
         row_iter = svc.table_as_rows(sesh, user_uuid, username, table_name)
         return make_response(
             render_template(
@@ -59,6 +59,22 @@ def get_table(username, table_name):
     else:
         return make_csv_response(
             svc.table_as_csv(sesh, user_uuid, username, table_name)
+        )
+
+@app.route("/<username>/<table_name>/rows/<int:row_id>", methods=["GET"])
+def get_row(username, table_name, row_id):
+    if is_browser():
+        cols = svc.get_columns(sesh, username, table_name)
+        row = []#svc.row(sesh, user_uuid, username, table_name, row_id)
+        return make_response(
+            render_template(
+                "row.html",
+                cols=cols,
+                row=row,
+                row_id=row_id,
+                username=username,
+                table_name=table_name,
+            )
         )
 
 

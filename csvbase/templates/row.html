@@ -1,0 +1,20 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "base.html" %}
+
+{% block main %}
+  <div class="container">
+    <h1>{{ username }}/{{ table_name }}/rows/{{ row_id }}</h1>
+  </div>
+  <div class="container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Column name</th>
+          <th>Column value</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
