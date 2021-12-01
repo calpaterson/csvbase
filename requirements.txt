@@ -3,3 +3,4 @@ flask
 flask-sqlalchemy-session
 psycopg2
 black
+cchardet

@@ -1,9 +1,20 @@
+from uuid import UUID
 import io
 import shutil
 import codecs
-from logging import basicConfig, INFO
+from logging import basicConfig, INFO, getLogger
 
-from flask import Flask, request, abort, make_response, make_response, render_template
+from cchardet import UniversalDetector
+from flask import (
+    Flask,
+    request,
+    abort,
+    make_response,
+    make_response,
+    render_template,
+    redirect,
+    url_for,
+)
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from flask_sqlalchemy_session import flask_scoped_session
@@ -16,6 +27,8 @@ app = Flask(__name__)
 engine = create_engine("postgresql:///csvbase")
 sesh = flask_scoped_session(sessionmaker(bind=engine))
 
+logger = getLogger(__name__)
+
 
 @app.before_first_request
 def lower_logging_level():
@@ -24,7 +37,7 @@ def lower_logging_level():
 
 @app.route("/")
 def landing():
-    return "<p>Hello, World!</p>"
+    return make_response(render_template("paste.html"))
 
 
 @app.route("/<username>/<table_name>", methods=["GET"])
@@ -49,18 +62,34 @@ def get_table(username, table_name):
         )
 
 
+@app.route("/new-table", methods=["POST"])
+def new_table_form_submission():
+    # FIXME: require a login
+    # am_a_user()
+    user_uuid, username = UUID("ffeb73b9-914b-4ede-9fc3-965e0fc1a556"), "calpaterson"
+    table_name = request.form["table-name"]
+    textarea = request.form.get("csv-textarea")
+    if textarea:
+        csv_buf = io.StringIO(textarea)
+    else:
+        csv_buf = byte_buf_to_str_buf(request.files["csv-file"])
+    svc.upsert_table(
+        sesh, svc.user_uuid_for_name(sesh, username), username, table_name, csv_buf
+    )
+    sesh.commit()
+    return redirect(url_for("get_table", username=username, table_name=table_name))
+
+
 # FIXME: assert table name and user name match regex
 @app.route("/<username>/<table_name>", methods=["PUT"])
 def upsert_table(username, table_name):
     am_user_or_400(username)
     # FIXME: add checking for forms here
-    buf = io.StringIO()
-    # FIXME: assuming utf-8, unlikely
-    in_buf = codecs.getreader("utf-8")(request.stream)
-    shutil.copyfileobj(in_buf, buf)
-    buf.seek(0)
+    byte_buf = io.BytesIO()
+    shutil.copyfileobj(request.stream, byte_buf)
+    str_buf = byte_buf_to_str_buf(byte_buf)
     svc.upsert_table(
-        sesh, svc.user_uuid_for_name(sesh, username), username, table_name, buf
+        sesh, svc.user_uuid_for_name(sesh, username), username, table_name, str_buf
     )
     sesh.commit()
     return make_text_response(f"upserted {username}/{table_name}")
@@ -108,3 +137,23 @@ def is_browser():
     accepts = werkzeug.http.parse_accept_header(request.headers.get("Accept"))
     best = accepts.best_match(["text/html", "text/csv"], default="text/csv")
     return best == "text/html"
+
+
+def byte_buf_to_str_buf(byte_buf):
+    detector = UniversalDetector()
+    for line in byte_buf.readlines():
+        detector.feed(line)
+        if detector.done:
+            break
+        if byte_buf.tell() > 1_000_000:
+            logger.warning("unable to detect after 1mb, giving up")
+            break
+    logger.info("detected: %s after %d bytes", detector.result, byte_buf.tell())
+    byte_buf.seek(0)
+    if detector.result["encoding"] is not None:
+        encoding = detector.result["encoding"]
+    else:
+        logger.warning("unable to detect charset, assuming utf-8")
+        encoding = "utf-8"
+    Reader = codecs.getreader(encoding)
+    return Reader(byte_buf)

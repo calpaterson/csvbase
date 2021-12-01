@@ -1,0 +1,29 @@
+<html>
+  <body>
+    <h1>Paste a csv file</h1>
+    <form action="{{ url_for('new_table_form_submission') }}" method="POST" enctype="multipart/form-data">
+      <p>
+        <label>Table name</label>
+        <input type="text" name="table-name" required pattern="^[A-z][-A-z0-9]+$"
+               title="Letters, numbers and dashes only.  Must start with a letter">
+      </p>
+
+      <p>
+      <label>Paste (include the header row):</label>
+      </p>
+      <textarea name="csv-textarea" rows="25" cols="80" autofocus>
+      </textarea>
+
+      <p>
+        <label>Or upload a file</label>
+      </p>
+      <p>
+        <input type="file" name="csv-file" accept=".csv,text/csv">
+      </p>
+
+      <p>
+        <input type="submit" value="Create it!">
+      </p>
+    </form>
+  </body>
+</html>
