@@ -1,24 +1,27 @@
 {# -*- mode: jinja2 -*- #}
-<html>
-  <body>
-    <h1>{{ username }}/{{ table_name }}</h1>
-  <table>
-    <thead>
-      <tr>
-        {% for col in cols %}
-          <th>{{col}}</th>
-        {% endfor %}
-      </tr>
-    </thead>
+{% extends "base.html" %}
 
-    {% for row in row_iter %}
-      <tr>
-        {% for col in row %}
-          <td>{{col}}</td>
-        {% endfor %}
-      </tr>
-    {% endfor %}
-  </table>
-  </body>
-</html>
+{% block main %}
+  <div class="container">
+    <h1 class="display-1">{{ username }}/{{ table_name }}</h1>
+  </div>
+  <div class="container">
+    <table class="table">
+      <thead>
+        <tr>
+          {% for col in cols %}
+            <th>{{col}}</th>
+          {% endfor %}
+        </tr>
+      </thead>
 
+      {% for row in row_iter %}
+        <tr>
+          {% for col in row %}
+            <td>{{col}}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+{% endblock %}
