@@ -19,6 +19,7 @@ from flask import (
     url_for,
     Blueprint,
     current_app,
+    flash,
 )
 from passlib.context import CryptContext
 from sqlalchemy.orm import sessionmaker
@@ -189,19 +190,29 @@ def sign_in():
             )
         )
     else:
+        username = request.form["username"]
         if svc.is_correct_password(
             sesh,
             current_app.config["CRYPT_CONTEXT"],
-            request.form["username"],
+            username,
             request.form["password"],
         ):
             set_current_user_for_session(
-                request.form["username"],
+                username,
                 svc.user_uuid_for_name(sesh, request.form["username"]),
             )
+            flash(f"Signed in as {username}")
             return redirect(url_for("csvbase.user", username=request.form["username"]))
         else:
             abort(400)
+
+
+@bp.route("/sign-out", methods=["GET"])
+def sign_out():
+    flask_session.clear()
+    flash("Signed out")
+    return redirect(url_for("csvbase.paste"))
+
 
 
 def am_user_or_400(username):
