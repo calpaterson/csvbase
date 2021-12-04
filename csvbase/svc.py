@@ -48,22 +48,18 @@ def types_for_csv(csv_buf, dialect, has_headers=True):
     return rv
 
 
-def create_user(sesh, username, password):
-    sesh.add(
-        models.User(
-            uuid4(),
-            username,
-            "just junk for now",
-            "Europe/London",
-            datetime.now(timezone.utc),
-        )
-    )
-
-
 def user_uuid_for_name(sesh, username):
     return (
         sesh.query(models.User.user_uuid)
         .filter(models.User.username == username)
+        .scalar()
+    )
+
+
+def username_from_user_uuid(sesh, user_uuid):
+    return (
+        sesh.query(models.User.username)
+        .filter(models.User.user_uuid == user_uuid)
         .scalar()
     )
 
@@ -104,8 +100,7 @@ def get_columns(sesh, username, table_name, include_row_id=False):
     ORDER  BY attnum;
     """
     rs = sesh.execute(stmt)
-    return [
-        r[0] for r in rs if (not r[0].startswith("csvbase_") or include_row_id)]
+    return [r[0] for r in rs if (not r[0].startswith("csvbase_") or include_row_id)]
 
 
 def make_drop_table_ddl(username, table_name):
@@ -203,3 +198,19 @@ def create_user(sesh, crypt_context, username, password_plain, email: Optional[s
     session.add(user)
 
     return None
+
+
+def is_correct_password(sesh, crypt_context, username, password):
+    user = sesh.query(models.User).filter(models.User.username == username).first()
+    if user is None:
+        return None
+    else:
+        return crypt_context.verify(password, user.password_hash)
+
+
+def tables_for_user(sesh, user_uuid, include_private=False):
+    rs = sesh.query(models.Table.table_name).filter(models.Table.user_uuid == user_uuid)
+    if not include_private:
+        rs = rs.filter(models.Table.public)
+    for (table_name,) in rs:
+        yield table_name

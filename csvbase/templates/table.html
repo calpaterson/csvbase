@@ -3,7 +3,7 @@
 
 {% block main %}
   <div class="container">
-    <h1>{{ username }}/{{ table_name }}</h1>
+    <h1><a href="{{ url_for('csvbase.user', username=username) }}">{{ username }}</a>/{{ table_name }}</h1>
   </div>
   <div class="container">
     <table class="table">

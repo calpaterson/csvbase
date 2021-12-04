@@ -1,7 +1,7 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "base.html" %}
 
-{% block body %}
+{% block main %}
   <div class="container">
     <h1>Paste a csv file to create a new API</h1>
   </div>
@@ -25,7 +25,7 @@
         <input type="file" name="csv-file" accept=".csv,text/csv">
       </p>
 
-      {% if not g.user %}
+      {% if not g.username %}
         <p>As you&apos;re not logged in, please create an account.  (If you already have an account, <a href="{{ url_for('csvbase.sign_in') }}">sign in</a>.)</p>
         <p>
           <label>Username</label>

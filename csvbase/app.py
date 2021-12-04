@@ -3,9 +3,12 @@ import io
 import shutil
 import codecs
 from logging import basicConfig, INFO, getLogger
+from typing import Optional, Any
 
 from cchardet import UniversalDetector
 from flask import (
+    g,
+    session as flask_session,
     Flask,
     request,
     abort,
@@ -15,7 +18,7 @@ from flask import (
     redirect,
     url_for,
     Blueprint,
-    current_app
+    current_app,
 )
 from passlib.context import CryptContext
 from sqlalchemy.orm import sessionmaker
@@ -25,11 +28,14 @@ import werkzeug.http
 from . import svc
 from . import db
 
+
 def init_app():
     basicConfig(level=INFO)
     app = Flask(__name__)
     app.config["CRYPT_CONTEXT"] = CryptContext(["argon2"])
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_NAME"] = "csvbase_websesh"
+    app.config["SECRET_KEY"] = "no peeking"
 
     app.register_blueprint(bp)
 
@@ -40,13 +46,40 @@ def init_app():
 
     return app
 
+
 logger = getLogger(__name__)
 
 bp = Blueprint("csvbase", __name__)
 
 
+@bp.before_request
+def put_user_in_g() -> None:
+    app_logger = current_app.logger
+    user_uuid: Optional[Any] = flask_session.get("user_uuid")
+    if user_uuid is not None:
+        if not isinstance(user_uuid, UUID):
+            del flask_session["user_uuid"]
+            app_logger.warning("cleared a corrupt user_uuid cookie: %s", user_uuid)
+        else:
+            sesh = current_app.scoped_session
+            username = svc.username_from_user_uuid(sesh, user_uuid)
+            if username is None:
+                del flask_session["user_uuid"]
+                app_logger.warning("cleared a corrupt user_uuid cookie: %s", user_uuid)
+            else:
+                set_current_user(username, user_uuid)
+                app_logger.debug("currently signed in as: %s", g.username)
+    else:
+        app_logger.debug("not signed in")
+
+
 @bp.route("/")
-def landing():
+def index_redirect():
+    return redirect(url_for("csvbase.paste"))
+
+
+@bp.route("/paste")
+def paste():
     return make_response(render_template("paste.html"))
 
 
@@ -72,12 +105,13 @@ def get_table(username, table_name):
             svc.table_as_csv(sesh, user_uuid, username, table_name)
         )
 
+
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["GET"])
 def get_row(username, table_name, row_id):
     sesh = current_app.scoped_session
     if is_browser():
         cols = svc.get_columns(sesh, username, table_name)
-        row = []#svc.row(sesh, user_uuid, username, table_name, row_id)
+        row = []  # svc.row(sesh, user_uuid, username, table_name, row_id)
         return make_response(
             render_template(
                 "row.html",
@@ -93,6 +127,11 @@ def get_row(username, table_name, row_id):
 @bp.route("/new-table", methods=["POST"])
 def new_table_form_submission():
     sesh = current_app.scoped_session
+    if "username" in form:
+        svc.create_user(sesh, form["username"], form.get("email"), form["password"])
+        g.user = form["username"]
+        flask("Account created")
+
     # FIXME: require a login
     # am_a_user()
     user_uuid, username = UUID("ffeb73b9-914b-4ede-9fc3-965e0fc1a556"), "calpaterson"
@@ -106,7 +145,9 @@ def new_table_form_submission():
         sesh, svc.user_uuid_for_name(sesh, username), username, table_name, csv_buf
     )
     sesh.commit()
-    return redirect(url_for("csvbase.get_table", username=username, table_name=table_name))
+    return redirect(
+        url_for("csvbase.get_table", username=username, table_name=table_name)
+    )
 
 
 # FIXME: assert table name and user name match regex
@@ -127,12 +168,40 @@ def upsert_table(username, table_name):
 
 @bp.route("/<username>", methods=["GET"])
 def user(username):
-    abort(501)
+    sesh = current_app.scoped_session
+    tables = svc.tables_for_user(sesh, svc.user_uuid_for_name(sesh, username))
+    return make_response(
+        render_template(
+            "user.html",
+            username=username,
+            table_names=tables,
+        )
+    )
 
 
 @bp.route("/sign-in", methods=["GET", "POST"])
 def sign_in():
-    abort(501)
+    sesh = current_app.scoped_session
+    if request.method == "GET":
+        return make_response(
+            render_template(
+                "sign_in.html",
+            )
+        )
+    else:
+        if svc.is_correct_password(
+            sesh,
+            current_app.config["CRYPT_CONTEXT"],
+            request.form["username"],
+            request.form["password"],
+        ):
+            set_current_user_for_session(
+                request.form["username"],
+                svc.user_uuid_for_name(sesh, request.form["username"]),
+            )
+            return redirect(url_for("csvbase.user", username=request.form["username"]))
+        else:
+            abort(400)
 
 
 def am_user_or_400(username):
@@ -159,7 +228,7 @@ def make_csv_response(csv_buf, status=200):
             yield minibuf
             minibuf = csv_buf.read(4096)
 
-    return app.response_class(generate(), mimetype="text/csv")
+    return current_app.response_class(generate(), mimetype="text/csv")
 
 
 def is_browser():
@@ -187,3 +256,20 @@ def byte_buf_to_str_buf(byte_buf):
         encoding = "utf-8"
     Reader = codecs.getreader(encoding)
     return Reader(byte_buf)
+
+
+def set_current_user_for_session(username, user_uuid, session: Optional[Any] = None):
+    """Sets the current user and creates a web session."""
+    g.user_uuid = user_uuid
+    g.username = username
+
+    if session is None:
+        session = flask_session
+    session["user_uuid"] = user_uuid
+    # Make it last for 31 days
+    session.permanent = True
+
+
+def set_current_user(username, user_uuid):
+    g.username = username
+    g.user_uuid = user_uuid

@@ -9,6 +9,9 @@
   </head>
   <body>
     {% block body %}
+      {% if g.username %}
+        <p>Logged in as <a href="{{ url_for('csvbase.user', username=g.username) }}">{{g.username}}</a></p>
+      {% endif %}
       {% block main %}
       {% endblock %}
     {% endblock %}
