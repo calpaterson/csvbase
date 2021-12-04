@@ -6,6 +6,7 @@
     <h1><a href="{{ url_for('csvbase.user', username=username) }}">{{ username }}</a>/<a href="{{ url_for('csvbase.get_table', username=username, table_name=table_name) }}">{{ table_name }}</a>/rows/{{ row_id }}</h1>
   </div>
   <div class="container">
+    {% if g.username != username %}
     <table class="table">
       <thead>
         <tr>
@@ -22,5 +23,16 @@
         {% endfor %}
       </tbody>
     </table>
+    {% else %}
+      <form >
+        {% for col_name, v in row %}
+          <div class="form-group">
+            <label>{{ col_name }}</label>
+            <input type="text" name="{{ col_name }}" value="{{ v }}">
+          </div>
+        {% endfor %}
+        <input type="submit" value="Update">
+      </form>
+    {% endif %}
   </div>
 {% endblock %}
