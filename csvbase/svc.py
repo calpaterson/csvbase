@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import csv
 from logging import getLogger
 from dataclasses import dataclass
+from datetime import date
 
 from . import models
 
@@ -18,9 +19,12 @@ PYTHON_TO_SQL_TYPEMAP = {
     datetime: "TIMESTAMP WITH TIMEZONE",
     float: "double precision",
     bool: "BOOLEAN",
+    date: "date",
 }
 
 SQL_TO_PYTHON_TYPEMAP = {v: k for k, v in PYTHON_TO_SQL_TYPEMAP.items()}
+# FIXME: shouldn't be needed, no small ints
+SQL_TO_PYTHON_TYPEMAP["integer"] = int
 
 INT_REGEX = re.compile("^\d+$")
 
@@ -91,7 +95,7 @@ def table_exists(sesh, user_uuid, table_name):
     ).scalar()
 
 
-@dataclass
+@dataclass(frozen=True)
 class Column:
     name: str
     python_type: type
@@ -101,10 +105,23 @@ class Column:
             int: "integer",
             str: "text",
             float: "float",
-            bool: "boolean"
+            bool: "boolean",
+            date: "date",
         }
         return MAP[self.python_type]
 
+    def html_type(self):
+        MAP = {
+            bool: "checkbox",
+            date: "date",
+        }
+        return MAP.get(self.python_type, "text")
+
+    def value_to_json(self, value):
+        if self.python_type in [date]:
+            return value.isoformat()
+        else:
+            return value
 
 
 def get_columns(sesh, username, table_name, include_row_id=False):
@@ -202,7 +219,7 @@ def get_row(sesh, username, table_name, row_id):
     rv = sesh.execute(
         f'select {col_text} from "{username}__{table_name}" where csvbase_row_id = {row_id}'
     ).fetchone()
-    return zip(columns, rv)
+    return dict(zip(columns, rv))
 
 
 def is_public(sesh, username, table_name):

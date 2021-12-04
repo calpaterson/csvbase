@@ -20,6 +20,7 @@ from flask import (
     Blueprint,
     current_app,
     flash,
+    jsonify,
 )
 from passlib.context import CryptContext
 from sqlalchemy.orm import sessionmaker
@@ -111,8 +112,8 @@ def get_table(username, table_name):
 def get_row(username, table_name, row_id):
     sesh = current_app.scoped_session
     user_uuid = svc.user_uuid_for_name(sesh, username)
+    row = svc.get_row(sesh, username, table_name, row_id)
     if is_browser():
-        row = svc.get_row(sesh, username, table_name, row_id)
         return make_response(
             render_template(
                 "row.html",
@@ -122,6 +123,19 @@ def get_row(username, table_name, row_id):
                 table_name=table_name,
             )
         )
+    else:
+        return jsonify({
+            "row_id": row_id,
+            "row": {
+                column.name: column.value_to_json(value)
+                for column, value in row.items()
+            }
+        })
+
+
+@bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["PUT"])
+def update_row(username, table_name, row_id):
+    abort(501)
 
 
 @bp.route("/new-table", methods=["POST"])
