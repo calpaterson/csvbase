@@ -1,0 +1,15 @@
+version: "3.1"
+
+services:
+  postgres:
+    image: postgres:12.9
+    ports:
+      - "16432:6432"
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: csvbase
+
+  csvbase:
+    build: .
+    ports:
+      - "6001:6001"
