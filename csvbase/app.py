@@ -14,6 +14,7 @@ from flask import (
     render_template,
     redirect,
     url_for,
+    Blueprint,
 )
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -22,25 +23,26 @@ import werkzeug.http
 
 from . import svc
 
-app = Flask(__name__)
+def init_app():
+    basicConfig(level=INFO)
+    app = Flask(__name__)
+    app.register_blueprint(bp)
+    return app
 
 engine = create_engine("postgresql:///csvbase")
 sesh = flask_scoped_session(sessionmaker(bind=engine))
 
 logger = getLogger(__name__)
 
-
-@app.before_first_request
-def lower_logging_level():
-    basicConfig(level=INFO)
+bp = Blueprint("csvbase", __name__)
 
 
-@app.route("/")
+@bp.route("/")
 def landing():
     return make_response(render_template("paste.html"))
 
 
-@app.route("/<username>/<table_name>", methods=["GET"])
+@bp.route("/<username>/<table_name>", methods=["GET"])
 def get_table(username, table_name):
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     user_uuid = svc.user_uuid_for_name(sesh, username)
@@ -61,7 +63,7 @@ def get_table(username, table_name):
             svc.table_as_csv(sesh, user_uuid, username, table_name)
         )
 
-@app.route("/<username>/<table_name>/rows/<int:row_id>", methods=["GET"])
+@bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["GET"])
 def get_row(username, table_name, row_id):
     if is_browser():
         cols = svc.get_columns(sesh, username, table_name)
@@ -78,7 +80,7 @@ def get_row(username, table_name, row_id):
         )
 
 
-@app.route("/new-table", methods=["POST"])
+@bp.route("/new-table", methods=["POST"])
 def new_table_form_submission():
     # FIXME: require a login
     # am_a_user()
@@ -93,11 +95,11 @@ def new_table_form_submission():
         sesh, svc.user_uuid_for_name(sesh, username), username, table_name, csv_buf
     )
     sesh.commit()
-    return redirect(url_for("get_table", username=username, table_name=table_name))
+    return redirect(url_for("csvbase.get_table", username=username, table_name=table_name))
 
 
 # FIXME: assert table name and user name match regex
-@app.route("/<username>/<table_name>", methods=["PUT"])
+@bp.route("/<username>/<table_name>", methods=["PUT"])
 def upsert_table(username, table_name):
     am_user_or_400(username)
     # FIXME: add checking for forms here
@@ -111,12 +113,12 @@ def upsert_table(username, table_name):
     return make_text_response(f"upserted {username}/{table_name}")
 
 
-@app.route("/<username>")
+@bp.route("/<username>")
 def user(username):
     ...
 
 
-@app.route("/sign-up")
+@bp.route("/sign-up")
 def post():
     ...
 

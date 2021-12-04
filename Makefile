@@ -1,4 +1,4 @@
-export FLASK_APP = csvbase.app
+export FLASK_APP = csvbase.app:init_app()
 export FLASK_ENV = development
 
 .venv: .venv/touchfile

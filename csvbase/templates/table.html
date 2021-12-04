@@ -24,7 +24,7 @@
           {% for col in row %}
             {% if loop.index == 1 %}
               <td><a
-                    href="{{ url_for('get_row', username=username, table_name=table_name, row_id=col) }}"
+                    href="{{ url_for('csvbase.get_row', username=username, table_name=table_name, row_id=col) }}"
                     >{{col}}</a></td>
             {% else %}
               <td>{{col}}</td>
