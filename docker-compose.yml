@@ -4,12 +4,24 @@ services:
   postgres:
     image: postgres:12.9
     ports:
-      - "16432:6432"
+      - "7432:5432"
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: csvbase
+    networks:
+      csvbase:
 
   csvbase:
     build: .
+    environment:
+      CSVBASE_DB_URL: 'postgresql://postgres:password@postgres:5432/csvbase'
     ports:
       - "6001:6001"
+    networks:
+      csvbase:
+    depends_on:
+      - postgres
+
+networks:
+  csvbase:
+    driver: bridge

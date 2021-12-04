@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from csvbase.models import Base
-from csvbase.app import engine
+from csvbase.db import make_tables
 
-Base.metadata.create_all(bind=engine)
+make_tables()

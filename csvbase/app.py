@@ -15,14 +15,15 @@ from flask import (
     redirect,
     url_for,
     Blueprint,
+    current_app
 )
 from passlib.context import CryptContext
-from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from flask_sqlalchemy_session import flask_scoped_session
 import werkzeug.http
 
 from . import svc
+from . import db
 
 def init_app():
     basicConfig(level=INFO)
@@ -33,10 +34,13 @@ def init_app():
     # Don't pointlessly echo the cookies
     app.config["SESSION_REFRESH_EACH_REQUEST"] = False
     app.register_blueprint(bp)
-    return app
 
-engine = create_engine("postgresql:///csvbase")
-sesh = flask_scoped_session(sessionmaker(bind=engine))
+    db.make_tables()
+
+    sesh = flask_scoped_session(sessionmaker(bind=db.engine))
+    sesh.init_app(app)
+
+    return app
 
 logger = getLogger(__name__)
 
@@ -50,6 +54,7 @@ def landing():
 
 @bp.route("/<username>/<table_name>", methods=["GET"])
 def get_table(username, table_name):
+    sesh = current_app.scoped_session
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     user_uuid = svc.user_uuid_for_name(sesh, username)
     if is_browser():
@@ -71,6 +76,7 @@ def get_table(username, table_name):
 
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["GET"])
 def get_row(username, table_name, row_id):
+    sesh = current_app.scoped_session
     if is_browser():
         cols = svc.get_columns(sesh, username, table_name)
         row = []#svc.row(sesh, user_uuid, username, table_name, row_id)
@@ -88,6 +94,7 @@ def get_row(username, table_name, row_id):
 
 @bp.route("/new-table", methods=["POST"])
 def new_table_form_submission():
+    sesh = current_app.scoped_session
     # FIXME: require a login
     # am_a_user()
     user_uuid, username = UUID("ffeb73b9-914b-4ede-9fc3-965e0fc1a556"), "calpaterson"
@@ -107,6 +114,7 @@ def new_table_form_submission():
 # FIXME: assert table name and user name match regex
 @bp.route("/<username>/<table_name>", methods=["PUT"])
 def upsert_table(username, table_name):
+    sesh = current_app.scoped_session
     am_user_or_400(username)
     # FIXME: add checking for forms here
     byte_buf = io.BytesIO()
