@@ -5,7 +5,7 @@ from typing import Optional
 from datetime import datetime, timezone
 import csv
 from logging import getLogger
-from logging import getLogger
+from dataclasses import dataclass
 
 from . import models
 
@@ -13,8 +13,8 @@ logger = getLogger(__name__)
 
 # FIXME: add dates and uuids, which are both easy
 PYTHON_TO_SQL_TYPEMAP = {
-    int: "BIGINT",
-    str: "TEXT",
+    int: "bigint",
+    str: "text",
     datetime: "TIMESTAMP WITH TIMEZONE",
     float: "DOUBLE PRECISION",
     bool: "BOOLEAN",
@@ -65,7 +65,7 @@ def username_from_user_uuid(sesh, user_uuid):
 
 
 def make_create_table_ddl(username, table_name, types):
-    ddl = [f'CREATE TABLE "{username}__{table_name}" (csvbase_row_id serial, ']
+    ddl = [f'CREATE TABLE "{username}__{table_name}" (csvbase_row_id bigserial, ']
     for index, (column_name, column_type) in enumerate(types.items()):
         ddl.append('"')
         ddl.append(column_name)
@@ -89,6 +89,22 @@ def table_exists(sesh, user_uuid, table_name):
     ).scalar()
 
 
+@dataclass
+class Column:
+    name: str
+    python_type: type
+
+    def pretty_type(self):
+        MAP = {
+            int: "integer",
+            str: "text",
+            float: "float",
+            bool: "boolean"
+        }
+        return MAP[self.python_type]
+
+
+
 def get_columns(sesh, username, table_name, include_row_id=False):
     # lifted from https://dba.stackexchange.com/a/22420/28877
     stmt = f"""
@@ -100,7 +116,12 @@ def get_columns(sesh, username, table_name, include_row_id=False):
     ORDER  BY attnum;
     """
     rs = sesh.execute(stmt)
-    return [r[0] for r in rs if (not r[0].startswith("csvbase_") or include_row_id)]
+    rv = []
+    for name, sql_type in rs:
+        if name == "csvbase_row_id" and not include_row_id:
+            continue
+        rv.append(Column(name=name, python_type=str))
+    return rv
 
 
 def make_drop_table_ddl(username, table_name):
@@ -143,14 +164,14 @@ def upsert_table(sesh, user_uuid, username, table_name, csv_buf):
         csv_buf,
         f"{username}__{table_name}",
         sep=dialect.delimiter,
-        columns=get_columns(sesh, username, table_name),
+        columns=[c.name for c in get_columns(sesh, username, table_name)],
     )
 
 
 def table_as_csv(sesh, user_uuid, username, table_name):
     csv_buf = io.StringIO()
 
-    columns = get_columns(sesh, username, table_name)
+    columns = [c.name for c in get_columns(sesh, username, table_name)]
 
     # this allows for putting the columns in with proper csv escaping
     header_writer = csv.writer(csv_buf)
@@ -163,7 +184,7 @@ def table_as_csv(sesh, user_uuid, username, table_name):
 
 
 def table_as_rows(sesh, user_uuid, username, table_name):
-    columns = get_columns(sesh, username, table_name, include_row_id=True)
+    columns = [c.name for c in get_columns(sesh, username, table_name, include_row_id=True)]
 
     # FIXME: do this properly
     col_text = ", ".join(f'"{col}"' for col in columns)
@@ -174,7 +195,7 @@ def table_as_rows(sesh, user_uuid, username, table_name):
 def get_row(sesh, username, table_name, row_id):
     columns = get_columns(sesh, username, table_name, include_row_id=False)
     # FIXME: do this properly
-    col_text = ", ".join(f'"{col}"' for col in columns)
+    col_text = ", ".join(f'"{col.name}"' for col in columns)
 
     rv = sesh.execute(
         f'select {col_text} from "{username}__{table_name}" where csvbase_row_id = {row_id}'

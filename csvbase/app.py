@@ -112,7 +112,6 @@ def get_row(username, table_name, row_id):
     sesh = current_app.scoped_session
     user_uuid = svc.user_uuid_for_name(sesh, username)
     if is_browser():
-        cols = svc.get_columns(sesh, username, table_name)
         row = svc.get_row(sesh, username, table_name, row_id)
         return make_response(
             render_template(

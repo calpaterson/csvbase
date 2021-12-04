@@ -11,13 +11,15 @@
       <thead>
         <tr>
           <th>Column name</th>
+          <th>Column type</th>
           <th>Column value</th>
         </tr>
       </thead>
       <tbody>
-        {% for col_name, v in row %}
+        {% for col, v in row %}
           <tr>
-            <td>{{ col_name }}</td>
+            <td>{{ col.name }}</td>
+            <td>{{ col.pretty_type() }}</td>
             <td>{{ v }}</td>
           </tr>
         {% endfor %}
