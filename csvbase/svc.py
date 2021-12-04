@@ -1,6 +1,7 @@
 import re
 import io
 import itertools
+from typing import Optional
 from datetime import datetime, timezone
 import csv
 from logging import getLogger
@@ -182,3 +183,23 @@ def is_public(sesh, username, table_name):
         .filter(models.User.username == username, models.Table.table_name == table_name)
         .scalar()
     )
+
+
+def create_user(sesh, crypt_context, username, password_plain, email: Optional[str]):
+    user_uuid = uuid4()
+    password_hashed = crypt_context.hash(password_plain)
+    registered = datetime.now(timezone.utc)
+    user = models.User(
+        user_uuid=user_uuid,
+        username=username,
+        password=password_hashed,
+        timezone=user_timezone,
+        registered=registered,
+    )
+
+    if email is not None:
+        user.email_obj = UserEmail(email_address=email)
+
+    session.add(user)
+
+    return None

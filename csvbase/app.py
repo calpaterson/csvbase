@@ -16,6 +16,7 @@ from flask import (
     url_for,
     Blueprint,
 )
+from passlib.context import CryptContext
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from flask_sqlalchemy_session import flask_scoped_session
@@ -26,6 +27,11 @@ from . import svc
 def init_app():
     basicConfig(level=INFO)
     app = Flask(__name__)
+    app.config["CRYPT_CONTEXT"] = CryptContext(["argon2"])
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
+    # Don't pointlessly echo the cookies
+    app.config["SESSION_REFRESH_EACH_REQUEST"] = False
     app.register_blueprint(bp)
     return app
 
@@ -113,14 +119,14 @@ def upsert_table(username, table_name):
     return make_text_response(f"upserted {username}/{table_name}")
 
 
-@bp.route("/<username>")
+@bp.route("/<username>", methods=["GET"])
 def user(username):
-    ...
+    abort(501)
 
 
-@bp.route("/sign-up")
-def post():
-    ...
+@bp.route("/sign-in", methods=["GET", "POST"])
+def sign_in():
+    abort(501)
 
 
 def am_user_or_400(username):

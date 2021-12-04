@@ -4,3 +4,5 @@ flask-sqlalchemy-session
 psycopg2
 black
 cchardet
+passlib
+argon2_cffi
