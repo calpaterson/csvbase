@@ -31,8 +31,6 @@ def init_app():
     app.config["CRYPT_CONTEXT"] = CryptContext(["argon2"])
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
-    # Don't pointlessly echo the cookies
-    app.config["SESSION_REFRESH_EACH_REQUEST"] = False
     app.register_blueprint(bp)
 
     db.make_tables()
