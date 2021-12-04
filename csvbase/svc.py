@@ -16,9 +16,11 @@ PYTHON_TO_SQL_TYPEMAP = {
     int: "bigint",
     str: "text",
     datetime: "TIMESTAMP WITH TIMEZONE",
-    float: "DOUBLE PRECISION",
+    float: "double precision",
     bool: "BOOLEAN",
 }
+
+SQL_TO_PYTHON_TYPEMAP = {v: k for k, v in PYTHON_TO_SQL_TYPEMAP.items()}
 
 INT_REGEX = re.compile("^\d+$")
 
@@ -120,7 +122,7 @@ def get_columns(sesh, username, table_name, include_row_id=False):
     for name, sql_type in rs:
         if name == "csvbase_row_id" and not include_row_id:
             continue
-        rv.append(Column(name=name, python_type=str))
+        rv.append(Column(name=name, python_type=SQL_TO_PYTHON_TYPEMAP[sql_type]))
     return rv
 
 
