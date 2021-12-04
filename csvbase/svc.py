@@ -171,6 +171,17 @@ def table_as_rows(sesh, user_uuid, username, table_name):
     yield from rv
 
 
+def get_row(sesh, username, table_name, row_id):
+    columns = get_columns(sesh, username, table_name, include_row_id=False)
+    # FIXME: do this properly
+    col_text = ", ".join(f'"{col}"' for col in columns)
+
+    rv = sesh.execute(
+        f'select {col_text} from "{username}__{table_name}" where csvbase_row_id = {row_id}'
+    ).fetchone()
+    return zip(columns, rv)
+
+
 def is_public(sesh, username, table_name):
     return (
         sesh.query(models.Table.public)

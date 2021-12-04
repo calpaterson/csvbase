@@ -110,13 +110,13 @@ def get_table(username, table_name):
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["GET"])
 def get_row(username, table_name, row_id):
     sesh = current_app.scoped_session
+    user_uuid = svc.user_uuid_for_name(sesh, username)
     if is_browser():
         cols = svc.get_columns(sesh, username, table_name)
-        row = []  # svc.row(sesh, user_uuid, username, table_name, row_id)
+        row = svc.get_row(sesh, username, table_name, row_id)
         return make_response(
             render_template(
                 "row.html",
-                cols=cols,
                 row=row,
                 row_id=row_id,
                 username=username,
@@ -212,7 +212,6 @@ def sign_out():
     flask_session.clear()
     flash("Signed out")
     return redirect(url_for("csvbase.paste"))
-
 
 
 def am_user_or_400(username):
