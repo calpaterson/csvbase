@@ -124,13 +124,15 @@ def get_row(username, table_name, row_id):
             )
         )
     else:
-        return jsonify({
-            "row_id": row_id,
-            "row": {
-                column.name: column.value_to_json(value)
-                for column, value in row.items()
+        return jsonify(
+            {
+                "row_id": row_id,
+                "row": {
+                    column.name: column.value_to_json(value)
+                    for column, value in row.items()
+                },
             }
-        })
+        )
 
 
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["PUT"])
@@ -138,11 +140,32 @@ def update_row(username, table_name, row_id):
     abort(501)
 
 
+@bp.route("/<username>/<table_name>/rows/<int:row_id>/edit", methods=["POST"])
+def update_row_by_form_post(username, table_name, row_id):
+    sesh = current_app.scoped_session
+    columns = svc.get_columns(sesh, username, table_name)
+    values = {c.name: c.python_type(request.form[c.name]) for c in columns}
+    svc.update_row(sesh, username, table_name, row_id, values)
+    sesh.commit()
+    flash(f"Updated row {row_id}")
+    return redirect(
+        url_for(
+            "csvbase.get_row", username=username, table_name=table_name, row_id=row_id
+        )
+    )
+
+
 @bp.route("/new-table", methods=["POST"])
 def new_table_form_submission():
     sesh = current_app.scoped_session
     if "username" in request.form:
-        user_uuid = svc.create_user(sesh, current_app.config["CRYPT_CONTEXT"], request.form["username"], request.form.get("email"), request.form["password"])
+        user_uuid = svc.create_user(
+            sesh,
+            current_app.config["CRYPT_CONTEXT"],
+            request.form["username"],
+            request.form.get("email"),
+            request.form["password"],
+        )
         set_current_user_for_session(request.form["username"], user_uuid)
         flash("Account created")
     else:
@@ -154,9 +177,7 @@ def new_table_form_submission():
         csv_buf = io.StringIO(textarea)
     else:
         csv_buf = byte_buf_to_str_buf(request.files["csv-file"])
-    svc.upsert_table(
-        sesh, g.user_uuid, g.username, table_name, csv_buf
-    )
+    svc.upsert_table(sesh, g.user_uuid, g.username, table_name, csv_buf)
     sesh.commit()
     return redirect(
         url_for("csvbase.get_table", username=g.username, table_name=table_name)

@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from datetime import date
 from uuid import uuid4
 
+from sqlalchemy import table as satable, column as sacolumn, types as satypes
+
 from . import models
 
 logger = getLogger(__name__)
@@ -35,6 +37,7 @@ BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
 
 
 def types_for_csv(csv_buf, dialect, has_headers=True):
+    # FIXME: This should return a list of Column
     # look just at the first 5 lines - that hopefully is easy to explain
     reader = csv.reader(csv_buf, dialect)
     headers = next(reader)
@@ -72,6 +75,7 @@ def username_from_user_uuid(sesh, user_uuid):
 
 
 def make_create_table_ddl(username, table_name, types):
+    ## FIXME: do this with the ORM
     ddl = [f'CREATE TABLE "{username}__{table_name}" (csvbase_row_id bigserial, ']
     for index, (column_name, column_type) in enumerate(types.items()):
         ddl.append('"')
@@ -111,6 +115,16 @@ class Column:
         }
         return MAP[self.python_type]
 
+    def sqla_type(self):
+        MAP = {
+            int: satypes.BigInteger,
+            str: satypes.String,
+            float: satypes.Float,
+            bool: satypes.Boolean,
+            date: satypes.Date,
+        }
+        return MAP[self.python_type]
+
     def html_type(self):
         MAP = {
             bool: "checkbox",
@@ -142,6 +156,14 @@ def get_columns(sesh, username, table_name, include_row_id=False):
             continue
         rv.append(Column(name=name, python_type=SQL_TO_PYTHON_TYPEMAP[sql_type]))
     return rv
+
+
+def get_sqla_table(sesh, username, table_name):
+    columns = get_columns(sesh, username, table_name, include_row_id=True)
+    return satable(
+        f"{username}__{table_name}",
+        *[sacolumn(c.name, type_=c.sqla_type()) for c in columns],
+    )
 
 
 def make_drop_table_ddl(username, table_name):
@@ -204,23 +226,22 @@ def table_as_csv(sesh, user_uuid, username, table_name):
 
 
 def table_as_rows(sesh, user_uuid, username, table_name):
-    columns = [c.name for c in get_columns(sesh, username, table_name, include_row_id=True)]
-
-    # FIXME: do this properly
-    col_text = ", ".join(f'"{col}"' for col in columns)
-    rv = sesh.execute(f'select {col_text} from "{username}__{table_name}"')
-    yield from rv
+    table = get_sqla_table(sesh, username, table_name)
+    yield from sesh.execute(table.select().order_by(table.c.csvbase_row_id))
 
 
 def get_row(sesh, username, table_name, row_id):
     columns = get_columns(sesh, username, table_name, include_row_id=False)
-    # FIXME: do this properly
-    col_text = ", ".join(f'"{col.name}"' for col in columns)
+    table = get_sqla_table(sesh, username, table_name)
+    cursor = sesh.execute(table.select().where(table.c.csvbase_row_id == row_id))
+    row = cursor.fetchone()
 
-    rv = sesh.execute(
-        f'select {col_text} from "{username}__{table_name}" where csvbase_row_id = {row_id}'
-    ).fetchone()
-    return dict(zip(columns, rv))
+    return {c: row[c.name] for c in columns}
+
+
+def update_row(sesh, username, table_name, row_id, values):
+    table = get_sqla_table(sesh, username, table_name)
+    sesh.execute(table.update().where(table.c.csvbase_row_id == row_id).values(values))
 
 
 def is_public(sesh, username, table_name):
@@ -240,7 +261,7 @@ def create_user(sesh, crypt_context, username, password_plain, email: Optional[s
         user_uuid=user_uuid,
         username=username,
         password_hash=password_hashed,
-        # FIXME: unsafe default
+        # FIXME: hardcoded default
         timezone="Europe/London",
         registered=registered,
     )

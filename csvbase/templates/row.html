@@ -26,13 +26,13 @@
       </tbody>
     </table>
     {% else %}
-      <form >
+      <form action="{{ url_for('csvbase.update_row_by_form_post', username=username, table_name=table_name, row_id=row_id) }}" method="POST">
         {% for col, v in row.items() %}
           <div class="form-group">
             <label>{{ col.name }}</label>
             <input
               type="{{ col.html_type() }}"
-              name="{{ col_name }}" value="{{ v }}">
+              name="{{ col.name }}" value="{{ v }}">
           </div>
         {% endfor %}
         <input type="submit" value="Update">
