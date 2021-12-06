@@ -144,7 +144,7 @@ def update_row(username, table_name, row_id):
 def update_row_by_form_post(username, table_name, row_id):
     sesh = current_app.scoped_session
     columns = svc.get_columns(sesh, username, table_name)
-    values = {c.name: c.python_type(request.form[c.name]) for c in columns}
+    values = {c.name: c.from_string_to_python(request.form[c.name]) for c in columns}
     svc.update_row(sesh, username, table_name, row_id, values)
     sesh.commit()
     flash(f"Updated row {row_id}")
@@ -254,6 +254,11 @@ def am_user_or_400(username):
         if auth.username == "calpaterson" and auth.password == "password":
             return
     else:
+        abort(400)
+
+
+def am_a_user():
+    if not g.username and g.user_uuid:
         abort(400)
 
 

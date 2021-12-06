@@ -138,6 +138,12 @@ class Column:
         else:
             return value
 
+    def from_string_to_python(self, str):
+        if self.python_type is not date:
+            return self.python_type(str)
+        else:
+            return date.fromisoformat(str)
+
 
 def get_columns(sesh, username, table_name, include_row_id=False):
     # lifted from https://dba.stackexchange.com/a/22420/28877
