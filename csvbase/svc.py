@@ -7,6 +7,7 @@ import csv
 from logging import getLogger
 from dataclasses import dataclass
 from datetime import date
+from uuid import uuid4
 
 from . import models
 
@@ -238,17 +239,18 @@ def create_user(sesh, crypt_context, username, password_plain, email: Optional[s
     user = models.User(
         user_uuid=user_uuid,
         username=username,
-        password=password_hashed,
-        timezone=user_timezone,
+        password_hash=password_hashed,
+        # FIXME: unsafe default
+        timezone="Europe/London",
         registered=registered,
     )
 
     if email is not None:
-        user.email_obj = UserEmail(email_address=email)
+        user.email_obj = models.UserEmail(email_address=email)
 
-    session.add(user)
+    sesh.add(user)
 
-    return None
+    return user_uuid
 
 
 def is_correct_password(sesh, crypt_context, username, password):

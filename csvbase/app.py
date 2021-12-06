@@ -141,14 +141,13 @@ def update_row(username, table_name, row_id):
 @bp.route("/new-table", methods=["POST"])
 def new_table_form_submission():
     sesh = current_app.scoped_session
-    if "username" in form:
-        svc.create_user(sesh, form["username"], form.get("email"), form["password"])
-        g.user = form["username"]
-        flask("Account created")
+    if "username" in request.form:
+        user_uuid = svc.create_user(sesh, current_app.config["CRYPT_CONTEXT"], request.form["username"], request.form.get("email"), request.form["password"])
+        set_current_user_for_session(request.form["username"], user_uuid)
+        flash("Account created")
+    else:
+        am_a_user()
 
-    # FIXME: require a login
-    # am_a_user()
-    user_uuid, username = UUID("ffeb73b9-914b-4ede-9fc3-965e0fc1a556"), "calpaterson"
     table_name = request.form["table-name"]
     textarea = request.form.get("csv-textarea")
     if textarea:
@@ -156,11 +155,11 @@ def new_table_form_submission():
     else:
         csv_buf = byte_buf_to_str_buf(request.files["csv-file"])
     svc.upsert_table(
-        sesh, svc.user_uuid_for_name(sesh, username), username, table_name, csv_buf
+        sesh, g.user_uuid, g.username, table_name, csv_buf
     )
     sesh.commit()
     return redirect(
-        url_for("csvbase.get_table", username=username, table_name=table_name)
+        url_for("csvbase.get_table", username=g.username, table_name=table_name)
     )
 
 
