@@ -111,7 +111,7 @@ def get_table(username, table_name):
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["GET"])
 def get_row(username, table_name, row_id):
     sesh = current_app.scoped_session
-    user_uuid = svc.user_uuid_for_name(sesh, username)
+    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     row = svc.get_row(sesh, username, table_name, row_id)
     if is_browser():
         return make_response(
@@ -137,7 +137,12 @@ def get_row(username, table_name, row_id):
 
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["PUT"])
 def update_row(username, table_name, row_id):
-    abort(501)
+    sesh = current_app.scoped_session
+    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    assert request.json["row_id"] == row_id, "row ids cannot be changed"
+    svc.update_row(sesh, username, table_name, row_id, request.json["row"])
+    sesh.commit()
+    return jsonify({})
 
 
 @bp.route("/<username>/<table_name>/rows/<int:row_id>/edit", methods=["POST"])
