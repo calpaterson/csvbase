@@ -1,0 +1,34 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "base.html" %}
+
+{% block main %}
+  <div class="container">
+    <div class="px-4 py-5 my-3 text-center">
+      <h1 class="display-5 fw-bold">CSVBase</h1>
+      <div class="col-lg-6 mx-auto">
+        <p class="lead mb-4">Turn CSV files into read+write APIs</p>
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+          <a href="{{ url_for('csvbase.paste') }}" type="button" class="btn btn-primary btn-lg px-4 gap-3">Paste a new CSV file</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container px-4 py-5" id="featured-3">
+    <div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
+      <div class="feature col">
+        <h2>Start with a CSV file</h2>
+        <p>You can start by uploading a CSV file or by just copying and pasting straight from Microsoft Excel.</p>
+      </div>
+      <div class="feature col">
+        <h2>Public and private data</h2>
+        <p>Post public data for others to consume or use private tables to store your own private data.</p>
+      </div>
+      <div class="feature col">
+        <h2>Simple REST API</h2>
+        <p>Any table you create via a CSV file automatically creates a simple REST API which you can use to read and write to the table.</p>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}

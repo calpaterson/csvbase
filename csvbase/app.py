@@ -76,8 +76,8 @@ def put_user_in_g() -> None:
 
 
 @bp.route("/")
-def index_redirect():
-    return redirect(url_for("csvbase.paste"))
+def landing():
+    return make_response(render_template("landing.html"))
 
 
 @bp.route("/paste")
