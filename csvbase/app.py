@@ -253,11 +253,13 @@ def sign_out():
 
 
 def am_user_or_400(username):
-    # hardcoded user and pass for now
+    sesh = current_app.scoped_session
     auth = request.authorization
     if auth is not None:
-        if auth.username == "calpaterson" and auth.password == "password":
-            return
+        if not svc.is_correct_password(
+            sesh, current_app.config["CRYPT_CONTEXT"], auth.username, auth.password
+        ):
+            abort(400)
     else:
         abort(400)
 
