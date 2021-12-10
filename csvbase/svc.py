@@ -25,17 +25,15 @@ from .db import engine
 
 logger = getLogger(__name__)
 
-# FIXME: add dates and uuids, which are both easy
-PYTHON_TO_SQL_TYPEMAP = {
-    int: "bigint",
-    str: "text",
-    datetime: "TIMESTAMP WITH TIMEZONE",
-    float: "double precision",
-    bool: "BOOLEAN",
-    date: "date",
+# FIXME: the capitalised ones probably don't work
+SQL_TO_PYTHON_TYPEMAP = {
+    "bigint": int,
+    "text": str,
+    "TIMESTAMP WITH TIMEZONE": datetime,
+    "double precision": float,
+    "BOOLEAN": bool,
+    "date": date,
 }
-
-SQL_TO_PYTHON_TYPEMAP = {v: k for k, v in PYTHON_TO_SQL_TYPEMAP.items()}
 # FIXME: shouldn't be needed, no small ints
 SQL_TO_PYTHON_TYPEMAP["integer"] = int
 
