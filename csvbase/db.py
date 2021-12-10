@@ -6,7 +6,7 @@ from .models import Base
 
 if "HEROKU" in environ:
     # we're running on heroku
-    engine = create_engine(environ["DATABASE_URL"].replace("postgres://", "postgresql://")
+    engine = create_engine(environ["DATABASE_URL"].replace("postgres://", "postgresql://"))
 else:
     engine = create_engine(environ.get("CSVBASE_DB_URL", "postgresql:///csvbase"))
 
