@@ -4,7 +4,11 @@ from sqlalchemy import create_engine
 
 from .models import Base
 
-engine = create_engine(environ.get("DATABASE_URL", "postgresql:///csvbase"))
+if "HEROKU" in environ:
+    # we're running on heroku
+    engine = create_engine(environ["DATABASE_URL"].replace("postgres://", "postgresql://")
+else:
+    engine = create_engine(environ.get("CSVBASE_DB_URL", "postgresql:///csvbase"))
 
 
 def make_tables():
