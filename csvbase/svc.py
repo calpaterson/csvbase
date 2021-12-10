@@ -1,7 +1,7 @@
 import re
 import io
 import itertools
-from typing import Optional
+from typing import Optional, Dict, Type
 from datetime import datetime, timezone
 import csv
 from logging import getLogger
@@ -37,14 +37,14 @@ FLOAT_REGEX = re.compile("^(\d+\.)|(\.\d+)|(\d+\.\d?)$")
 BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
 
 
-def types_for_csv(csv_buf, dialect, has_headers=True):
+def types_for_csv(csv_buf, dialect, has_headers=True) -> Dict[str, Type]:
     # FIXME: This should return a list of Column
     # look just at the first 5 lines - that hopefully is easy to explain
     reader = csv.reader(csv_buf, dialect)
     headers = next(reader)
     first_five = zip(*(row for row, _ in zip(reader, range(5))))
     as_dict = dict(zip(headers, first_five))
-    rv = {}
+    rv: Dict[str, Type] = {}
     # FIXME: add support for dates here... (probably using date-util)
     for key, values in as_dict.items():
         if all(FLOAT_REGEX.match(v) for v in values):

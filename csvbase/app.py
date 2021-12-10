@@ -3,7 +3,7 @@ import io
 import shutil
 import codecs
 from logging import basicConfig, INFO, getLogger
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 from os import environ
 
 from cchardet import UniversalDetector
@@ -24,7 +24,7 @@ from flask import (
     jsonify,
 )
 from passlib.context import CryptContext
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from flask_sqlalchemy_session import flask_scoped_session
 import werkzeug.http
 
@@ -68,7 +68,7 @@ def put_user_in_g() -> None:
             del flask_session["user_uuid"]
             app_logger.warning("cleared a corrupt user_uuid cookie: %s", user_uuid)
         else:
-            sesh = current_app.scoped_session  # type: ignore
+            sesh = get_sesh()
             username = svc.username_from_user_uuid(sesh, user_uuid)
             if username is None:
                 del flask_session["user_uuid"]
@@ -92,7 +92,7 @@ def paste():
 
 @bp.route("/<username>/<table_name>", methods=["GET"])
 def get_table(username, table_name):
-    sesh = current_app.scoped_session
+    sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     user_uuid = svc.user_uuid_for_name(sesh, username)
     if is_browser():
@@ -115,7 +115,7 @@ def get_table(username, table_name):
 
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["GET"])
 def get_row(username, table_name, row_id):
-    sesh = current_app.scoped_session
+    sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     row = svc.get_row(sesh, username, table_name, row_id)
     if is_browser():
@@ -142,17 +142,18 @@ def get_row(username, table_name, row_id):
 
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["PUT"])
 def update_row(username, table_name, row_id):
-    sesh = current_app.scoped_session
+    sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    assert request.json["row_id"] == row_id, "row ids cannot be changed"
-    svc.update_row(sesh, username, table_name, row_id, request.json["row"])
+    body: Dict[str, Any] = json_or_400()
+    assert body["row_id"] == row_id, "row ids cannot be changed"
+    svc.update_row(sesh, username, table_name, row_id, body["row"])
     sesh.commit()
     return jsonify({})
 
 
 @bp.route("/<username>/<table_name>/rows/<int:row_id>/edit", methods=["POST"])
 def update_row_by_form_post(username, table_name, row_id):
-    sesh = current_app.scoped_session
+    sesh = get_sesh()
     columns = svc.get_columns(sesh, username, table_name)
     values = {c.name: c.from_string_to_python(request.form[c.name]) for c in columns}
     svc.update_row(sesh, username, table_name, row_id, values)
@@ -167,7 +168,7 @@ def update_row_by_form_post(username, table_name, row_id):
 
 @bp.route("/new-table", methods=["POST"])
 def new_table_form_submission():
-    sesh = current_app.scoped_session
+    sesh = get_sesh()
     if "username" in request.form:
         user_uuid = svc.create_user(
             sesh,
@@ -197,7 +198,7 @@ def new_table_form_submission():
 # FIXME: assert table name and user name match regex
 @bp.route("/<username>/<table_name>", methods=["PUT"])
 def upsert_table(username, table_name):
-    sesh = current_app.scoped_session
+    sesh = get_sesh()
     am_user_or_400(username)
     # FIXME: add checking for forms here
     byte_buf = io.BytesIO()
@@ -212,7 +213,7 @@ def upsert_table(username, table_name):
 
 @bp.route("/<username>", methods=["GET"])
 def user(username):
-    sesh = current_app.scoped_session
+    sesh = get_sesh()
     tables = svc.tables_for_user(sesh, svc.user_uuid_for_name(sesh, username))
     return make_response(
         render_template(
@@ -225,7 +226,7 @@ def user(username):
 
 @bp.route("/sign-in", methods=["GET", "POST"])
 def sign_in():
-    sesh = current_app.scoped_session
+    sesh = get_sesh()
     if request.method == "GET":
         return make_response(
             render_template(
@@ -258,7 +259,7 @@ def sign_out():
 
 
 def am_user_or_400(username):
-    sesh = current_app.scoped_session
+    sesh = get_sesh()
     auth = request.authorization
     if auth is not None:
         if not svc.is_correct_password(
@@ -333,3 +334,14 @@ def set_current_user_for_session(username, user_uuid, session: Optional[Any] = N
 def set_current_user(username, user_uuid):
     g.username = username
     g.user_uuid = user_uuid
+
+
+def json_or_400() -> Dict[str, Any]:
+    if request.json is None:
+        abort(400)
+    else:
+        return request.json
+
+
+def get_sesh() -> Session:
+    return current_app.scoped_session  # type: ignore
