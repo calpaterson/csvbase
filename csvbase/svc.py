@@ -1,7 +1,7 @@
 import re
 import io
 import itertools
-from typing import Optional, Dict, Type
+from typing import Optional, Dict, Type, List
 from datetime import datetime, timezone
 import csv
 from logging import getLogger
@@ -11,9 +11,17 @@ from uuid import uuid4
 
 from pgcopy import CopyManager
 from sqlalchemy import table as satable, column as sacolumn, types as satypes
-from sqlalchemy.schema import DropTable
+from sqlalchemy.orm import Session
+from sqlalchemy.schema import (
+    CreateTable,
+    Table as SATable,
+    Column as SAColumn,
+    DropTable,
+    MetaData,
+)
 
 from . import models
+from .db import engine
 
 logger = getLogger(__name__)
 
@@ -38,24 +46,24 @@ FLOAT_REGEX = re.compile("^(\d+\.)|(\.\d+)|(\d+\.\d?)$")
 BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
 
 
-def types_for_csv(csv_buf, dialect, has_headers=True) -> Dict[str, Type]:
+def types_for_csv(csv_buf, dialect, has_headers=True) -> List["Column"]:
     # FIXME: This should return a list of Column
     # look just at the first 5 lines - that hopefully is easy to explain
     reader = csv.reader(csv_buf, dialect)
     headers = next(reader)
     first_five = zip(*(row for row, _ in zip(reader, range(5))))
     as_dict = dict(zip(headers, first_five))
-    rv: Dict[str, Type] = {}
+    rv = []
     # FIXME: add support for dates here... (probably using date-util)
     for key, values in as_dict.items():
         if all(FLOAT_REGEX.match(v) for v in values):
-            rv[key] = float
+            rv.append(Column(key, float))
         elif all(INT_REGEX.match(v) for v in values):
-            rv[key] = int
+            rv.append(Column(key, int))
         elif all(BOOL_REGEX.match(v) for v in values):
-            rv[key] = bool
+            rv.append(Column(key, bool))
         else:
-            rv[key] = str
+            rv.append(Column(key, str))
     logger.info("inferred: %s", rv)
     return rv
 
@@ -74,22 +82,6 @@ def username_from_user_uuid(sesh, user_uuid):
         .filter(models.User.user_uuid == user_uuid)
         .scalar()
     )
-
-
-def make_create_table_ddl(username, table_name, types):
-    ## FIXME: do this with the ORM
-    ddl = [f'CREATE TABLE "{username}__{table_name}" (csvbase_row_id bigserial, ']
-    for index, (column_name, column_type) in enumerate(types.items()):
-        ddl.append('"')
-        ddl.append(column_name)
-        ddl.append('" ')
-        ddl.append(PYTHON_TO_SQL_TYPEMAP[column_type])
-        if (index + 1) != len(types):
-            ddl.append(",")
-    ddl.append(");")
-    joined_ddl = "".join(ddl)
-    logger.info("joined_ddl: %s", joined_ddl)
-    return joined_ddl
 
 
 def table_exists(sesh, user_uuid, table_name):
@@ -120,7 +112,7 @@ class Column:
     def sqla_type(self):
         MAP = {
             int: satypes.BigInteger,
-            str: satypes.String,
+            str: satypes.Text,
             float: satypes.Float,
             bool: satypes.Boolean,
             date: satypes.Date,
@@ -174,7 +166,19 @@ def get_sqla_table(sesh, username, table_name):
     )
 
 
-def make_drop_table_ddl(sesh, username, table_name):
+def make_create_table_ddl(
+    username: str, table_name: str, columns: List[Column]
+) -> CreateTable:
+    cols: List[SAColumn] = [
+        SAColumn("csvbase_row_id", type_=satypes.BigInteger, primary_key=True)
+    ]
+    for col in columns:
+        cols.append(SAColumn(col.name, type_=col.sqla_type()))
+    table = SATable(f"{username}__{table_name}", MetaData(bind=engine), *cols)
+    return CreateTable(table)
+
+
+def make_drop_table_ddl(sesh: Session, username: str, table_name: str) -> DropTable:
     sqla_table = get_sqla_table(sesh, username, table_name)
     return DropTable(sqla_table)
 
