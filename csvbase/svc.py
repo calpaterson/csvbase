@@ -11,6 +11,7 @@ from uuid import uuid4
 
 from pgcopy import CopyManager
 from sqlalchemy import table as satable, column as sacolumn, types as satypes
+from sqlalchemy.schema import DropTable
 
 from . import models
 
@@ -173,8 +174,9 @@ def get_sqla_table(sesh, username, table_name):
     )
 
 
-def make_drop_table_ddl(username, table_name):
-    return f"DROP TABLE {username}__{table_name};"
+def make_drop_table_ddl(sesh, username, table_name):
+    sqla_table = get_sqla_table(sesh, username, table_name)
+    return DropTable(sqla_table)
 
 
 def upsert_table(sesh, user_uuid, username, table_name, csv_buf):
@@ -191,7 +193,7 @@ def upsert_table(sesh, user_uuid, username, table_name, csv_buf):
     already_exists = table_exists(sesh, user_uuid, table_name)
     if already_exists:
         # FIXME: could truncate or delete all here to save time
-        sesh.execute(make_drop_table_ddl(username, table_name))
+        sesh.execute(make_drop_table_ddl(sesh, username, table_name))
         logger.info("dropped %s/%s", username, table_name)
     else:
         sesh.add(models.Table(user_uuid=user_uuid, table_name=table_name, public=True))
