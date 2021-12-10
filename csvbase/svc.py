@@ -1,7 +1,8 @@
 import re
+from uuid import UUID
 import io
 import itertools
-from typing import Optional, Dict, Type, List
+from typing import Optional, Dict, Type, List, Iterable
 from datetime import datetime, timezone
 import csv
 from logging import getLogger
@@ -12,6 +13,7 @@ from uuid import uuid4
 from pgcopy import CopyManager
 from sqlalchemy import table as satable, column as sacolumn, types as satypes
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.expression import TableClause
 from sqlalchemy.schema import (
     CreateTable,
     Table as SATable,
@@ -95,9 +97,9 @@ def table_exists(sesh, user_uuid, table_name):
 @dataclass(frozen=True)
 class Column:
     name: str
-    python_type: type
+    python_type: Type
 
-    def pretty_type(self):
+    def pretty_type(self) -> str:
         MAP = {
             int: "integer",
             str: "text",
@@ -117,7 +119,7 @@ class Column:
         }
         return MAP[self.python_type]
 
-    def html_type(self):
+    def html_type(self) -> str:
         MAP = {
             bool: "checkbox",
             date: "date",
@@ -137,7 +139,7 @@ class Column:
             return date.fromisoformat(str)
 
 
-def get_columns(sesh, username, table_name, include_row_id=False):
+def get_columns(sesh, username, table_name, include_row_id=False) -> List["Column"]:
     # lifted from https://dba.stackexchange.com/a/22420/28877
     stmt = f"""
     SELECT attname AS column_name, atttypid::regtype AS sql_type
@@ -156,7 +158,7 @@ def get_columns(sesh, username, table_name, include_row_id=False):
     return rv
 
 
-def get_sqla_table(sesh, username, table_name):
+def get_sqla_table(sesh, username, table_name) -> TableClause:
     columns = get_columns(sesh, username, table_name, include_row_id=True)
     return satable(
         f"{username}__{table_name}",
@@ -178,10 +180,13 @@ def make_create_table_ddl(
 
 def make_drop_table_ddl(sesh: Session, username: str, table_name: str) -> DropTable:
     sqla_table = get_sqla_table(sesh, username, table_name)
-    return DropTable(sqla_table)
+    # sqlalchemy-stubs doesn't match sqla 1.4
+    return DropTable(sqla_table)  # type: ignore
 
 
-def upsert_table(sesh, user_uuid, username, table_name, csv_buf):
+def upsert_table(
+    sesh: Session, user_uuid, username, table_name: str, csv_buf: io.StringIO
+) -> None:
     try:
         dialect = csv.Sniffer().sniff(csv_buf.read(1024))
     except csv.Error:
@@ -216,7 +221,7 @@ def upsert_table(sesh, user_uuid, username, table_name, csv_buf):
     copy_manager.copy(row_gen)
 
 
-def table_as_csv(sesh, user_uuid, username, table_name):
+def table_as_csv(sesh: Session, user_uuid, username, table_name) -> io.StringIO:
     csv_buf = io.StringIO()
 
     columns = [c.name for c in get_columns(sesh, username, table_name)]
@@ -231,7 +236,7 @@ def table_as_csv(sesh, user_uuid, username, table_name):
     return csv_buf
 
 
-def table_as_rows(sesh, user_uuid, username, table_name):
+def table_as_rows(sesh, user_uuid, username, table_name) -> Iterable:
     table = get_sqla_table(sesh, username, table_name)
     yield from sesh.execute(table.select().order_by(table.c.csvbase_row_id))
 
@@ -245,12 +250,12 @@ def get_row(sesh, username, table_name, row_id):
     return {c: row[c.name] for c in columns}
 
 
-def update_row(sesh, username, table_name, row_id, values):
+def update_row(sesh, username, table_name, row_id: int, values) -> None:
     table = get_sqla_table(sesh, username, table_name)
     sesh.execute(table.update().where(table.c.csvbase_row_id == row_id).values(values))
 
 
-def is_public(sesh, username, table_name):
+def is_public(sesh, username, table_name) -> bool:
     return (
         sesh.query(models.Table.public)
         .join(models.User)
@@ -259,7 +264,9 @@ def is_public(sesh, username, table_name):
     )
 
 
-def create_user(sesh, crypt_context, username, password_plain, email: Optional[str]):
+def create_user(
+    sesh, crypt_context, username, password_plain, email: Optional[str]
+) -> UUID:
     user_uuid = uuid4()
     password_hashed = crypt_context.hash(password_plain)
     registered = datetime.now(timezone.utc)
@@ -280,7 +287,7 @@ def create_user(sesh, crypt_context, username, password_plain, email: Optional[s
     return user_uuid
 
 
-def is_correct_password(sesh, crypt_context, username, password):
+def is_correct_password(sesh, crypt_context, username, password) -> Optional[bool]:
     user = sesh.query(models.User).filter(models.User.username == username).first()
     if user is None:
         return None
@@ -288,7 +295,7 @@ def is_correct_password(sesh, crypt_context, username, password):
         return crypt_context.verify(password, user.password_hash)
 
 
-def tables_for_user(sesh, user_uuid, include_private=False):
+def tables_for_user(sesh, user_uuid, include_private=False) -> Iterable[str]:
     rs = sesh.query(models.Table.table_name).filter(models.Table.user_uuid == user_uuid)
     if not include_private:
         rs = rs.filter(models.Table.public)
