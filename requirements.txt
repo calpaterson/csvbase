@@ -1,5 +1,4 @@
 argon2-cffi==21.1.0
-black==21.11b1
 cchardet==2.1.7
 flask-sqlalchemy-session==1.1
 flask==2.0.2

@@ -68,7 +68,7 @@ def put_user_in_g() -> None:
             del flask_session["user_uuid"]
             app_logger.warning("cleared a corrupt user_uuid cookie: %s", user_uuid)
         else:
-            sesh = current_app.scoped_session
+            sesh = current_app.scoped_session  # type: ignore
             username = svc.username_from_user_uuid(sesh, user_uuid)
             if username is None:
                 del flask_session["user_uuid"]

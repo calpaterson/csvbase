@@ -1,3 +1,4 @@
+from uuid import UUID
 from typing import TYPE_CHECKING, Any, List
 
 from sqlalchemy.dialects.postgresql import UUID as _PGUUID
