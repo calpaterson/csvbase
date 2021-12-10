@@ -1,8 +1,9 @@
-sqlalchemy>=1.4.0
-flask
-flask-sqlalchemy-session
-psycopg2
-black
-cchardet
-passlib
-argon2_cffi
+argon2-cffi==21.1.0
+black==21.11b1
+cchardet==2.1.7
+flask==2.0.2
+flask-sqlalchemy-session==1.1
+gunicorn==20.1.0
+passlib==1.7.4
+psycopg2==2.9.2
+sqlalchemy==1.4.27
