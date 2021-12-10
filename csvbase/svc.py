@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import date
 from uuid import uuid4
 
+from pgcopy import CopyManager
 from sqlalchemy import table as satable, column as sacolumn, types as satypes
 
 from . import models
@@ -200,20 +201,15 @@ def upsert_table(sesh, user_uuid, username, table_name, csv_buf):
         "%s %s/%s", "(re)created" if already_exists else "created", username, table_name
     )
 
-    cursor = sesh.connection().connection.cursor()
-    csv_buf.readline()  # pop the header, with is not expected by copy_from
+    # Copy in with binary copy
+    reader = csv.reader(csv_buf, dialect)
+    csv_buf.readline()  # pop the header, which is not useful
+    row_gen = (line for line in reader)
 
-    # FIXME: truncate extra newlines from end of file here, see:
-    # https://unix.stackexchange.com/a/82317
-
-    # FIXME: error handling, sometimes people curl stuff with just --data
-    # instead of --data-binary, which eats the newlines
-    cursor.copy_from(
-        csv_buf,
-        f"{username}__{table_name}",
-        sep=dialect.delimiter,
-        columns=[c.name for c in get_columns(sesh, username, table_name)],
-    )
+    raw_conn = sesh.connection().connection
+    cols = [c.name for c in get_columns(sesh, username, table_name)]
+    copy_manager = CopyManager(raw_conn, f"{username}__{table_name}", cols)
+    copy_manager.copy(row_gen)
 
 
 def table_as_csv(sesh, user_uuid, username, table_name):
