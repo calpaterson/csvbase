@@ -4,6 +4,7 @@ import shutil
 import codecs
 from logging import basicConfig, INFO, getLogger
 from typing import Optional, Any
+from os import environ
 
 from cchardet import UniversalDetector
 from flask import (
@@ -42,6 +43,10 @@ def init_app():
     app.register_blueprint(bp)
 
     db.make_tables()
+
+    @app.context_processor
+    def inject_heroku():
+        return dict(HEROKU="HEROKU" in environ)
 
     sesh = flask_scoped_session(sessionmaker(bind=db.engine))
     sesh.init_app(app)
