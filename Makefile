@@ -1,6 +1,10 @@
 export FLASK_APP = csvbase.app:init_app()
 export FLASK_ENV = development
 
+.PHONY: tox serve
+
+default: tox
+
 .venv: .venv/touchfile
 
 .venv/touchfile: requirements.txt
@@ -10,6 +14,9 @@ export FLASK_ENV = development
 
 serve: .venv csvbase/static/bootstrap.min.css
 	. .venv/bin/activate; flask run -p 6001
+
+tox:
+	tox
 
 bootstrap-5.1.3-dist.zip:
 	curl -O -L https://github.com/twbs/bootstrap/releases/download/v5.1.3/bootstrap-5.1.3-dist.zip
