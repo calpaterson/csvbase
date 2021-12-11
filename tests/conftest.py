@@ -1,11 +1,13 @@
 import string
 import random
+from datetime import datetime, timezone
 
 import pytest
 from passlib.context import CryptContext
 
 from csvbase import web, svc
 from .value_objs import ExtendedUser
+
 
 @pytest.fixture(scope="session")
 def app():
@@ -28,11 +30,12 @@ def test_user(sesh, app):
     user_uuid = svc.create_user(
         sesh, app.config["CRYPT_CONTEXT"], username, password, email=None
     )
+    # FIXME: change create_user to return a User, then copy into the below
     return ExtendedUser(
         username=username,
         user_uuid=user_uuid,
         password="password",
-        registered=None,
+        registered=datetime.now(timezone.utc),
         email=None,
     )
 
