@@ -248,6 +248,7 @@ def sign_in():
             flash(f"Signed in as {username}")
             return redirect(url_for("csvbase.user", username=request.form["username"]))
         else:
+            logger.warning("wrong password for %s", username)
             abort(400)
 
 
