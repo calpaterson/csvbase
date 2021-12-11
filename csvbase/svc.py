@@ -1,8 +1,7 @@
 import re
 from uuid import UUID
 import io
-import itertools
-from typing import Optional, Dict, Type, List, Iterable
+from typing import Optional, Type, List, Iterable
 from datetime import datetime, timezone
 import csv
 from logging import getLogger
@@ -213,7 +212,7 @@ def upsert_table(
     # Copy in with binary copy
     reader = csv.reader(csv_buf, dialect)
     csv_buf.readline()  # pop the header, which is not useful
-    row_gen = (line for line in reader)
+    row_gen = ([col.python_type(v) for col, v in zip(types, line)] for line in reader)
 
     raw_conn = sesh.connection().connection
     cols = [c.name for c in get_columns(sesh, username, table_name)]
