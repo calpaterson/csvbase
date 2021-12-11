@@ -1,6 +1,7 @@
 black==21.11b1
 bpython~=0.22.1
 mypy==0.910
+pytest-flask==1.2.0
 pytest==6.2.5
 sqlalchemy-stubs==0.4
 -r requirements.txt

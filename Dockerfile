@@ -4,7 +4,7 @@ COPY requirements.txt requirements.txt
 RUN sed -i 's/psycopg2/psycopg2-binary/' requirements.txt
 RUN python -m pip install -r requirements.txt
 COPY ./ ./
-ENV FLASK_APP=csvbase.app:init_app()
+ENV FLASK_APP=csvbase.web:init_app()
 ENV FLASK_ENV=development
 EXPOSE 6001
 CMD ["flask", "run", "-p", "6001", "-h", "0.0.0.0"]

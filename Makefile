@@ -1,4 +1,4 @@
-export FLASK_APP = csvbase.app:init_app()
+export FLASK_APP = csvbase.web:init_app()
 export FLASK_ENV = development
 
 .PHONY: tox serve
