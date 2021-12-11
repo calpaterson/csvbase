@@ -213,7 +213,7 @@ def upsert_table(
     # Copy in with binary copy
     reader = csv.reader(csv_buf, dialect)
     csv_buf.readline()  # pop the header, which is not useful
-    row_gen = (line for line in reader)
+    row_gen = ([i] + line for i, line in enumerate(reader))
 
     raw_conn = sesh.connection().connection
     cols = [c.name for c in get_columns(sesh, username, table_name)]
