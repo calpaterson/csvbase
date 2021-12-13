@@ -1,12 +1,12 @@
-import string
-import random
 from datetime import datetime, timezone
+from logging import basicConfig, DEBUG
 
 import pytest
 from passlib.context import CryptContext
 
 from csvbase import web, svc
 from .value_objs import ExtendedUser
+from .utils import random_string
 
 
 @pytest.fixture(scope="session")
@@ -18,8 +18,8 @@ def app():
     return a
 
 
-@pytest.fixture(scope="session")
-def sesh(app):
+@pytest.fixture(scope="function")
+def sesh(client):
     return web.get_sesh()
 
 
@@ -40,5 +40,6 @@ def test_user(sesh, app):
     )
 
 
-def random_string() -> str:
-    return "".join(random.choice(string.ascii_lowercase) for _ in range(32))
+@pytest.fixture(scope="session")
+def configure_logging():
+    basicConfig(level=DEBUG)
