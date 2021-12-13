@@ -226,11 +226,13 @@ def table_as_csv(sesh: Session, user_uuid, username, table_name) -> io.StringIO:
     columns = [c.name for c in get_columns(sesh, username, table_name)]
 
     # this allows for putting the columns in with proper csv escaping
-    header_writer = csv.writer(csv_buf)
-    header_writer.writerow(columns)
+    writer = csv.writer(csv_buf)
+    writer.writerow(columns)
 
-    cursor = sesh.connection().connection.cursor()
-    cursor.copy_to(csv_buf, f"{username}__{table_name}", sep=",", columns=columns)
+    # FIXME: This is probably too slow
+    for row in table_as_rows(sesh, user_uuid, username, table_name):
+        writer.writerow(row)
+
     csv_buf.seek(0)
     return csv_buf
 

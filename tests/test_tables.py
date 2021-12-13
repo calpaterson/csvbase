@@ -8,7 +8,6 @@ import pytest
 from .utils import test_data_path, random_string
 
 
-@pytest.mark.xfail(reason="not yet implemented", strict=True)
 def test_csvs_in_and_out(test_user, sesh, client):
     table_name = random_string()
     url = url_for(
