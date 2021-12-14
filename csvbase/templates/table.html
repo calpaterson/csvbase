@@ -3,7 +3,7 @@
 
 {% block main %}
   <div class="container">
-    <h1><a href="{{ url_for('csvbase.user', username=username) }}">{{ username }}</a>/{{ table_name }}</h1>
+    <h1><a href="{{ url_for('csvbase.user', username=username) }}">{{ username }}</a>/<a href="{{ url_for('csvbase.get_table', username=username, table_name=table_name) }}">{{ table_name }}</a></h1>
   </div>
   <div class="container">
     <table class="table">
@@ -35,25 +35,27 @@
     </table>
   </div>
 
-  <nav
+  <nav>
     <ul class="pagination justify-content-center">
       {% if has_less %}
         <li class="page-item">
-          <a class="page-link" href="#" tabindex="-1">Previous page</a>
+          <a class="page-link"
+             href="{{ url_for('csvbase.get_table', username=username, table_name=table_name, op='lt', n=rows[0].csvbase_row_id) }}">Previous page</a>
         </li>
       {% else %}
         <li class="page-item disabled">
-          <a class="page-link" href="#">Previous page</a>
+          <a class="page-link" href="#" tabindex="-1">Previous page</a>
         </li>
       {% endif %}
 
       {% if has_more %}
         <li class="page-item">
-          <a class="page-link" href="#">Next page</a>
+          <a class="page-link"
+             href="{{ url_for('csvbase.get_table', username=username, table_name=table_name, op='gt', n=rows[-1].csvbase_row_id) }}">Next page</a>
         </li>
       {% else %}
-        <li class="page-item">
-          <a class="page-link disabled" href="#" tabindex="-1">Previous page</a>
+        <li class="page-item disabled">
+          <a class="page-link" href="#" tabindex="-1">Next page</a>
         </li>
       {% endif %}
     </ul>
