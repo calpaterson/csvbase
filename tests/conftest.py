@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
 from logging import basicConfig, DEBUG
 
+from sqlalchemy.orm import sessionmaker
 import pytest
 from passlib.context import CryptContext
 
-from csvbase import web, svc
+from csvbase import web, svc, db
 from .value_objs import ExtendedUser
 from .utils import random_string
 
@@ -18,18 +19,31 @@ def app():
     return a
 
 
-@pytest.fixture(scope="function")
-def sesh(client):
-    return web.get_sesh()
+@pytest.fixture(scope="session")
+def session_cls():
+    return sessionmaker(bind=db.engine)
+
+
+@pytest.fixture(scope="session")
+def module_sesh(session_cls):
+    """A module-level session, used for things that are done once on a session level"""
+    return session_cls()
 
 
 @pytest.fixture(scope="function")
-def test_user(sesh, app):
+def sesh(session_cls):
+    """A function-level session, used for everything else"""
+    return session_cls()
+
+
+@pytest.fixture(scope="session")
+def test_user(module_sesh, app):
     username = "testuser-" + random_string()
     password = "password"
     user_uuid = svc.create_user(
-        sesh, app.config["CRYPT_CONTEXT"], username, password, email=None
+        module_sesh, app.config["CRYPT_CONTEXT"], username, password, email=None
     )
+    module_sesh.commit()
     # FIXME: change create_user to return a User, then copy into the below
     return ExtendedUser(
         username=username,

@@ -9,8 +9,8 @@ from .utils import random_string
 import pytest
 
 
-@pytest.fixture(scope="function")
-def letters_table(test_user, sesh):
+@pytest.fixture(scope="session")
+def letters_table(test_user, module_sesh):
     table_name = random_string()
 
     csv_buf = io.StringIO()
@@ -20,12 +20,15 @@ def letters_table(test_user, sesh):
         writer.writerow(char)
     csv_buf.seek(0)
 
-    svc.upsert_table(sesh, test_user.user_uuid, test_user.username, table_name, csv_buf)
+    svc.upsert_table(
+        module_sesh, test_user.user_uuid, test_user.username, table_name, csv_buf
+    )
+    module_sesh.commit()
     return table_name
 
 
 def test_no_pagination(sesh, test_user, letters_table):
-    page = svc.paginated_table_as_rows(
+    page = svc.table_page(
         sesh,
         test_user.user_uuid,
         test_user.username,
@@ -39,7 +42,7 @@ def test_no_pagination(sesh, test_user, letters_table):
 
 
 def test_second_page(sesh, test_user, letters_table):
-    page = svc.paginated_table_as_rows(
+    page = svc.table_page(
         sesh,
         test_user.user_uuid,
         test_user.username,
@@ -53,7 +56,7 @@ def test_second_page(sesh, test_user, letters_table):
 
 
 def test_back_to_first_page(sesh, test_user, letters_table):
-    page = svc.paginated_table_as_rows(
+    page = svc.table_page(
         sesh,
         test_user.user_uuid,
         test_user.username,
@@ -67,7 +70,7 @@ def test_back_to_first_page(sesh, test_user, letters_table):
 
 
 def test_last_page(sesh, test_user, letters_table):
-    page = svc.paginated_table_as_rows(
+    page = svc.table_page(
         sesh,
         test_user.user_uuid,
         test_user.username,
@@ -81,7 +84,7 @@ def test_last_page(sesh, test_user, letters_table):
 
 
 def test_backward_paging(sesh, test_user, letters_table):
-    page = svc.paginated_table_as_rows(
+    page = svc.table_page(
         sesh,
         test_user.user_uuid,
         test_user.username,

@@ -251,24 +251,28 @@ def table_as_rows(sesh, user_uuid, username, table_name):
     yield from sesh.execute(q)
 
 
-def paginated_table_as_rows(
+def table_page(
     sesh: Session, user_uuid: UUID, username: str, table_name: str, keyset: KeySet
 ) -> Page:
+    """Get a page from a table based on the provided KeySet"""
     table = get_sqla_table(sesh, username, table_name)
-    # pull put page_size + 1, and use the presence of an extra row to tell if
-    # there are more rows
     if keyset.op == "greater_than":
         where_cond = table.c.csvbase_row_id > keyset.n
     else:
         where_cond = table.c.csvbase_row_id < keyset.n
-    q = table.select().where(where_cond).limit(keyset.size)
+
+    keyset_page = table.select().where(where_cond).limit(keyset.size)
+
     if keyset.op == "greater_than":
-        v = q.order_by(table.c.csvbase_row_id)
+        keyset_page = keyset_page.order_by(table.c.csvbase_row_id)
     else:
-        q = q.order_by(table.c.csvbase_row_id.desc())
-        q_sub = select(q.alias())  # type: ignore
-        v = q_sub.order_by("csvbase_row_id")
-    rows = list(sesh.execute(v))
+        # if we're going backwards we need to reverse the order via a subquery
+        keyset_page = keyset_page.order_by(table.c.csvbase_row_id.desc())
+        keyset_sub = select(keyset_page.alias())  # type: ignore
+        keyset_page = keyset_sub.order_by("csvbase_row_id")
+
+    rows = list(sesh.execute(keyset_page))
+
     has_more_q = (
         table.select().where(table.c.csvbase_row_id > rows[-1].csvbase_row_id).exists()  # type: ignore
     )

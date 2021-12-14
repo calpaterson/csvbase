@@ -103,7 +103,7 @@ def get_table(username, table_name):
     user_uuid = svc.user_uuid_for_name(sesh, username)
     if is_browser():
         cols = svc.get_columns(sesh, username, table_name, include_row_id=True)
-        page = svc.paginated_table_as_rows(
+        page = svc.table_page(
             sesh, user_uuid, username, table_name, KeySet(n=0, op="greater_than")
         )
         return make_response(

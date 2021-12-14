@@ -15,6 +15,12 @@ class User:
 
 @dataclass
 class KeySet:
+    """Used as a selector for keyset pagination
+
+    https://use-the-index-luke.com/no-offset
+
+    """
+
     n: int
     op: Literal["greater_than", "less_than"]
     size: int = 10
@@ -22,6 +28,8 @@ class KeySet:
 
 @dataclass
 class Page:
+    """A page from a table"""
+
     has_less: bool
     has_more: bool
     rows: Sequence[Tuple]
