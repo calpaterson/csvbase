@@ -4,8 +4,8 @@
 {% block main %}
   <div class="container">
     <h1>Create a new table</h1>
-    <form action="{{ url_for('csvbase.new_table_form_submission') }}" method="POST" enctype="multipart/form-data">
-      <div class="mb-3">
+
+    <div class="mb-3">
       <ul class="nav nav-tabs">
         <li class="nav-item">
           <a class="nav-link {% if method == 'paste' %}active{%endif%}"
@@ -16,11 +16,13 @@
              href="{{ url_for('csvbase.upload_file') }}">Upload file</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link disabled" href="#">Blank table</a>
+          <a class="nav-link {% if method == 'blank' %}active{%endif%}"
+             href="{{ url_for('csvbase.blank_table') }}">Blank table</a>
         </li>
       </ul>
-      </div>
+    </div>
 
+    <form action="{{ url_for('csvbase.new_table_form_submission') }}" method="POST" enctype="multipart/form-data">
       <div class="row mb-3 align-items-center">
         <div class="col-auto">
           <label class="col-form-label" for="table-name">Table name</label>
@@ -37,16 +39,56 @@
       </div>
 
       {% if method == 'paste' %}
-      <div class="mb-3">
-        <textarea name="csv-textarea" class="form-control" rows="10" cols="50" autofocus></textarea>
-        <div class="form-text">Either CSV or TSV works but be sure to include the header row</div>
-      </div>
+        <div class="mb-3">
+          <textarea name="csv-textarea" class="form-control" rows="10" cols="50" autofocus></textarea>
+          <div class="form-text">Either CSV or TSV works but be sure to include the header row</div>
+        </div>
       {% endif %}
 
       {% if method == 'upload-file' %}
-      <div class="mb-3">
-        <input type="file" class="form-control" name="csv-file" accept=".csv,text/csv">
-      </div>
+        <div class="mb-3">
+          <input type="file" class="form-control" name="csv-file" accept=".csv,text/csv">
+        </div>
+      {% endif %}
+
+      {% if method == 'blank' %}
+        <div class="row mb-3">
+          <label>Columns</label>
+        </div>
+        {% for column_index in range(column_count) %}
+          <div class="row mb-3 align-items-center">
+            <div class="col-auto">
+              <input type="text"
+                     id="col-name-{{ column_index }}"
+                     class="form-control"
+                     required
+                     name="col-name-{{ column_index }}">
+            </div>
+            <div class="col-auto">
+              <select id="col-type-{{ column_index }}" class="form-control form-select">
+                <option value="text">Text</option>
+                <option value="integer">Integer</option>
+                <option value="date">Date</option>
+                <option value="boolean">True/False</option>
+              </select>
+            </div>
+            <div class="col-auto">
+              <button class="btn btn-danger btn-sm">remove</button>
+            </div>
+          </div>
+        {% endfor %}
+
+        <div class="mb-3">
+          <button
+            type="submit"
+            class="btn btn-secondary"
+            formaction="{{ url_for('csvbase.blank_table') }}"
+            name="column_count"
+            value="{{ column_count + 1 }}"
+            formnovalidate
+            formmethod="get"
+            >Add another column</button>
+        </div>
       {% endif %}
 
       <div class="mb-3 form-check">
@@ -56,25 +98,25 @@
 
       {% if not g.username %}
         <p>As you&apos;re not logged in, please create an account.  (If you already have an account, <a href="{{ url_for('csvbase.sign_in') }}">sign in</a>.)</p>
-        <p>
-          <label>Username</label>
-          <input type="text" name="username" required pattern="^[A-z][-A-z0-9]+"
-                 title="Letters, numbers and dashes only.  Must start with a letter">
-        </p>
-        <p>
-          <label>(Optional) Email</label>
-          <input type="text" name="email" pattern=".*@.*"
-                 title="Must contain an @-sign">
-        </p>
-        <p>
-          <label>Password</label>
-          <input type="password" required name="password">
-        </p>
-      {% endif %}
-
       <p>
-        <input type="submit" value="Create my API!">
+        <label>Username</label>
+        <input type="text" name="username" required pattern="^[A-z][-A-z0-9]+"
+               title="Letters, numbers and dashes only.  Must start with a letter">
       </p>
+      <p>
+        <label>(Optional) Email</label>
+        <input type="text" name="email" pattern=".*@.*"
+               title="Must contain an @-sign">
+      </p>
+      <p>
+        <label>Password</label>
+        <input type="password" required name="password">
+      </p>
+    {% endif %}
+
+    <p>
+      <input type="submit" class="btn btn-primary" value="Create my API!">
+    </p>
     </form>
   </div>
 {% endblock %}

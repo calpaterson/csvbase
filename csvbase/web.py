@@ -96,6 +96,15 @@ def upload_file():
     return make_response(render_template("new-table.html", method="upload-file"))
 
 
+@bp.route("/new-table/blank")
+def blank_table():
+    column_count = request.args.get("column_count", default=1, type=int)
+    return make_response(
+        render_template("new-table.html",
+                        method="blank",
+                        column_count=column_count))
+
+
 @bp.route("/<username>/<table_name>", methods=["GET"])
 def get_table(username, table_name):
     sesh = get_sesh()
