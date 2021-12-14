@@ -15,7 +15,6 @@ from flask import (
     request,
     abort,
     make_response,
-    make_response,
     render_template,
     redirect,
     url_for,
@@ -209,7 +208,7 @@ def new_table_form_submission():
         public = False
     else:
         public = True
-    svc.upsert_table(sesh, g.user_uuid, g.username, table_name, csv_buf)
+    svc.upsert_table(sesh, g.user_uuid, g.username, table_name, csv_buf, public=public)
     sesh.commit()
     return redirect(
         url_for("csvbase.get_table", username=g.username, table_name=table_name)

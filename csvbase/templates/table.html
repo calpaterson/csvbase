@@ -48,6 +48,10 @@
         </li>
       {% endif %}
 
+      <li class="page-item active">
+        <a class="page-link" href="#">Rows {{ rows[0].csvbase_row_id }} to {{ rows[-1].csvbase_row_id }}</a>
+      </li>
+
       {% if has_more %}
         <li class="page-item">
           <a class="page-link"

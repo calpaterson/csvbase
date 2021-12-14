@@ -39,9 +39,9 @@ SQL_TO_PYTHON_TYPEMAP = {
 # FIXME: shouldn't be needed, no small ints
 SQL_TO_PYTHON_TYPEMAP["integer"] = int
 
-INT_REGEX = re.compile("^\d+$")
+INT_REGEX = re.compile(r"^\d+$")
 
-FLOAT_REGEX = re.compile("^(\d+\.)|(\.\d+)|(\d+\.\d?)$")
+FLOAT_REGEX = re.compile(r"^(\d+\.)|(\.\d+)|(\d+\.\d?)$")
 
 BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
 
