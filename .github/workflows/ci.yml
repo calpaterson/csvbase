@@ -6,6 +6,9 @@ jobs:
   build:
     runs-on: ubuntu-20.04
 
+    env:
+      CSVBASE_DB_URL: postgresql+psycopg2://csvbase:csvbase@localhost/csvbase
+
     services:
       postgres:
         image: postgres:11
@@ -41,5 +44,3 @@ jobs:
           ${{ runner.os }}-pip-
     - name: Tox
       run: tox
-      env:
-        CSVBASE_DB_URL: postgresql+psycopg2://csvbase:csvbase@localhost/csvbase
