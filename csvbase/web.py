@@ -105,13 +105,13 @@ def get_table(username, table_name):
     # passing a default and type here means the default is used if what they
     # provide can't be parsed
     n = request.args.get("n", default=0, type=int)
-    op: Literal["greater_than", "less_than"] = "greater_than" if request.args.get("op", default="gt") == "gt" else "less_than"
+    op: Literal["greater_than", "less_than"] = (
+        "greater_than" if request.args.get("op", default="gt") == "gt" else "less_than"
+    )
 
     if is_browser():
         cols = svc.get_columns(sesh, username, table_name, include_row_id=True)
-        page = svc.table_page(
-            sesh, user_uuid, username, table_name, KeySet(n=n, op=op)
-        )
+        page = svc.table_page(sesh, user_uuid, username, table_name, KeySet(n=n, op=op))
         return make_response(
             render_template(
                 "table.html",

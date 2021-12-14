@@ -106,9 +106,7 @@ def test_paging_on_empty_table(sesh, test_user):
     writer.writerow(["letter"])
     csv_buf.seek(0)
 
-    svc.upsert_table(
-        sesh, test_user.user_uuid, test_user.username, table_name, csv_buf
-    )
+    svc.upsert_table(sesh, test_user.user_uuid, test_user.username, table_name, csv_buf)
 
     page = svc.table_page(
         sesh,
