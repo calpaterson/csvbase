@@ -28,6 +28,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from flask_sqlalchemy_session import flask_scoped_session
 import werkzeug.http
 
+from .value_objs import KeySet
 from . import svc
 from . import db
 
@@ -102,12 +103,16 @@ def get_table(username, table_name):
     user_uuid = svc.user_uuid_for_name(sesh, username)
     if is_browser():
         cols = svc.get_columns(sesh, username, table_name, include_row_id=True)
-        row_iter = svc.table_as_rows(sesh, user_uuid, username, table_name)
+        page = svc.paginated_table_as_rows(
+            sesh, user_uuid, username, table_name, KeySet(n=0, op="greater_than")
+        )
         return make_response(
             render_template(
                 "table.html",
                 cols=cols,
-                row_iter=row_iter,
+                rows=page.rows,
+                has_more=page.has_more,
+                has_less=page.has_less,
                 username=username,
                 table_name=table_name,
             )

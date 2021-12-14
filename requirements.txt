@@ -7,3 +7,4 @@ passlib==1.7.4
 pgcopy==1.5.0
 psycopg2==2.9.2
 sqlalchemy==1.4.27
+typing-extensions==4.0.1

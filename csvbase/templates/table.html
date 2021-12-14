@@ -19,7 +19,7 @@
         </tr>
       </thead>
 
-      {% for row in row_iter %}
+      {% for row in rows %}
         <tr>
           {% for col in row %}
             {% if loop.index == 1 %}
@@ -34,4 +34,29 @@
       {% endfor %}
     </table>
   </div>
+
+  <nav
+    <ul class="pagination justify-content-center">
+      {% if has_less %}
+        <li class="page-item">
+          <a class="page-link" href="#" tabindex="-1">Previous page</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled">
+          <a class="page-link" href="#">Previous page</a>
+        </li>
+      {% endif %}
+
+      {% if has_more %}
+        <li class="page-item">
+          <a class="page-link" href="#">Next page</a>
+        </li>
+      {% else %}
+        <li class="page-item">
+          <a class="page-link disabled" href="#" tabindex="-1">Previous page</a>
+        </li>
+      {% endif %}
+    </ul>
+</nav>
+
 {% endblock %}

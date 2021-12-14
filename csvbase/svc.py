@@ -1,7 +1,7 @@
 import re
 from uuid import UUID
 import io
-from typing import Optional, Type, List, Iterable
+from typing import Optional, Type, List, Iterable, Tuple
 from datetime import datetime, timezone
 import csv
 from logging import getLogger
@@ -12,7 +12,7 @@ from uuid import uuid4
 from pgcopy import CopyManager
 from sqlalchemy import table as satable, column as sacolumn, types as satypes
 from sqlalchemy.orm import Session
-from sqlalchemy.sql.expression import TableClause
+from sqlalchemy.sql.expression import TableClause, select
 from sqlalchemy.schema import (
     CreateTable,
     Table as SATable,
@@ -21,6 +21,7 @@ from sqlalchemy.schema import (
     MetaData,
 )
 
+from .value_objs import KeySet, Page
 from . import models
 from .db import engine
 
@@ -244,9 +245,41 @@ def table_as_csv(sesh: Session, user_uuid, username, table_name) -> io.StringIO:
     return csv_buf
 
 
-def table_as_rows(sesh, user_uuid, username, table_name) -> Iterable:
+def table_as_rows(sesh, user_uuid, username, table_name):
     table = get_sqla_table(sesh, username, table_name)
-    yield from sesh.execute(table.select().order_by(table.c.csvbase_row_id))
+    q = table.select().order_by(table.c.csvbase_row_id)
+    yield from sesh.execute(q)
+
+
+def paginated_table_as_rows(
+    sesh: Session, user_uuid: UUID, username: str, table_name: str, keyset: KeySet
+) -> Page:
+    table = get_sqla_table(sesh, username, table_name)
+    # pull put page_size + 1, and use the presence of an extra row to tell if
+    # there are more rows
+    if keyset.op == "greater_than":
+        where_cond = table.c.csvbase_row_id > keyset.n
+    else:
+        where_cond = table.c.csvbase_row_id < keyset.n
+    q = table.select().where(where_cond).limit(keyset.size)
+    if keyset.op == "greater_than":
+        v = q.order_by(table.c.csvbase_row_id)
+    else:
+        q = q.order_by(table.c.csvbase_row_id.desc())
+        q_sub = select(q.alias())  # type: ignore
+        v = q_sub.order_by("csvbase_row_id")
+    rows = list(sesh.execute(v))
+    has_more_q = (
+        table.select().where(table.c.csvbase_row_id > rows[-1].csvbase_row_id).exists()  # type: ignore
+    )
+    has_less_q = (
+        table.select().where(table.c.csvbase_row_id < rows[0].csvbase_row_id).exists()  # type: ignore
+    )
+    return Page(
+        has_less=sesh.query(has_less_q).scalar(),
+        rows=rows[: keyset.size],
+        has_more=sesh.query(has_more_q).scalar(),
+    )
 
 
 def get_row(sesh, username, table_name, row_id):
