@@ -100,9 +100,8 @@ def upload_file():
 def blank_table():
     column_count = request.args.get("column_count", default=1, type=int)
     return make_response(
-        render_template("new-table.html",
-                        method="blank",
-                        column_count=column_count))
+        render_template("new-table.html", method="blank", column_count=column_count)
+    )
 
 
 @bp.route("/<username>/<table_name>", methods=["GET"])
@@ -261,12 +260,7 @@ def user(username):
 def sign_in():
     sesh = get_sesh()
     if request.method == "GET":
-        return make_response(
-            render_template(
-                "sign_in.html",
-                whence=request.referrer
-            )
-        )
+        return make_response(render_template("sign_in.html", whence=request.referrer))
     else:
         username = request.form["username"]
         if svc.is_correct_password(
@@ -283,7 +277,9 @@ def sign_in():
             if "whence" in request.form:
                 return redirect(request.form["whence"])
             else:
-                return redirect(url_for("csvbase.user", username=request.form["username"]))
+                return redirect(
+                    url_for("csvbase.user", username=request.form["username"])
+                )
         else:
             logger.warning("wrong password for %s", username)
             abort(400)
