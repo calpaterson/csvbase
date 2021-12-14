@@ -255,6 +255,7 @@ def sign_in():
         return make_response(
             render_template(
                 "sign_in.html",
+                whence=request.referrer
             )
         )
     else:
@@ -270,7 +271,10 @@ def sign_in():
                 svc.user_uuid_for_name(sesh, request.form["username"]),
             )
             flash(f"Signed in as {username}")
-            return redirect(url_for("csvbase.user", username=request.form["username"]))
+            if "whence" in request.form:
+                return redirect(request.form["whence"])
+            else:
+                return redirect(url_for("csvbase.user", username=request.form["username"]))
         else:
             logger.warning("wrong password for %s", username)
             abort(400)
@@ -280,7 +284,10 @@ def sign_in():
 def sign_out():
     flask_session.clear()
     flash("Signed out")
-    return redirect(url_for("csvbase.paste"))
+    if request.referrer:
+        return redirect(request.referrer)
+    else:
+        return redirect(url_for("csvbase.paste"))
 
 
 def am_user_or_400(sesh: Session, username: str) -> bool:

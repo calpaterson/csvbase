@@ -5,6 +5,9 @@
   <div class="container">
     <h1>Sign in</h1>
     <form method="POST">
+      {% if whence %}
+        <input type="hidden" name="whence" value="{{ whence }}">
+      {% endif %}
       <p>
         <label>Username</label>
         <input type="text" name="username" required pattern="^[A-z][-A-z0-9]+"
