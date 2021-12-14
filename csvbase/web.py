@@ -85,15 +85,20 @@ def landing():
     return make_response(render_template("landing.html"))
 
 
-@bp.route("/paste")
+@bp.route("/new-table/paste")
 def paste():
-    return make_response(render_template("paste.html"))
+    return make_response(render_template("new-table.html", method="paste"))
+
+
+@bp.route("/new-table/upload-file")
+def upload_file():
+    return make_response(render_template("new-table.html", method="upload-file"))
 
 
 @bp.route("/<username>/<table_name>", methods=["GET"])
 def get_table(username, table_name):
     sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    svc.is_public(sesh, username, table_name) or am_user_or_400(sesh, username)
     user_uuid = svc.user_uuid_for_name(sesh, username)
     if is_browser():
         cols = svc.get_columns(sesh, username, table_name, include_row_id=True)
@@ -116,7 +121,7 @@ def get_table(username, table_name):
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["GET"])
 def get_row(username, table_name, row_id):
     sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    svc.is_public(sesh, username, table_name) or am_user_or_400(sesh, username)
     row = svc.get_row(sesh, username, table_name, row_id)
     if is_browser():
         return make_response(
@@ -143,7 +148,7 @@ def get_row(username, table_name, row_id):
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["PUT"])
 def update_row(username, table_name, row_id):
     sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    svc.is_public(sesh, username, table_name) or am_user_or_400(sesh, username)
     body: Dict[str, Any] = json_or_400()
     assert body["row_id"] == row_id, "row ids cannot be changed"
     svc.update_row(sesh, username, table_name, row_id, body["row"])
@@ -188,6 +193,10 @@ def new_table_form_submission():
         csv_buf = io.StringIO(textarea)
     else:
         csv_buf = byte_buf_to_str_buf(request.files["csv-file"])
+    if "private" in request.form:
+        public = False
+    else:
+        public = True
     svc.upsert_table(sesh, g.user_uuid, g.username, table_name, csv_buf)
     sesh.commit()
     return redirect(
@@ -199,7 +208,7 @@ def new_table_form_submission():
 @bp.route("/<username>/<table_name>", methods=["PUT"])
 def upsert_table(username, table_name):
     sesh = get_sesh()
-    am_user_or_400(username)
+    am_user_or_400(sesh, username)
     # FIXME: add checking for forms here
     byte_buf = io.BytesIO()
     shutil.copyfileobj(request.stream, byte_buf)
@@ -214,7 +223,11 @@ def upsert_table(username, table_name):
 @bp.route("/<username>", methods=["GET"])
 def user(username):
     sesh = get_sesh()
-    tables = svc.tables_for_user(sesh, svc.user_uuid_for_name(sesh, username))
+    tables = svc.tables_for_user(
+        sesh,
+        svc.user_uuid_for_name(sesh, username),
+        include_private=g.get("username") == username,
+    )
     return make_response(
         render_template(
             "user.html",
@@ -259,16 +272,22 @@ def sign_out():
     return redirect(url_for("csvbase.paste"))
 
 
-def am_user_or_400(username):
-    sesh = get_sesh()
+def am_user_or_400(sesh: Session, username: str) -> bool:
+    """Assert that the current user has the given username.
+
+    This is ascertained by first checking cookies, then basic auth.
+
+    """
+    if "username" in g:
+        return g.username == username
     auth = request.authorization
     if auth is not None:
-        if not svc.is_correct_password(
+        if svc.is_correct_password(
             sesh, current_app.config["CRYPT_CONTEXT"], auth.username, auth.password
         ):
-            abort(400)
-    else:
-        abort(400)
+            return True
+
+    abort(400)
 
 
 def am_a_user():

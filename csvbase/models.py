@@ -2,7 +2,14 @@ from uuid import UUID
 from typing import TYPE_CHECKING, Any, List
 
 from sqlalchemy.dialects.postgresql import UUID as _PGUUID
-from sqlalchemy import Column, ForeignKey, and_, types as satypes, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    ForeignKey,
+    and_,
+    types as satypes,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import CheckConstraint
 from sqlalchemy.orm import RelationshipProperty, foreign, relationship, remote, backref
@@ -49,3 +56,6 @@ class Table(Base):
         satypes.String(length=200), nullable=False, index=True, primary_key=True
     )
     public = Column(satypes.Boolean, nullable=False)
+    created = Column(
+        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    )

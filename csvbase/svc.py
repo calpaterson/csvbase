@@ -184,7 +184,12 @@ def make_drop_table_ddl(sesh: Session, username: str, table_name: str) -> DropTa
 
 
 def upsert_table(
-    sesh: Session, user_uuid, username, table_name: str, csv_buf: io.StringIO
+    sesh: Session,
+    user_uuid,
+    username,
+    table_name: str,
+    csv_buf: io.StringIO,
+    public=False,
 ) -> None:
     try:
         dialect = csv.Sniffer().sniff(csv_buf.read(1024))
@@ -202,7 +207,9 @@ def upsert_table(
         sesh.execute(make_drop_table_ddl(sesh, username, table_name))
         logger.info("dropped %s/%s", username, table_name)
     else:
-        sesh.add(models.Table(user_uuid=user_uuid, table_name=table_name, public=True))
+        sesh.add(
+            models.Table(user_uuid=user_uuid, table_name=table_name, public=public)
+        )
 
     sesh.execute(make_create_table_ddl(username, table_name, types))
     logger.info(
@@ -297,7 +304,11 @@ def is_correct_password(sesh, crypt_context, username, password) -> Optional[boo
 
 
 def tables_for_user(sesh, user_uuid, include_private=False) -> Iterable[str]:
-    rs = sesh.query(models.Table.table_name).filter(models.Table.user_uuid == user_uuid)
+    rs = (
+        sesh.query(models.Table.table_name)
+        .filter(models.Table.user_uuid == user_uuid)
+        .order_by(models.Table.created.desc())
+    )
     if not include_private:
         rs = rs.filter(models.Table.public)
     for (table_name,) in rs:
