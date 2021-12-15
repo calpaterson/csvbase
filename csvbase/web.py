@@ -83,22 +83,22 @@ def put_user_in_g() -> None:
 
 
 @bp.route("/")
-def landing():
-    return make_response(render_template("landing.html"))
+def landing() -> str:
+    return render_template("landing.html")
 
 
 @bp.route("/new-table/paste")
-def paste():
+def paste() -> str:
     return render_template("new-table.html", method="paste")
 
 
 @bp.route("/new-table/upload-file")
-def upload_file():
+def upload_file() -> str:
     return render_template("new-table.html", method="upload-file")
 
 
 @bp.route("/new-table/blank")
-def blank_table():
+def blank_table() -> str:
     def build_cols(args) -> List[Tuple[str, ColumnType]]:
         index = 1
         cols = []
@@ -129,7 +129,7 @@ def blank_table():
 
 
 @bp.route("/<username>/<table_name>", methods=["GET"])
-def get_table(username, table_name):
+def get_table(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(sesh, username)
     user_uuid = svc.user_uuid_for_name(sesh, username)
@@ -144,14 +144,16 @@ def get_table(username, table_name):
     if is_browser():
         cols = svc.get_columns(sesh, username, table_name, include_row_id=True)
         page = svc.table_page(sesh, user_uuid, username, table_name, KeySet(n=n, op=op))
-        return render_template(
-            "table.html",
-            cols=cols,
-            rows=page.rows,
-            has_more=page.has_more,
-            has_less=page.has_less,
-            username=username,
-            table_name=table_name,
+        return make_response(
+            render_template(
+                "table.html",
+                cols=cols,
+                rows=page.rows,
+                has_more=page.has_more,
+                has_less=page.has_less,
+                username=username,
+                table_name=table_name,
+            )
         )
     else:
         return make_csv_response(
@@ -187,7 +189,7 @@ def get_row(username: str, table_name: str, row_id: int) -> Response:
 
 
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["PUT"])
-def update_row(username, table_name, row_id):
+def update_row(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(sesh, username)
     body: Dict[str, Any] = json_or_400()
