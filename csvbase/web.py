@@ -12,6 +12,7 @@ from flask import (
     g,
     session as flask_session,
     Flask,
+    Response,
     request,
     abort,
     make_response,
@@ -28,7 +29,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from flask_sqlalchemy_session import flask_scoped_session
 import werkzeug.http
 
-from .value_objs import KeySet, ColumnType
+from .value_objs import KeySet, ColumnType, PythonType
 from . import svc
 from . import db
 
@@ -159,7 +160,7 @@ def get_table(username, table_name):
 
 
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["GET"])
-def get_row(username, table_name, row_id):
+def get_row(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(sesh, username)
     row = svc.get_row(sesh, username, table_name, row_id)
@@ -178,7 +179,7 @@ def get_row(username, table_name, row_id):
             {
                 "row_id": row_id,
                 "row": {
-                    column.name: column.value_to_json(value)
+                    column.name: column.type_.value_to_json(value)
                     for column, value in row.items()
                 },
             }

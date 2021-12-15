@@ -1,7 +1,7 @@
 import re
 from uuid import UUID
 import io
-from typing import Optional, Type, List, Iterable, Tuple
+from typing import Optional, Type, List, Iterable, Tuple, Dict
 from datetime import datetime, timezone
 import csv
 from logging import getLogger
@@ -21,7 +21,7 @@ from sqlalchemy.schema import (
     MetaData,
 )
 
-from .value_objs import KeySet, Page, Column, ColumnType
+from .value_objs import KeySet, Page, Column, ColumnType, PythonType
 from . import models
 from .db import engine
 
@@ -231,7 +231,9 @@ def table_page(
     )
 
 
-def get_row(sesh, username, table_name, row_id):
+def get_row(
+    sesh: Session, username: str, table_name: str, row_id: int
+) -> Dict[Column, PythonType]:
     columns = get_columns(sesh, username, table_name, include_row_id=False)
     table = get_sqla_table(sesh, username, table_name)
     cursor = sesh.execute(table.select().where(table.c.csvbase_row_id == row_id))
