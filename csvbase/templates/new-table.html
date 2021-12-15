@@ -16,11 +16,17 @@
              href="{{ url_for('csvbase.upload_file') }}">Upload file</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {% if method == 'blank' %}active{%endif%}"
+          <a class="nav-link {% if request.endpoint == 'csvbase.blank_table' %}active{%endif%}"
              href="{{ url_for('csvbase.blank_table') }}">Blank table</a>
         </li>
       </ul>
     </div>
+
+    {% if request.endpoint == "csvbase.blank_table" %}
+      <div class="alert alert-danger" role="alert">
+        Form works, but submitting does not (yet)
+      </div>
+    {% endif %}
 
     <form action="{{ url_for('csvbase.new_table_form_submission') }}" method="POST" enctype="multipart/form-data">
       <div class="row mb-3 align-items-center">
