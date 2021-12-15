@@ -109,16 +109,26 @@ def get_sqla_table(sesh, username, table_name) -> TableClause:
     )
 
 
-def make_create_table_ddl(
-    username: str, table_name: str, columns: List[Column]
-) -> CreateTable:
+def create_table(
+    sesh: Session, username: str, table_name: str, columns: Iterable[Column]
+) -> None:
     cols: List[SAColumn] = [
         SAColumn("csvbase_row_id", type_=satypes.BigInteger, primary_key=True)
     ]
     for col in columns:
         cols.append(SAColumn(col.name, type_=col.type_.sqla_type()))
     table = SATable(f"{username}__{table_name}", MetaData(bind=engine), *cols)
-    return CreateTable(table)
+    sesh.execute(CreateTable(table))
+
+
+def upsert_table_metadata(
+    sesh: Session, user_uuid: UUID, table_name: str, public: bool
+) -> None:
+    table_obj = sesh.query(models.Table).get((user_uuid, table_name)) or models.Table(
+        user_uuid=user_uuid, table_name=table_name
+    )
+    table_obj.public = public
+    sesh.add(table_obj)
 
 
 def make_drop_table_ddl(sesh: Session, username: str, table_name: str) -> DropTable:
@@ -142,7 +152,7 @@ def upsert_table(
         dialect = csv.excel
     logger.info("sniffed dialect: %s", dialect)
     csv_buf.seek(0)
-    types = types_for_csv(csv_buf, dialect)
+    columns = types_for_csv(csv_buf, dialect)
     csv_buf.seek(0)
 
     already_exists = table_exists(sesh, user_uuid, table_name)
@@ -151,11 +161,9 @@ def upsert_table(
         sesh.execute(make_drop_table_ddl(sesh, username, table_name))
         logger.info("dropped %s/%s", username, table_name)
     else:
-        sesh.add(
-            models.Table(user_uuid=user_uuid, table_name=table_name, public=public)
-        )
+        upsert_table_metadata(sesh, user_uuid, table_name, public)
 
-    sesh.execute(make_create_table_ddl(username, table_name, types))
+    create_table(sesh, username, table_name, columns)
     logger.info(
         "%s %s/%s", "(re)created" if already_exists else "created", username, table_name
     )
@@ -164,7 +172,7 @@ def upsert_table(
     reader = csv.reader(csv_buf, dialect)
     csv_buf.readline()  # pop the header, which is not useful
     row_gen = (
-        [col.type_.python_type()(v) for col, v in zip(types, line)] for line in reader
+        [col.type_.python_type()(v) for col, v in zip(columns, line)] for line in reader
     )
 
     raw_conn = sesh.connection().connection
@@ -200,6 +208,7 @@ def table_page(
     sesh: Session, user_uuid: UUID, username: str, table_name: str, keyset: KeySet
 ) -> Page:
     """Get a page from a table based on the provided KeySet"""
+    # FIXME: this doesn't handle empty tables
     table = get_sqla_table(sesh, username, table_name)
     if keyset.op == "greater_than":
         where_cond = table.c.csvbase_row_id > keyset.n

@@ -28,7 +28,7 @@
       </div>
     {% endif %}
 
-    <form action="{{ url_for('csvbase.new_table_form_submission') }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ action_url }}" method="POST" enctype="multipart/form-data">
       <div class="row mb-3 align-items-center">
         <div class="col-auto">
           <label class="col-form-label" for="table-name">Table name</label>

@@ -91,7 +91,7 @@ _SQLA_TYPE_MAP = {
 }
 
 _REVERSE_SQL_TYPE_MAP = {
-    "BOOLEAN": ColumnType.BOOLEAN,
+    "boolean": ColumnType.BOOLEAN,
     "bigint": ColumnType.INTEGER,
     "date": ColumnType.DATE,
     "double precision": ColumnType.FLOAT,

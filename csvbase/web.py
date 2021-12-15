@@ -8,11 +8,11 @@ from os import environ
 
 from typing_extensions import Literal
 from cchardet import UniversalDetector
+from werkzeug.wrappers.response import Response
 from flask import (
     g,
     session as flask_session,
     Flask,
-    Response,
     request,
     abort,
     make_response,
@@ -29,7 +29,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from flask_sqlalchemy_session import flask_scoped_session
 import werkzeug.http
 
-from .value_objs import KeySet, ColumnType, PythonType
+from .value_objs import KeySet, ColumnType, PythonType, Column
 from . import svc
 from . import db
 
@@ -89,15 +89,56 @@ def landing() -> str:
 
 @bp.route("/new-table/paste")
 def paste() -> str:
-    return render_template("new-table.html", method="paste")
+    return render_template(
+        "new-table.html",
+        method="paste",
+        action_url=url_for("csvbase.new_table_form_submission"),
+    )
 
 
-@bp.route("/new-table/upload-file")
+@bp.route("/new-table/upload-file", methods=["GET"])
 def upload_file() -> str:
-    return render_template("new-table.html", method="upload-file")
+    return render_template(
+        "new-table.html",
+        method="upload-file",
+        action_url=url_for("csvbase.new_table_form_submission"),
+    )
 
 
-@bp.route("/new-table/blank")
+@bp.route("/new-table", methods=["POST"])
+def new_table_form_submission():
+    sesh = get_sesh()
+    if "username" in request.form:
+        user_uuid = svc.create_user(
+            sesh,
+            current_app.config["CRYPT_CONTEXT"],
+            request.form["username"],
+            request.form.get("email"),
+            request.form["password"],
+        )
+        set_current_user_for_session(request.form["username"], user_uuid)
+        flash("Account created")
+    else:
+        am_a_user()
+
+    table_name = request.form["table-name"]
+    textarea = request.form.get("csv-textarea")
+    if textarea:
+        csv_buf = io.StringIO(textarea)
+    else:
+        csv_buf = byte_buf_to_str_buf(request.files["csv-file"])
+    if "private" in request.form:
+        public = False
+    else:
+        public = True
+    svc.upsert_table(sesh, g.user_uuid, g.username, table_name, csv_buf, public=public)
+    sesh.commit()
+    return redirect(
+        url_for("csvbase.get_table", username=g.username, table_name=table_name)
+    )
+
+
+@bp.route("/new-table/blank", methods=["GET"])
 def blank_table() -> str:
     def build_cols(args) -> List[Tuple[str, ColumnType]]:
         index = 1
@@ -125,7 +166,41 @@ def blank_table() -> str:
 
     cols = build_cols(request.args)
 
-    return render_template("new-blank-table.html", cols=cols, ColumnType=ColumnType)
+    return render_template(
+        "new-blank-table.html",
+        action_url=url_for("csvbase.blank_table_form_post"),
+        cols=cols,
+        ColumnType=ColumnType,
+    )
+
+
+@bp.route("/new-table/blank", methods=["POST"])
+def blank_table_form_post() -> Response:
+    am_a_user()
+    sesh = get_sesh()
+    am_user_or_400(sesh, g.username)
+    cols = []
+    index = 1
+    while True:
+        try:
+            col_name = request.form[f"col-name-{index}"]
+            col_type = ColumnType[request.form[f"col-type-{index}"]]
+            cols.append(Column(col_name, col_type))
+        except KeyError:
+            break
+        index += 1
+    table_name = request.form["table-name"]
+    svc.create_table(sesh, g.username, table_name, cols)
+    svc.upsert_table_metadata(
+        sesh,
+        g.user_uuid,
+        table_name,
+        request.form.get("private", default=False, type=bool),
+    )
+    sesh.commit()
+    return redirect(
+        url_for("csvbase.get_table", username=g.username, table_name=table_name)
+    )
 
 
 @bp.route("/<username>/<table_name>", methods=["GET"])
@@ -213,39 +288,6 @@ def update_row_by_form_post(username, table_name, row_id):
         url_for(
             "csvbase.get_row", username=username, table_name=table_name, row_id=row_id
         )
-    )
-
-
-@bp.route("/new-table", methods=["POST"])
-def new_table_form_submission():
-    sesh = get_sesh()
-    if "username" in request.form:
-        user_uuid = svc.create_user(
-            sesh,
-            current_app.config["CRYPT_CONTEXT"],
-            request.form["username"],
-            request.form.get("email"),
-            request.form["password"],
-        )
-        set_current_user_for_session(request.form["username"], user_uuid)
-        flash("Account created")
-    else:
-        am_a_user()
-
-    table_name = request.form["table-name"]
-    textarea = request.form.get("csv-textarea")
-    if textarea:
-        csv_buf = io.StringIO(textarea)
-    else:
-        csv_buf = byte_buf_to_str_buf(request.files["csv-file"])
-    if "private" in request.form:
-        public = False
-    else:
-        public = True
-    svc.upsert_table(sesh, g.user_uuid, g.username, table_name, csv_buf, public=public)
-    sesh.commit()
-    return redirect(
-        url_for("csvbase.get_table", username=g.username, table_name=table_name)
     )
 
 
