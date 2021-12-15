@@ -31,7 +31,7 @@
           <div class="form-group">
             <label>{{ col.name }}</label>
             <input
-              type="{{ col.html_type() }}"
+              type="{{ col.type_.html_type() }}"
               name="{{ col.name }}" value="{{ v }}">
           </div>
         {% endfor %}

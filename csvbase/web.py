@@ -28,7 +28,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from flask_sqlalchemy_session import flask_scoped_session
 import werkzeug.http
 
-from .value_objs import KeySet
+from .value_objs import KeySet, ColumnType
 from . import svc
 from . import db
 
@@ -88,20 +88,18 @@ def landing():
 
 @bp.route("/new-table/paste")
 def paste():
-    return make_response(render_template("new-table.html", method="paste"))
+    return render_template("new-table.html", method="paste")
 
 
 @bp.route("/new-table/upload-file")
 def upload_file():
-    return make_response(render_template("new-table.html", method="upload-file"))
+    return render_template("new-table.html", method="upload-file")
 
 
 @bp.route("/new-table/blank")
 def blank_table():
     column_count = request.args.get("column_count", default=1, type=int)
-    return make_response(
-        render_template("new-table.html", method="blank", column_count=column_count)
-    )
+    return render_template("new-blank-table.html", cols=[("", ColumnType.TEXT)])
 
 
 @bp.route("/<username>/<table_name>", methods=["GET"])
@@ -120,16 +118,14 @@ def get_table(username, table_name):
     if is_browser():
         cols = svc.get_columns(sesh, username, table_name, include_row_id=True)
         page = svc.table_page(sesh, user_uuid, username, table_name, KeySet(n=n, op=op))
-        return make_response(
-            render_template(
-                "table.html",
-                cols=cols,
-                rows=page.rows,
-                has_more=page.has_more,
-                has_less=page.has_less,
-                username=username,
-                table_name=table_name,
-            )
+        return render_template(
+            "table.html",
+            cols=cols,
+            rows=page.rows,
+            has_more=page.has_more,
+            has_less=page.has_less,
+            username=username,
+            table_name=table_name,
         )
     else:
         return make_csv_response(
@@ -179,7 +175,9 @@ def update_row(username, table_name, row_id):
 def update_row_by_form_post(username, table_name, row_id):
     sesh = get_sesh()
     columns = svc.get_columns(sesh, username, table_name)
-    values = {c.name: c.from_string_to_python(request.form[c.name]) for c in columns}
+    values = {
+        c.name: c.type_.from_string_to_python(request.form[c.name]) for c in columns
+    }
     svc.update_row(sesh, username, table_name, row_id, values)
     sesh.commit()
     flash(f"Updated row {row_id}")

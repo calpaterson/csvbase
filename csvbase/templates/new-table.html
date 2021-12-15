@@ -38,6 +38,7 @@
         </div>
       </div>
 
+      {% block form_section %}
       {% if method == 'paste' %}
         <div class="mb-3">
           <textarea name="csv-textarea" class="form-control" rows="10" cols="50" autofocus></textarea>
@@ -50,46 +51,7 @@
           <input type="file" class="form-control" name="csv-file" accept=".csv,text/csv">
         </div>
       {% endif %}
-
-      {% if method == 'blank' %}
-        <div class="row mb-3">
-          <label>Columns</label>
-        </div>
-        {% for column_index in range(column_count) %}
-          <div class="row mb-3 align-items-center">
-            <div class="col-auto">
-              <input type="text"
-                     id="col-name-{{ column_index }}"
-                     class="form-control"
-                     required
-                     name="col-name-{{ column_index }}">
-            </div>
-            <div class="col-auto">
-              <select id="col-type-{{ column_index }}" class="form-control form-select">
-                <option value="text">Text</option>
-                <option value="integer">Integer</option>
-                <option value="date">Date</option>
-                <option value="boolean">True/False</option>
-              </select>
-            </div>
-            <div class="col-auto">
-              <button class="btn btn-danger btn-sm">remove</button>
-            </div>
-          </div>
-        {% endfor %}
-
-        <div class="mb-3">
-          <button
-            type="submit"
-            class="btn btn-secondary"
-            formaction="{{ url_for('csvbase.blank_table') }}"
-            name="column_count"
-            value="{{ column_count + 1 }}"
-            formnovalidate
-            formmethod="get"
-            >Add another column</button>
-        </div>
-      {% endif %}
+      {% endblock %}
 
       <div class="mb-3 form-check">
         <input type="checkbox" class="form-check-input" name="private" id="is-private">

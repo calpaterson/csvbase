@@ -21,23 +21,11 @@ from sqlalchemy.schema import (
     MetaData,
 )
 
-from .value_objs import KeySet, Page
+from .value_objs import KeySet, Page, Column, ColumnType
 from . import models
 from .db import engine
 
 logger = getLogger(__name__)
-
-# FIXME: the capitalised ones probably don't work
-SQL_TO_PYTHON_TYPEMAP = {
-    "bigint": int,
-    "text": str,
-    "TIMESTAMP WITH TIMEZONE": datetime,
-    "double precision": float,
-    "BOOLEAN": bool,
-    "date": date,
-}
-# FIXME: shouldn't be needed, no small ints
-SQL_TO_PYTHON_TYPEMAP["integer"] = int
 
 INT_REGEX = re.compile(r"^\d+$")
 
@@ -46,7 +34,7 @@ FLOAT_REGEX = re.compile(r"^(\d+\.)|(\.\d+)|(\d+\.\d?)$")
 BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
 
 
-def types_for_csv(csv_buf, dialect, has_headers=True) -> List["Column"]:
+def types_for_csv(csv_buf, dialect, has_headers=True) -> List[Column]:
     # FIXME: This should return a list of Column
     # look just at the first 5 lines - that hopefully is easy to explain
     reader = csv.reader(csv_buf, dialect)
@@ -57,13 +45,13 @@ def types_for_csv(csv_buf, dialect, has_headers=True) -> List["Column"]:
     # FIXME: add support for dates here... (probably using date-util)
     for key, values in as_dict.items():
         if all(FLOAT_REGEX.match(v) for v in values):
-            rv.append(Column(key, float))
+            rv.append(Column(key, ColumnType.FLOAT))
         elif all(INT_REGEX.match(v) for v in values):
-            rv.append(Column(key, int))
+            rv.append(Column(key, ColumnType.INTEGER))
         elif all(BOOL_REGEX.match(v) for v in values):
-            rv.append(Column(key, bool))
+            rv.append(Column(key, ColumnType.BOOLEAN))
         else:
-            rv.append(Column(key, str))
+            rv.append(Column(key, ColumnType.TEXT))
     logger.info("inferred: %s", rv)
     return rv
 
@@ -94,51 +82,6 @@ def table_exists(sesh, user_uuid, table_name):
     ).scalar()
 
 
-@dataclass(frozen=True)
-class Column:
-    name: str
-    python_type: Type
-
-    def pretty_type(self) -> str:
-        MAP = {
-            int: "integer",
-            str: "text",
-            float: "float",
-            bool: "boolean",
-            date: "date",
-        }
-        return MAP[self.python_type]
-
-    def sqla_type(self):
-        MAP = {
-            int: satypes.BigInteger,
-            str: satypes.Text,
-            float: satypes.Float,
-            bool: satypes.Boolean,
-            date: satypes.Date,
-        }
-        return MAP[self.python_type]
-
-    def html_type(self) -> str:
-        MAP = {
-            bool: "checkbox",
-            date: "date",
-        }
-        return MAP.get(self.python_type, "text")
-
-    def value_to_json(self, value):
-        if self.python_type in [date]:
-            return value.isoformat()
-        else:
-            return value
-
-    def from_string_to_python(self, str):
-        if self.python_type is not date:
-            return self.python_type(str)
-        else:
-            return date.fromisoformat(str)
-
-
 def get_columns(sesh, username, table_name, include_row_id=False) -> List["Column"]:
     # lifted from https://dba.stackexchange.com/a/22420/28877
     stmt = f"""
@@ -154,7 +97,7 @@ def get_columns(sesh, username, table_name, include_row_id=False) -> List["Colum
     for name, sql_type in rs:
         if name == "csvbase_row_id" and not include_row_id:
             continue
-        rv.append(Column(name=name, python_type=SQL_TO_PYTHON_TYPEMAP[sql_type]))
+        rv.append(Column(name=name, type_=ColumnType.from_sql_type(sql_type)))
     return rv
 
 
@@ -162,7 +105,7 @@ def get_sqla_table(sesh, username, table_name) -> TableClause:
     columns = get_columns(sesh, username, table_name, include_row_id=True)
     return satable(
         f"{username}__{table_name}",
-        *[sacolumn(c.name, type_=c.sqla_type()) for c in columns],
+        *[sacolumn(c.name, type_=c.type_.sqla_type()) for c in columns],
     )
 
 
@@ -173,7 +116,7 @@ def make_create_table_ddl(
         SAColumn("csvbase_row_id", type_=satypes.BigInteger, primary_key=True)
     ]
     for col in columns:
-        cols.append(SAColumn(col.name, type_=col.sqla_type()))
+        cols.append(SAColumn(col.name, type_=col.type_.sqla_type()))
     table = SATable(f"{username}__{table_name}", MetaData(bind=engine), *cols)
     return CreateTable(table)
 
@@ -220,7 +163,9 @@ def upsert_table(
     # Copy in with binary copy
     reader = csv.reader(csv_buf, dialect)
     csv_buf.readline()  # pop the header, which is not useful
-    row_gen = ([col.python_type(v) for col, v in zip(types, line)] for line in reader)
+    row_gen = (
+        [col.type_.python_type()(v) for col, v in zip(types, line)] for line in reader
+    )
 
     raw_conn = sesh.connection().connection
     cols = [c.name for c in get_columns(sesh, username, table_name)]
