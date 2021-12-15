@@ -74,7 +74,7 @@ class ColumnType(enum.Enum):
             return "text"
 
     def pretty_name(self) -> str:
-        return self.name.lower()
+        return self.name.capitalize()
 
     def python_type(self) -> Type:
         return _PYTHON_TYPE_MAP[self]

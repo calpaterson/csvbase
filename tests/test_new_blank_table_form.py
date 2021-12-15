@@ -26,4 +26,5 @@ TESTCASES: Any = [({}, {"cols": [("", ColumnType.TEXT)]})]
 def test_new_blank_table(client, query, kwargs):
     resp = client.get(url_for("csvbase.blank_table"))
     _, template_kwargs = pickle.loads(resp.data)
+    template_kwargs.pop("ColumnType")
     assert template_kwargs == kwargs

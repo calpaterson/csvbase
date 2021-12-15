@@ -1,0 +1,51 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "new-table.html" %}
+
+{% block form_section %}
+  <div class="row mb-3">
+    <label>Columns</label>
+  </div>
+  {% for col_name, col_type in cols %}
+    <div class="row mb-3 align-items-center">
+      <div class="col-auto">
+        <input type="text"
+               id="col-name-{{ loop.index }}"
+               class="form-control"
+               required
+               name="col-name-{{ loop.index }}"
+               value="{{ col_name }}">
+      </div>
+      <div class="col-auto">
+        <select name="col-type-{{ loop.index }}" class="form-control form-select">
+          {% for ct in ColumnType %}
+            <option value="{{ ct.name }}" {% if ct == col_type %}selected{% endif %}>{{ ct.pretty_name()}}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button
+          type="submit"
+          class="btn btn-danger btn-sm"
+          formaction="{{ url_for('csvbase.blank_table') }}"
+          formmethod="get"
+          formnovalidate
+          name="remove_col"
+          type="submit"
+          value="{{ loop.index }}"
+          >remove</button>
+      </div>
+    </div>
+  {% endfor %}
+
+  <div class="mb-3">
+    <button
+      class="btn btn-secondary"
+      formaction="{{ url_for('csvbase.blank_table') }}"
+      formmethod="get"
+      formnovalidate
+      name="add_col"
+      type="submit"
+      value="yes"
+      >Add another column</button>
+  </div>
+{% endblock %}

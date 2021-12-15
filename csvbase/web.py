@@ -3,7 +3,7 @@ import io
 import shutil
 import codecs
 from logging import basicConfig, INFO, getLogger
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, List, Tuple
 from os import environ
 
 from typing_extensions import Literal
@@ -98,8 +98,33 @@ def upload_file():
 
 @bp.route("/new-table/blank")
 def blank_table():
-    column_count = request.args.get("column_count", default=1, type=int)
-    return render_template("new-blank-table.html", cols=[("", ColumnType.TEXT)])
+    def build_cols(args) -> List[Tuple[str, ColumnType]]:
+        index = 1
+        cols = []
+        while True:
+            try:
+                col_name = request.args[f"col-name-{index}"]
+                col_type = ColumnType[request.args[f"col-type-{index}"]]
+                cols.append((col_name, col_type))
+            except KeyError:
+                break
+            index += 1
+
+        if cols == []:
+            cols.append(("", ColumnType.TEXT))
+
+        if "add_col" in request.args:
+            cols.append(("", ColumnType.TEXT))
+
+        remove_col = request.args.get("remove_col", type=int)
+        if remove_col is not None:
+            del cols[remove_col - 1]
+
+        return cols
+
+    cols = build_cols(request.args)
+
+    return render_template("new-blank-table.html", cols=cols, ColumnType=ColumnType)
 
 
 @bp.route("/<username>/<table_name>", methods=["GET"])
