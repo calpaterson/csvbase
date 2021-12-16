@@ -3,3 +3,17 @@ class TableDoesNotExistException(Exception):
         self.table_name = table_name
         self.username = username
         super().__init__((username, table_name))
+
+
+class UserDoesNotExistException(Exception):
+    def __init__(self, username: str):
+        self.username = username
+        super().__init__(username)
+
+
+class RowDoesNotExistException(Exception):
+    def __init__(self, username: str, table_name: str, row_id: int):
+        self.table_name = table_name
+        self.username = username
+        self.row_id = row_id
+        super().__init__((username, table_name, row_id))

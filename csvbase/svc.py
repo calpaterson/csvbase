@@ -257,13 +257,13 @@ def table_page(
 
 def get_row(
     sesh: Session, username: str, table_name: str, row_id: int
-) -> Optional[Dict[Column, PythonType]]:
+) -> Dict[Column, PythonType]:
     columns = get_columns(sesh, username, table_name, include_row_id=False)
     table = get_sqla_table(sesh, username, table_name)
     cursor = sesh.execute(table.select().where(table.c.csvbase_row_id == row_id))
     row = cursor.fetchone()
     if row is None:
-        return row
+        raise exc.RowDoesNotExistException(username, table_name, row_id)
     else:
         return {c: row[c.name] for c in columns}
 
@@ -298,6 +298,14 @@ def is_public(sesh, username, table_name) -> bool:
         raise exc.TableDoesNotExistException(username, table_name)
     else:
         return rv
+
+
+def user_exists(sesh: Session, username: str) -> None:
+    exists = sesh.query(
+        sesh.query(models.User).filter(models.User.username == username).exists()
+    ).scalar()
+    if not exists:
+        raise exc.UserDoesNotExistException(username)
 
 
 def create_user(

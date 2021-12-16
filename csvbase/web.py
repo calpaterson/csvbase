@@ -3,7 +3,7 @@ import io
 import shutil
 import codecs
 from logging import basicConfig, INFO, getLogger
-from typing import Optional, Any, Dict, List, Tuple
+from typing import Optional, Any, Dict, List, Tuple, NoReturn
 from os import environ
 
 from typing_extensions import Literal
@@ -65,6 +65,26 @@ bp = Blueprint("csvbase", __name__)
 @bp.errorhandler(exc.TableDoesNotExistException)
 def handle_table_does_not_exist(e):
     message = "table does not exist"
+    http_code = 404
+    if is_browser():
+        return f"{http_code}: {message}", http_code
+    else:
+        return jsonify({"error": message}), http_code
+
+
+@bp.errorhandler(exc.UserDoesNotExistException)
+def handle_user_does_not_exist(e):
+    message = "user does not exist"
+    http_code = 404
+    if is_browser():
+        return f"{http_code}: {message}", http_code
+    else:
+        return jsonify({"error": message}), http_code
+
+
+@bp.errorhandler(exc.RowDoesNotExistException)
+def handle_row_does_not_exist(e):
+    message = "row does not exist"
     http_code = 404
     if is_browser():
         return f"{http_code}: {message}", http_code
@@ -250,10 +270,11 @@ def get_table(username: str, table_name: str) -> Response:
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["GET"])
 def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]:
     sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(sesh, username)
+    svc.user_exists(sesh, username)
+    if not svc.is_public(sesh, username, table_name) and not am_user(sesh, username):
+        raise exc.TableDoesNotExistException(username, table_name)
     row = svc.get_row(sesh, username, table_name, row_id)
     if is_browser():
-        # FIXME: handle not exist
         return (
             make_response(
                 render_template(
@@ -267,21 +288,18 @@ def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]
             200,
         )
     else:
-        if row is None:
-            return jsonify({"error": "row does not exist"}), 404
-        else:
-            return (
-                jsonify(
-                    {
-                        "row_id": row_id,
-                        "row": {
-                            column.name: column.type_.value_to_json(value)
-                            for column, value in row.items()
-                        },
-                    }
-                ),
-                200,
-            )
+        return (
+            jsonify(
+                {
+                    "row_id": row_id,
+                    "row": {
+                        column.name: column.type_.value_to_json(value)
+                        for column, value in row.items()
+                    },
+                }
+            ),
+            200,
+        )
 
 
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["PUT"])
@@ -384,8 +402,8 @@ def sign_out():
         return redirect(url_for("csvbase.paste"))
 
 
-def am_user_or_400(sesh: Session, username: str) -> bool:
-    """Assert that the current user has the given username.
+def am_user(sesh: Session, username: str) -> bool:
+    """Return true if the current user has the given username.
 
     This is ascertained by first checking cookies, then basic auth.
 
@@ -398,8 +416,13 @@ def am_user_or_400(sesh: Session, username: str) -> bool:
             sesh, current_app.config["CRYPT_CONTEXT"], auth.username, auth.password
         ):
             return True
+    return False
 
-    abort(400)
+
+def am_user_or_400(sesh: Session, username: str) -> bool:
+    if not am_user(sesh, username):
+        abort(400)
+    return True
 
 
 def am_a_user():

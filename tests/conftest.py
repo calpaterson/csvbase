@@ -27,13 +27,15 @@ def session_cls():
 @pytest.fixture(scope="session")
 def module_sesh(session_cls):
     """A module-level session, used for things that are done once on a session level"""
-    return session_cls()
+    with session_cls() as sesh:
+        yield sesh
 
 
 @pytest.fixture(scope="function")
 def sesh(session_cls):
     """A function-level session, used for everything else"""
-    return session_cls()
+    with session_cls() as sesh_:
+        yield sesh_
 
 
 @pytest.fixture(scope="session")

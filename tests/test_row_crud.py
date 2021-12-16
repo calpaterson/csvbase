@@ -25,6 +25,23 @@ def ten_rows(test_user, sesh):
     return table_name
 
 
+@pytest.fixture(scope="module")
+def private_table(test_user, module_sesh):
+    table_name = random_string()
+    svc.upsert_table_metadata(
+        module_sesh, test_user.user_uuid, table_name, public=False
+    )
+    svc.create_table(
+        module_sesh,
+        test_user.username,
+        table_name,
+        [Column("x", type_=ColumnType.INTEGER)],
+    )
+    svc.insert_row(module_sesh, test_user.username, table_name, {"x": 1})
+    module_sesh.commit()
+    return table_name
+
+
 @pytest.mark.xfail(reason="not implemented")
 def test_create(client, ten_rows):
     assert False
@@ -48,16 +65,25 @@ def test_read__table_does_not_exist(client, test_user):
     assert resp.json == {"error": "table does not exist"}
 
 
-@pytest.mark.xfail(reason="not implemented")
 def test_read__user_does_not_exist(client, test_user):
-    resp = client.get(f"/{test_user.username}/something/rows/1")
+    resp = client.get("/someone/something/rows/1")
     assert resp.status_code == 404, resp.data
     assert resp.json == {"error": "user does not exist"}
 
 
-@pytest.mark.xfail(reason="not implemented")
-def test_read__is_private(client, test_user):
-    assert False
+def test_read__is_private_not_authed(client, private_table, test_user):
+    resp = client.get(f"/{test_user.username}/{private_table}/rows/1")
+    assert resp.status_code == 404, resp.data
+    assert resp.json == {"error": "table does not exist"}
+
+
+def test_read__is_private_am_authed(client, private_table, test_user):
+    resp = client.get(
+        f"/{test_user.username}/{private_table}/rows/1",
+        headers={"Authorization": test_user.basic_auth()},
+    )
+    assert resp.status_code == 200, resp.data
+    assert resp.json == {"row_id": 1, "row": {"x": 1}}
 
 
 @pytest.mark.xfail(reason="not implemented")
