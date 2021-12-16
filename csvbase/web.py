@@ -303,14 +303,25 @@ def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]
 
 
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["PUT"])
-def update_row(username: str, table_name: str, row_id: int) -> Response:
+def update_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(sesh, username)
     body: Dict[str, Any] = json_or_400()
     assert body["row_id"] == row_id, "row ids cannot be changed"
-    svc.update_row(sesh, username, table_name, row_id, body["row"])
+    if not svc.update_row(sesh, username, table_name, row_id, body["row"]):
+        raise exc.RowDoesNotExistException(username, table_name, row_id)
     sesh.commit()
-    return jsonify({})
+    return "", 204
+
+
+@bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["DELETE"])
+def delete_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
+    sesh = get_sesh()
+    svc.is_public(sesh, username, table_name) or am_user_or_400(sesh, username)
+    if not svc.delete_row(sesh, username, table_name, row_id):
+        raise exc.RowDoesNotExistException(username, table_name, row_id)
+    sesh.commit()
+    return "", 204
 
 
 @bp.route("/<username>/<table_name>/rows/<int:row_id>/edit", methods=["POST"])

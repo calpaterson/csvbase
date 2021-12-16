@@ -269,15 +269,25 @@ def get_row(
 
 
 def update_row(
-    sesh, username, table_name, row_id: int, values: Dict[str, PythonType]
-) -> None:
+    sesh: Session,
+    username: str,
+    table_name: str,
+    row_id: int,
+    values: Dict[str, PythonType],
+) -> bool:
+    """Update a given row, returning True if it existed (and was updated) and False otherwise."""
     table = get_sqla_table(sesh, username, table_name)
-    sesh.execute(table.update().where(table.c.csvbase_row_id == row_id).values(values))
+    result = sesh.execute(
+        table.update().where(table.c.csvbase_row_id == row_id).values(values)
+    )
+    return result.rowcount > 0
 
 
-def delete_row(sesh, username, table_name, row_id: int) -> None:
+def delete_row(sesh: Session, username: str, table_name: str, row_id: int) -> bool:
+    """Update a given row, returning True if it existed (and was updated) and False otherwise."""
     table = get_sqla_table(sesh, username, table_name)
-    sesh.execute(table.delete().where(table.c.csvbase_row_id == row_id))
+    result = sesh.execute(table.delete().where(table.c.csvbase_row_id == row_id))
+    return result.rowcount > 0
 
 
 def insert_row(sesh: Session, username: str, table_name: str, values: Dict) -> int:

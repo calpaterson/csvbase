@@ -106,13 +106,26 @@ def test_read__is_private_am_authed(client, private_table, test_user):
     assert resp.json == {"row_id": 1, "row": {"x": 1}}
 
 
-@pytest.mark.xfail(reason="not implemented")
-def test_update__happy(client, ten_rows):
-    assert False
+def test_update__happy(client, ten_rows, test_user):
+    url = f"/{test_user.username}/{ten_rows}/rows/1"
+    new = {"row_id": 1, "row": {"roman_numeral": "i"}}
+    resp = client.put(url, json=new)
+    assert resp.status_code == 204, resp.data
+
+    resp = client.get(url)
+    assert resp.json == new
 
 
-@pytest.mark.xfail(reason="not implemented")
 def test_update__row_does_not_exist(client, ten_rows, test_user):
+    url = f"/{test_user.username}/{ten_rows}/rows/11"
+    new = {"row_id": 11, "row": {"roman_numeral": "XI"}}
+    resp = client.put(url, json=new)
+    assert resp.status_code == 404, resp.data
+    assert resp.json == {"error": "row does not exist"}
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_update__row_id_does_not_match(client, test_user):
     assert False
 
 
@@ -136,9 +149,14 @@ def test_update__is_private_am_authed(client, private_table, test_user):
     assert False
 
 
-@pytest.mark.xfail(reason="not implemented")
-def test_delete__happy(client, ten_rows):
-    assert False
+def test_delete__happy(client, ten_rows, test_user):
+    url = f"/{test_user.username}/{ten_rows}/rows/1"
+    resp = client.delete(url, headers={"Authorization": test_user.basic_auth()})
+    assert resp.status_code == 204, resp.data
+
+    resp = client.get(url)
+    assert resp.status_code == 404, resp.data
+    assert resp.json == {"error": "row does not exist"}
 
 
 @pytest.mark.xfail(reason="not implemented")
