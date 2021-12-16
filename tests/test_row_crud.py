@@ -43,7 +43,27 @@ def private_table(test_user, module_sesh):
 
 
 @pytest.mark.xfail(reason="not implemented")
-def test_create(client, ten_rows):
+def test_create__happy(client, ten_rows):
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_create__table_does_not_exist(client, test_user):
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_create__user_does_not_exist(client, test_user):
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_create__is_private_not_authed(client, private_table, test_user):
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_create__is_private_am_authed(client, private_table, test_user):
     assert False
 
 
@@ -87,10 +107,60 @@ def test_read__is_private_am_authed(client, private_table, test_user):
 
 
 @pytest.mark.xfail(reason="not implemented")
-def test_update(client, ten_rows):
+def test_update__happy(client, ten_rows):
     assert False
 
 
 @pytest.mark.xfail(reason="not implemented")
-def test_delete(client, ten_rows):
+def test_update__row_does_not_exist(client, ten_rows, test_user):
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_update__table_does_not_exist(client, test_user):
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_update__user_does_not_exist(client, test_user):
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_update__is_private_not_authed(client, private_table, test_user):
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_update__is_private_am_authed(client, private_table, test_user):
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_delete__happy(client, ten_rows):
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_delete__row_does_not_exist(client, ten_rows, test_user):
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_delete__table_does_not_exist(client, test_user):
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_delete__user_does_not_exist(client, test_user):
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_delete__is_private_not_authed(client, private_table, test_user):
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_delete__is_private_am_authed(client, private_table, test_user):
     assert False
