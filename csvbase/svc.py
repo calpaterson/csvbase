@@ -227,16 +227,30 @@ def table_page(
 
     rows = list(sesh.execute(keyset_page))
 
-    has_more_q = (
-        table.select().where(table.c.csvbase_row_id > rows[-1].csvbase_row_id).exists()  # type: ignore
-    )
-    has_less_q = (
-        table.select().where(table.c.csvbase_row_id < rows[0].csvbase_row_id).exists()  # type: ignore
-    )
+    if len(rows) > 1:
+        has_more_q = (
+            table.select().where(table.c.csvbase_row_id > rows[-1].csvbase_row_id).exists()  # type: ignore
+        )
+        has_more = sesh.query(has_more_q).scalar()
+        has_less_q = (
+            table.select().where(table.c.csvbase_row_id < rows[0].csvbase_row_id).exists()  # type: ignore
+        )
+        has_less = sesh.query(has_less_q).scalar()
+    else:
+        if keyset.op == "greater_than":
+            has_more = False
+            has_less = sesh.query(
+                table.select().where(table.c.csvbase_row_id < keyset.n).exists()  # type: ignore
+            ).scalar()
+        else:
+            has_more = sesh.query(
+                table.select().where(table.c.csvbase_row_id > keyset.n).exists()  # type: ignore
+            ).scalar()
+            has_less = False
     return Page(
-        has_less=sesh.query(has_less_q).scalar(),
+        has_less=has_less,
+        has_more=has_more,
         rows=rows[: keyset.size],
-        has_more=sesh.query(has_more_q).scalar(),
     )
 
 
@@ -251,9 +265,23 @@ def get_row(
     return {c: row[c.name] for c in columns}
 
 
-def update_row(sesh, username, table_name, row_id: int, values) -> None:
+def update_row(
+    sesh, username, table_name, row_id: int, values: Dict[str, PythonType]
+) -> None:
     table = get_sqla_table(sesh, username, table_name)
     sesh.execute(table.update().where(table.c.csvbase_row_id == row_id).values(values))
+
+
+def delete_row(sesh, username, table_name, row_id: int) -> None:
+    table = get_sqla_table(sesh, username, table_name)
+    sesh.execute(table.delete().where(table.c.csvbase_row_id == row_id))
+
+
+def insert_row(sesh: Session, username: str, table_name: str, values: Dict) -> int:
+    table = get_sqla_table(sesh, username, table_name)
+    return sesh.execute(
+        table.insert().values(values).returning(table.c.csvbase_row_id)
+    ).scalar()
 
 
 def is_public(sesh, username, table_name) -> bool:

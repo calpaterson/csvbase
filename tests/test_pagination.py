@@ -3,7 +3,7 @@ import io
 import csv
 
 from csvbase import svc
-from csvbase.value_objs import KeySet
+from csvbase.value_objs import KeySet, Column, ColumnType, Page
 from .utils import random_string
 
 import pytest
@@ -27,7 +27,7 @@ def letters_table(test_user, module_sesh):
     return table_name
 
 
-def test_no_pagination(sesh, test_user, letters_table):
+def test_first_page(sesh, test_user, letters_table):
     page = svc.table_page(
         sesh,
         test_user.user_uuid,
@@ -64,9 +64,9 @@ def test_back_to_first_page(sesh, test_user, letters_table):
         keyset=KeySet(n=4, op="less_than", size=3),
     )
 
-    assert page.has_less == False
+    assert not page.has_less
     assert page.rows == [(1, "a"), (2, "b"), (3, "c")]
-    assert page.has_more == True
+    assert page.has_more
 
 
 def test_last_page(sesh, test_user, letters_table):
@@ -97,16 +97,50 @@ def test_backward_paging(sesh, test_user, letters_table):
     assert page.has_more == True
 
 
-@pytest.mark.xfail(reason="empty tables not well supported yet")
+def test_pagination_over_the_top(sesh, test_user, letters_table):
+    page = svc.table_page(
+        sesh,
+        test_user.user_uuid,
+        test_user.username,
+        letters_table,
+        keyset=KeySet(n=50, op="greater_than", size=3),
+    )
+    assert page.has_less
+    assert page.rows == []
+    assert not page.has_more
+
+
+def test_pagination_under_the_bottom(sesh, test_user):
+    table_name = random_string()
+    svc.create_table(
+        sesh, test_user.username, table_name, columns=[Column("x", ColumnType.INTEGER)]
+    )
+
+    row_ids = [
+        svc.insert_row(sesh, test_user.username, table_name, {"x": 1}) for _ in range(5)
+    ]
+
+    for row_id in row_ids[:3]:
+        svc.delete_row(sesh, test_user.username, table_name, row_id)
+
+    page = svc.table_page(
+        sesh,
+        test_user.user_uuid,
+        test_user.username,
+        table_name,
+        keyset=KeySet(n=3, op="less_than", size=3),
+    )
+    assert page.has_more
+    assert page.rows == []
+    assert not page.has_less
+
+
 def test_paging_on_empty_table(sesh, test_user):
     table_name = random_string()
 
-    csv_buf = io.StringIO()
-    writer = csv.writer(csv_buf)
-    writer.writerow(["letter"])
-    csv_buf.seek(0)
-
-    svc.upsert_table(sesh, test_user.user_uuid, test_user.username, table_name, csv_buf)
+    svc.create_table(
+        sesh, test_user.username, table_name, columns=[Column("x", ColumnType.INTEGER)]
+    )
 
     page = svc.table_page(
         sesh,
@@ -115,3 +149,5 @@ def test_paging_on_empty_table(sesh, test_user):
         table_name,
         keyset=KeySet(n=0, op="greater_than"),
     )
+
+    assert page == Page(rows=[], has_less=False, has_more=False)
