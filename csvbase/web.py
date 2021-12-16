@@ -32,6 +32,7 @@ import werkzeug.http
 from .value_objs import KeySet, ColumnType, PythonType, Column
 from . import svc
 from . import db
+from . import exc
 
 
 def init_app():
@@ -59,6 +60,16 @@ def init_app():
 logger = getLogger(__name__)
 
 bp = Blueprint("csvbase", __name__)
+
+
+@bp.errorhandler(exc.TableDoesNotExistException)
+def handle_table_does_not_exist(e):
+    message = "table does not exist"
+    http_code = 404
+    if is_browser():
+        return f"{http_code}: {message}", http_code
+    else:
+        return jsonify({"error": message}), http_code
 
 
 @bp.before_request
@@ -237,30 +248,40 @@ def get_table(username: str, table_name: str) -> Response:
 
 
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["GET"])
-def get_row(username: str, table_name: str, row_id: int) -> Response:
+def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(sesh, username)
     row = svc.get_row(sesh, username, table_name, row_id)
     if is_browser():
-        return make_response(
-            render_template(
-                "row.html",
-                row=row,
-                row_id=row_id,
-                username=username,
-                table_name=table_name,
-            )
+        # FIXME: handle not exist
+        return (
+            make_response(
+                render_template(
+                    "row.html",
+                    row=row,
+                    row_id=row_id,
+                    username=username,
+                    table_name=table_name,
+                )
+            ),
+            200,
         )
     else:
-        return jsonify(
-            {
-                "row_id": row_id,
-                "row": {
-                    column.name: column.type_.value_to_json(value)
-                    for column, value in row.items()
-                },
-            }
-        )
+        if row is None:
+            return jsonify({"error": "row does not exist"}), 404
+        else:
+            return (
+                jsonify(
+                    {
+                        "row_id": row_id,
+                        "row": {
+                            column.name: column.type_.value_to_json(value)
+                            for column, value in row.items()
+                        },
+                    }
+                ),
+                200,
+            )
 
 
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["PUT"])

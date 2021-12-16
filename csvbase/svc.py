@@ -24,6 +24,7 @@ from sqlalchemy.schema import (
 from .value_objs import KeySet, Page, Column, ColumnType, PythonType
 from . import models
 from .db import engine
+from . import exc
 
 logger = getLogger(__name__)
 
@@ -256,13 +257,15 @@ def table_page(
 
 def get_row(
     sesh: Session, username: str, table_name: str, row_id: int
-) -> Dict[Column, PythonType]:
+) -> Optional[Dict[Column, PythonType]]:
     columns = get_columns(sesh, username, table_name, include_row_id=False)
     table = get_sqla_table(sesh, username, table_name)
     cursor = sesh.execute(table.select().where(table.c.csvbase_row_id == row_id))
     row = cursor.fetchone()
-
-    return {c: row[c.name] for c in columns}
+    if row is None:
+        return row
+    else:
+        return {c: row[c.name] for c in columns}
 
 
 def update_row(
@@ -285,12 +288,16 @@ def insert_row(sesh: Session, username: str, table_name: str, values: Dict) -> i
 
 
 def is_public(sesh, username, table_name) -> bool:
-    return (
+    rv = (
         sesh.query(models.Table.public)
         .join(models.User)
         .filter(models.User.username == username, models.Table.table_name == table_name)
         .scalar()
     )
+    if rv is None:
+        raise exc.TableDoesNotExistException(username, table_name)
+    else:
+        return rv
 
 
 def create_user(
