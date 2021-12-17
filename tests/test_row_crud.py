@@ -4,6 +4,8 @@ from .utils import random_string
 
 import pytest
 
+from .utils import make_user
+
 ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
 
 
@@ -82,9 +84,16 @@ def test_create__not_authed_private_table(client, private_table, test_user):
     assert False
 
 
-@pytest.mark.xfail(reason="not implemented")
-def test_create__wrong_user(client, private_table, test_user):
-    assert False
+def test_create__wrong_user(client, ten_rows, test_user, app, sesh):
+    other_user = make_user(sesh, app.config["CRYPT_CONTEXT"])
+    sesh.commit()
+    resp = client.post(
+        f"/{test_user.username}/{ten_rows}/rows/",
+        json={"row": {"roman_numeral": "XI"}},
+        headers={"Authorization": other_user.basic_auth()},
+    )
+    assert resp.status_code == 403, resp.data
+    assert resp.json == {"error": "not allowed"}
 
 
 def test_read__happy(client, ten_rows, test_user):

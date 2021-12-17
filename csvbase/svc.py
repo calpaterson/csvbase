@@ -319,7 +319,7 @@ def user_exists(sesh: Session, username: str) -> None:
 
 
 def create_user(
-    sesh, crypt_context, username, password_plain, email: Optional[str]
+    sesh, crypt_context, username, password_plain, email: Optional[str] = None
 ) -> UUID:
     user_uuid = uuid4()
     password_hashed = crypt_context.hash(password_plain)

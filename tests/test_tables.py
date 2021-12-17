@@ -23,7 +23,7 @@ def test_csvs_in_and_out(test_user, sesh, client):
                 "Authorization": test_user.basic_auth(),
             },
         )
-    assert put_resp.status_code == 200
+    assert put_resp.status_code == 200, put_resp.data
 
     get_resp = client.get(url)
     buf = StringIO(get_resp.data.decode("utf-8"))

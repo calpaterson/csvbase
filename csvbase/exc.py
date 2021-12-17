@@ -27,3 +27,11 @@ class RowDoesNotExistException(CSVBaseException):
 
 class NotAuthenticatedException(CSVBaseException):
     pass
+
+
+class NotAllowedException(CSVBaseException):
+    pass
+
+
+class WrongAuthException(CSVBaseException):
+    pass

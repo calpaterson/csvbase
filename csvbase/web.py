@@ -67,7 +67,10 @@ EXCEPTION_MESSAGE_CODE_MAP = {
     exc.RowDoesNotExistException: ("row does not exist", 404),
     exc.TableDoesNotExistException: ("table does not exist", 404),
     exc.NotAuthenticatedException: ("not authenticated", 401),
+    exc.NotAllowedException: ("not allowed", 403),
+    exc.WrongAuthException: ("wrong auth", 400),
 }
+
 
 @bp.errorhandler(exc.CSVBaseException)
 def handle_csvbase_exceptions(e):
@@ -85,6 +88,7 @@ def handle_csvbase_exceptions(e):
 def put_user_in_g() -> None:
     app_logger = current_app.logger
     user_uuid: Optional[Any] = flask_session.get("user_uuid")
+    auth = request.authorization
     if user_uuid is not None:
         if not isinstance(user_uuid, UUID):
             del flask_session["user_uuid"]
@@ -98,6 +102,15 @@ def put_user_in_g() -> None:
             else:
                 set_current_user(username, user_uuid)
                 app_logger.debug("currently signed in as: %s", g.username)
+    elif auth is not None:
+        sesh = get_sesh()
+        if svc.is_correct_password(
+            sesh, current_app.config["CRYPT_CONTEXT"], auth.username, auth.password
+        ):
+            user_uuid = svc.user_uuid_for_name(sesh, auth.username)
+            set_current_user(auth.username, user_uuid)
+        else:
+            raise exc.WrongAuthException()
     else:
         app_logger.debug("not signed in")
 
@@ -139,7 +152,7 @@ def new_table_form_submission():
         set_current_user_for_session(request.form["username"], user_uuid)
         flash("Account created")
     else:
-        am_a_user()
+        am_a_user_or_400()
 
     table_name = request.form["table-name"]
     textarea = request.form.get("csv-textarea")
@@ -196,9 +209,8 @@ def blank_table() -> str:
 
 @bp.route("/new-table/blank", methods=["POST"])
 def blank_table_form_post() -> Response:
-    am_a_user()
+    am_a_user_or_400()
     sesh = get_sesh()
-    am_user_or_400(sesh, g.username)
     cols = []
     index = 1
     while True:
@@ -226,7 +238,7 @@ def blank_table_form_post() -> Response:
 @bp.route("/<username>/<table_name>", methods=["GET"])
 def get_table(username: str, table_name: str) -> Response:
     sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(sesh, username)
+    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     user_uuid = svc.user_uuid_for_name(sesh, username)
 
     # passing a default and type here means the default is used if what they
@@ -262,8 +274,11 @@ def create_row(username: str, table_name: str) -> Tuple[Response, int]:
     svc.user_exists(sesh, username)
     if not svc.is_public(sesh, username, table_name):
         raise exc.TableDoesNotExistException(username, table_name)
-    if not am_user(sesh, username):
-        raise exc.NotAuthenticatedException()
+    if not am_user(username):
+        if am_a_user():
+            raise exc.NotAllowedException()
+        else:
+            raise exc.NotAuthenticatedException()
     body = json_or_400()
     assert "row_id" not in body
     row_id = svc.insert_row(sesh, username, table_name, body["row"])
@@ -276,7 +291,7 @@ def create_row(username: str, table_name: str) -> Tuple[Response, int]:
 def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]:
     sesh = get_sesh()
     svc.user_exists(sesh, username)
-    if not svc.is_public(sesh, username, table_name) and not am_user(sesh, username):
+    if not svc.is_public(sesh, username, table_name) and not am_user(username):
         raise exc.TableDoesNotExistException(username, table_name)
     row = svc.get_row(sesh, username, table_name, row_id)
     if is_browser():
@@ -310,7 +325,7 @@ def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["PUT"])
 def update_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
     sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(sesh, username)
+    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     body = json_or_400()
     assert body["row_id"] == row_id, "row ids cannot be changed"
     if not svc.update_row(sesh, username, table_name, row_id, body["row"]):
@@ -322,7 +337,7 @@ def update_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["DELETE"])
 def delete_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
     sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(sesh, username)
+    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     if not svc.delete_row(sesh, username, table_name, row_id):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
     sesh.commit()
@@ -350,7 +365,7 @@ def update_row_by_form_post(username, table_name, row_id):
 @bp.route("/<username>/<table_name>", methods=["PUT"])
 def upsert_table(username, table_name):
     sesh = get_sesh()
-    am_user_or_400(sesh, username)
+    am_user_or_400(username)
     # FIXME: add checking for forms here
     byte_buf = io.BytesIO()
     shutil.copyfileobj(request.stream, byte_buf)
@@ -418,31 +433,27 @@ def sign_out():
         return redirect(url_for("csvbase.paste"))
 
 
-def am_user(sesh: Session, username: str) -> bool:
+def am_user(username: str) -> bool:
     """Return true if the current user has the given username.
 
     This is ascertained by first checking cookies, then basic auth.
 
     """
-    if "username" in g:
-        return g.username == username
-    auth = request.authorization
-    if auth is not None:
-        if svc.is_correct_password(
-            sesh, current_app.config["CRYPT_CONTEXT"], auth.username, auth.password
-        ):
-            return True
-    return False
+    return g.get("username", None) == username
 
 
-def am_user_or_400(sesh: Session, username: str) -> bool:
-    if not am_user(sesh, username):
+def am_a_user() -> bool:
+    return "username" in g
+
+
+def am_user_or_400(username: str) -> bool:
+    if not am_user(username):
         abort(400)
     return True
 
 
-def am_a_user():
-    if not g.username and g.user_uuid:
+def am_a_user_or_400():
+    if not am_a_user():
         abort(400)
 
 
