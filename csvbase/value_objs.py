@@ -4,6 +4,7 @@ from uuid import UUID
 from datetime import datetime, date
 from dataclasses import dataclass
 import enum
+import binascii
 
 from sqlalchemy import types as satypes
 
@@ -15,6 +16,9 @@ class User:
     email: Optional[str]
     registered: datetime
     api_key: bytes
+
+    def hex_api_key(self) -> str:
+        return binascii.hexlify(self.api_key).decode("utf-8")
 
 
 @dataclass

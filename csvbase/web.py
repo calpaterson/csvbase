@@ -5,6 +5,7 @@ import codecs
 from logging import basicConfig, INFO, getLogger
 from typing import Optional, Any, Dict, List, Tuple, NoReturn
 from os import environ
+from urllib.parse import urlsplit, urlunsplit
 
 from typing_extensions import Literal
 from cchardet import UniversalDetector
@@ -274,13 +275,29 @@ def get_table(username: str, table_name: str) -> Response:
 @bp.route("/<username>/<table_name>/docs", methods=["GET"])
 def get_table_apidocs(username: str, table_name: str) -> str:
     sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    is_public = svc.is_public(sesh, username, table_name)
+    is_public or am_user_or_400(username)
     user = svc.user_by_name(sesh, username)
+
+    table_url = url_for(
+        "csvbase.get_table", username=username, table_name=table_name, _external=True
+    )
+    scheme, public_netloc, path, _, _ = urlsplit(table_url)
+    private_table_url = (
+        f"{scheme}://{user.username}:{user.hex_api_key()}@{public_netloc}{path}"
+    )
+
+    # if the table is not public the user will need basic auth to get it
+    if not is_public:
+        table_url = private_table_url
 
     return render_template(
         "table_api.html",
         username=username,
         table_name=table_name,
+        table_url=table_url,
+        private_table_url=private_table_url,
+        is_public=is_public,
     )
 
 

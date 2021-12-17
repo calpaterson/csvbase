@@ -225,7 +225,11 @@ def table_as_csv(sesh: Session, user_uuid, username, table_name) -> io.StringIO:
 
 def table_as_rows(sesh, user_uuid, username, table_name):
     table = get_sqla_table(sesh, username, table_name)
-    q = table.select().order_by(table.c.csvbase_row_id)
+    columns = get_columns(sesh, username, table_name, include_row_id=False)
+    # explictly exclude csvbase_row_id for now
+    q = select([getattr(table.c, c.name) for c in columns]).order_by(
+        table.c.csvbase_row_id
+    )
     yield from sesh.execute(q)
 
 
