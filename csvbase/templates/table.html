@@ -52,7 +52,7 @@
         {% if page.rows %}
           <a class="page-link" href="#">Rows {{ page.rows[0].csvbase_row_id }} to {{ page.rows[-1].csvbase_row_id }}</a>
         {% else %}
-          <a class="page-link" href="#">Row {{keyset.n}} onwards</a>
+          <a class="page-link" href="#">Row {{keyset.n + 1}} onwards</a>
         {% endif %}
       </li>
 

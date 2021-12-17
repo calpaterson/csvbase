@@ -243,7 +243,7 @@ def get_table(username: str, table_name: str) -> Response:
 
     # passing a default and type here means the default is used if what they
     # provide can't be parsed
-    n: int = request.args.get("n", default=1, type=int)
+    n: int = request.args.get("n", default=0, type=int)
     op: Literal["greater_than", "less_than"] = (
         "greater_than" if request.args.get("op", default="gt") == "gt" else "less_than"
     )
