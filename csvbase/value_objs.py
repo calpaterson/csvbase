@@ -14,6 +14,7 @@ class User:
     username: str
     email: Optional[str]
     registered: datetime
+    api_key: bytes
 
 
 @dataclass

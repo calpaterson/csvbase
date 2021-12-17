@@ -5,9 +5,9 @@ from sqlalchemy.orm import sessionmaker
 import pytest
 from passlib.context import CryptContext
 
-from csvbase import web, svc, db
+from csvbase import web, svc, db, models
 from .value_objs import ExtendedUser
-from .utils import random_string
+from .utils import random_string, make_user
 
 
 @pytest.fixture(scope="session")
@@ -40,20 +40,12 @@ def sesh(session_cls):
 
 @pytest.fixture(scope="session")
 def test_user(module_sesh, app):
-    username = "testuser-" + random_string()
-    password = "password"
-    user_uuid = svc.create_user(
-        module_sesh, app.config["CRYPT_CONTEXT"], username, password, email=None
+    user = make_user(
+        module_sesh,
+        app.config["CRYPT_CONTEXT"],
     )
     module_sesh.commit()
-    # FIXME: change create_user to return a User, then copy into the below
-    return ExtendedUser(
-        username=username,
-        user_uuid=user_uuid,
-        password="password",
-        registered=datetime.now(timezone.utc),
-        email=None,
-    )
+    return user
 
 
 @pytest.fixture(scope="session")

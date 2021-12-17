@@ -1,7 +1,7 @@
 from uuid import UUID
 from typing import TYPE_CHECKING, Any, List
 
-from sqlalchemy.dialects.postgresql import UUID as _PGUUID
+from sqlalchemy.dialects.postgresql import UUID as _PGUUID, BYTEA
 from sqlalchemy import (
     Column,
     ForeignKey,
@@ -39,12 +39,23 @@ class User(Base):
         "UserEmail", uselist=False, backref="user"
     )
 
+    api_key: "RelationshipProperty[APIKey]" = relationship(
+        "APIKey", uselist=False, backref="user"
+    )
+
 
 class UserEmail(Base):
     __tablename__ = "user_emails"
 
     user_uuid = Column(PGUUID, ForeignKey("users.user_uuid"), primary_key=True)
     email_address = Column(satypes.String(length=200), nullable=False, index=True)
+
+
+class APIKey(Base):
+    __tablename__ = "api_keys"
+
+    user_uuid = Column(PGUUID, ForeignKey("users.user_uuid"), primary_key=True)
+    api_key = Column(BYTEA(length=16), nullable=False, unique=True, index=True)
 
 
 class Table(Base):

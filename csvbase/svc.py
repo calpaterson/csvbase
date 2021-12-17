@@ -8,6 +8,8 @@ from logging import getLogger
 from dataclasses import dataclass
 from datetime import date
 from uuid import uuid4
+import secrets
+import binascii
 
 from pgcopy import CopyManager
 from sqlalchemy import table as satable, column as sacolumn, types as satypes
@@ -335,6 +337,7 @@ def create_user(
 
     if email is not None:
         user.email_obj = models.UserEmail(email_address=email)
+    user.api_key = models.APIKey(api_key=secrets.token_bytes(16))
 
     sesh.add(user)
 
@@ -347,6 +350,20 @@ def is_correct_password(sesh, crypt_context, username, password) -> Optional[boo
         return None
     else:
         return crypt_context.verify(password, user.password_hash)
+
+
+def is_valid_api_key(sesh: Session, username: str, hex_api_key: str) -> bool:
+    try:
+        api_key = binascii.unhexlify(hex_api_key)
+    except binascii.Error:
+        raise exc.InvalidAPIKeyException()
+    exists = sesh.query(
+        sesh.query(models.APIKey)
+        .join(models.User)
+        .filter(models.User.username == username, models.APIKey.api_key == api_key)
+        .exists()
+    ).scalar()
+    return exists
 
 
 def tables_for_user(sesh, user_uuid, include_private=False) -> Iterable[str]:

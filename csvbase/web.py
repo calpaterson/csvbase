@@ -35,6 +35,22 @@ from . import db
 from . import exc
 
 
+logger = getLogger(__name__)
+
+bp = Blueprint("csvbase", __name__)
+
+
+EXCEPTION_MESSAGE_CODE_MAP = {
+    exc.UserDoesNotExistException: ("user does not exist", 404),
+    exc.RowDoesNotExistException: ("row does not exist", 404),
+    exc.TableDoesNotExistException: ("table does not exist", 404),
+    exc.NotAuthenticatedException: ("not authenticated", 401),
+    exc.NotAllowedException: ("not allowed", 403),
+    exc.WrongAuthException: ("wrong auth", 400),
+    exc.InvalidAPIKeyException: ("invalid api key", 400),
+}
+
+
 def init_app():
     basicConfig(level=INFO)
     app = Flask(__name__)
@@ -57,21 +73,6 @@ def init_app():
     sesh.init_app(app)
 
     return app
-
-
-logger = getLogger(__name__)
-
-bp = Blueprint("csvbase", __name__)
-
-
-EXCEPTION_MESSAGE_CODE_MAP = {
-    exc.UserDoesNotExistException: ("user does not exist", 404),
-    exc.RowDoesNotExistException: ("row does not exist", 404),
-    exc.TableDoesNotExistException: ("table does not exist", 404),
-    exc.NotAuthenticatedException: ("not authenticated", 401),
-    exc.NotAllowedException: ("not allowed", 403),
-    exc.WrongAuthException: ("wrong auth", 400),
-}
 
 
 @bp.errorhandler(exc.CSVBaseException)
@@ -106,9 +107,7 @@ def put_user_in_g() -> None:
                 app_logger.debug("currently signed in as: %s", g.username)
     elif auth is not None:
         sesh = get_sesh()
-        if svc.is_correct_password(
-            sesh, current_app.config["CRYPT_CONTEXT"], auth.username, auth.password
-        ):
+        if svc.is_valid_api_key(sesh, auth.username or "", auth.password or ""):
             user_uuid = svc.user_uuid_for_name(sesh, auth.username)
             set_current_user(auth.username, user_uuid)
         else:
@@ -268,6 +267,7 @@ def get_table(username: str, table_name: str) -> Response:
         return make_csv_response(
             svc.table_as_csv(sesh, user_uuid, username, table_name)
         )
+
 
 @bp.route("/<username>/<table_name>/docs", methods=["GET"])
 def get_table_apidocs(username: str, table_name: str) -> str:
@@ -448,11 +448,7 @@ def sign_out():
 
 
 def am_user(username: str) -> bool:
-    """Return true if the current user has the given username.
-
-    This is ascertained by first checking cookies, then basic auth.
-
-    """
+    """Return true if the current user has the given username."""
     return g.get("username", None) == username
 
 

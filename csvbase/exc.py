@@ -35,3 +35,7 @@ class NotAllowedException(CSVBaseException):
 
 class WrongAuthException(CSVBaseException):
     pass
+
+
+class InvalidAPIKeyException(CSVBaseException):
+    pass
