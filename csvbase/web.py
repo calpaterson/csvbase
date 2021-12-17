@@ -29,7 +29,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from flask_sqlalchemy_session import flask_scoped_session
 import werkzeug.http
 
-from .value_objs import KeySet, ColumnType, PythonType, Column
+from .value_objs import KeySet, ColumnType, PythonType, Column, User
 from . import svc
 from . import db
 from . import exc
@@ -98,18 +98,20 @@ def put_user_in_g() -> None:
             app_logger.warning("cleared a corrupt user_uuid cookie: %s", user_uuid)
         else:
             sesh = get_sesh()
-            username = svc.username_from_user_uuid(sesh, user_uuid)
-            if username is None:
+            try:
+                user = svc.user_by_user_uuid(sesh, user_uuid)
+            except exc.UserDoesNotExistException:
                 del flask_session["user_uuid"]
                 app_logger.warning("cleared a corrupt user_uuid cookie: %s", user_uuid)
             else:
-                set_current_user(username, user_uuid)
+                set_current_user(user)
                 app_logger.debug("currently signed in as: %s", g.username)
+
     elif auth is not None:
         sesh = get_sesh()
         if svc.is_valid_api_key(sesh, auth.username or "", auth.password or ""):
-            user_uuid = svc.user_uuid_for_name(sesh, auth.username)
-            set_current_user(auth.username, user_uuid)
+            user = svc.user_by_name(sesh, auth.username)
+            set_current_user(user)
         else:
             raise exc.WrongAuthException()
     else:
@@ -240,7 +242,7 @@ def blank_table_form_post() -> Response:
 def get_table(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    user_uuid = svc.user_uuid_for_name(sesh, username)
+    user = svc.user_by_name(sesh, username)
 
     # passing a default and type here means the default is used if what they
     # provide can't be parsed
@@ -252,7 +254,7 @@ def get_table(username: str, table_name: str) -> Response:
 
     if is_browser():
         cols = svc.get_columns(sesh, username, table_name, include_row_id=True)
-        page = svc.table_page(sesh, user_uuid, username, table_name, keyset)
+        page = svc.table_page(sesh, user.user_uuid, username, table_name, keyset)
         return make_response(
             render_template(
                 "table_view.html",
@@ -265,7 +267,7 @@ def get_table(username: str, table_name: str) -> Response:
         )
     else:
         return make_csv_response(
-            svc.table_as_csv(sesh, user_uuid, username, table_name)
+            svc.table_as_csv(sesh, user.user_uuid, username, table_name)
         )
 
 
@@ -273,7 +275,7 @@ def get_table(username: str, table_name: str) -> Response:
 def get_table_apidocs(username: str, table_name: str) -> str:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    user_uuid = svc.user_uuid_for_name(sesh, username)
+    user = svc.user_by_name(sesh, username)
 
     return render_template(
         "table_api.html",
@@ -385,7 +387,7 @@ def upsert_table(username, table_name):
     shutil.copyfileobj(request.stream, byte_buf)
     str_buf = byte_buf_to_str_buf(byte_buf)
     svc.upsert_table(
-        sesh, svc.user_uuid_for_name(sesh, username), username, table_name, str_buf
+        sesh, svc.user_by_name(sesh, username).user_uuid, username, table_name, str_buf
     )
     sesh.commit()
     return make_text_response(f"upserted {username}/{table_name}")
@@ -396,7 +398,7 @@ def user(username):
     sesh = get_sesh()
     tables = svc.tables_for_user(
         sesh,
-        svc.user_uuid_for_name(sesh, username),
+        svc.user_by_name(sesh, username).user_uuid,
         include_private=g.get("username") == username,
     )
     return make_response(
@@ -422,8 +424,7 @@ def sign_in():
             request.form["password"],
         ):
             set_current_user_for_session(
-                username,
-                svc.user_uuid_for_name(sesh, request.form["username"]),
+                svc.user_by_name(sesh, request.form["username"]),
             )
             flash(f"Signed in as {username}")
             if "whence" in request.form:
@@ -511,21 +512,21 @@ def byte_buf_to_str_buf(byte_buf):
     return Reader(byte_buf)
 
 
-def set_current_user_for_session(username, user_uuid, session: Optional[Any] = None):
+def set_current_user_for_session(user, session: Optional[Any] = None):
     """Sets the current user and creates a web session."""
-    g.user_uuid = user_uuid
-    g.username = username
+    g.user_uuid = user.user_uuid
+    g.username = user.username
 
     if session is None:
         session = flask_session
-    session["user_uuid"] = user_uuid
+    session["user_uuid"] = user.user_uuid
     # Make it last for 31 days
     session.permanent = True
 
 
-def set_current_user(username, user_uuid):
-    g.username = username
-    g.user_uuid = user_uuid
+def set_current_user(user: User):
+    g.username = user.username
+    g.user_uuid = user.user_uuid
 
 
 def json_or_400() -> Dict[str, Any]:

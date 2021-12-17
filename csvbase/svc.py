@@ -23,7 +23,7 @@ from sqlalchemy.schema import (
     MetaData,
 )
 
-from .value_objs import KeySet, Page, Column, ColumnType, PythonType
+from .value_objs import KeySet, Page, Column, ColumnType, PythonType, User
 from . import models
 from .db import engine
 from . import exc
@@ -59,20 +59,42 @@ def types_for_csv(csv_buf, dialect, has_headers=True) -> List[Column]:
     return rv
 
 
-def user_uuid_for_name(sesh, username):
-    return (
-        sesh.query(models.User.user_uuid)
-        .filter(models.User.username == username)
-        .scalar()
-    )
+def user_by_name(sesh, username) -> User:
+    sqla_user = sesh.query(models.User).filter(models.User.username == username).first()
+    if sqla_user is None:
+        raise exc.UserDoesNotExistException(username)
+    else:
+        if sqla_user.email_obj is not None:
+            email = sqla_user.email_obj.email_address
+        else:
+            email = None
+        return User(
+            user_uuid=sqla_user.user_uuid,
+            username=username,
+            registered=sqla_user.registered,
+            api_key=sqla_user.api_key.api_key,
+            email=email,
+        )
 
 
-def username_from_user_uuid(sesh, user_uuid):
-    return (
-        sesh.query(models.User.username)
-        .filter(models.User.user_uuid == user_uuid)
-        .scalar()
+def user_by_user_uuid(sesh, user_uuid) -> User:
+    sqla_user = (
+        sesh.query(models.User).filter(models.User.user_uuid == user_uuid).first()
     )
+    if sqla_user is None:
+        raise exc.UserDoesNotExistException(user_uuid)
+    else:
+        if sqla_user.email_obj is not None:
+            email = sqla_user.email_obj.email_address
+        else:
+            email = None
+        return User(
+            user_uuid=user_uuid,
+            username=sqla_user.username,
+            registered=sqla_user.registered,
+            api_key=sqla_user.api_key.api_key,
+            email=email,
+        )
 
 
 def table_exists(sesh, user_uuid, table_name):
