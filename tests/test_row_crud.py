@@ -42,9 +42,20 @@ def private_table(test_user, module_sesh):
     return table_name
 
 
-@pytest.mark.xfail(reason="not implemented")
-def test_create__happy(client, ten_rows):
-    assert False
+def test_create__happy(client, ten_rows, test_user):
+    expected_resource = {"row_id": 11, "row": {"roman_numeral": "XI"}}
+
+    post_resp = client.post(
+        f"/{test_user.username}/{ten_rows}/rows/",
+        json={"row": {"roman_numeral": "XI"}},
+        headers={"Authorization": test_user.basic_auth()},
+    )
+    assert post_resp.status_code == 201
+    assert post_resp.json == expected_resource
+
+    get_resp = client.get(f"/{test_user.username}/{ten_rows}/rows/11")
+    assert get_resp.status_code == 200, get_resp.data
+    assert get_resp.json == post_resp.json
 
 
 @pytest.mark.xfail(reason="not implemented")
@@ -57,13 +68,22 @@ def test_create__user_does_not_exist(client, test_user):
     assert False
 
 
+def test_create__not_authed(client, ten_rows, test_user):
+    post_resp = client.post(
+        f"/{test_user.username}/{ten_rows}/rows/",
+        json={"row": {"roman_numeral": "XI"}},
+    )
+    assert post_resp.status_code == 400
+    assert post_resp.json == {"error": "not authenticated"}
+
+
 @pytest.mark.xfail(reason="not implemented")
-def test_create__is_private_not_authed(client, private_table, test_user):
+def test_create__not_authed_private_table(client, private_table, test_user):
     assert False
 
 
 @pytest.mark.xfail(reason="not implemented")
-def test_create__is_private_am_authed(client, private_table, test_user):
+def test_create__wrong_user(client, private_table, test_user):
     assert False
 
 

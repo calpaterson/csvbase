@@ -92,6 +92,16 @@ def handle_row_does_not_exist(e):
         return jsonify({"error": message}), http_code
 
 
+@bp.errorhandler(exc.NotAuthenticatedException)
+def handle_row_does_not_exist(e):
+    message = "not authenticated"
+    http_code = 400
+    if is_browser():
+        return f"{http_code}: {message}", http_code
+    else:
+        return jsonify({"error": message}), http_code
+
+
 @bp.before_request
 def put_user_in_g() -> None:
     app_logger = current_app.logger
@@ -267,6 +277,22 @@ def get_table(username: str, table_name: str) -> Response:
         )
 
 
+@bp.route("/<username>/<table_name>/rows/", methods=["POST"])
+def create_row(username: str, table_name: str) -> Tuple[Response, int]:
+    sesh = get_sesh()
+    svc.user_exists(sesh, username)
+    if not svc.is_public(sesh, username, table_name):
+        raise exc.TableDoesNotExistException(username, table_name)
+    if not am_user(sesh, username):
+        raise exc.NotAuthenticatedException()
+    body = json_or_400()
+    assert "row_id" not in body
+    row_id = svc.insert_row(sesh, username, table_name, body["row"])
+    sesh.commit()
+    body["row_id"] = row_id
+    return jsonify(body), 201
+
+
 @bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["GET"])
 def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]:
     sesh = get_sesh()
@@ -306,7 +332,7 @@ def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]
 def update_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(sesh, username)
-    body: Dict[str, Any] = json_or_400()
+    body = json_or_400()
     assert body["row_id"] == row_id, "row ids cannot be changed"
     if not svc.update_row(sesh, username, table_name, row_id, body["row"]):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
