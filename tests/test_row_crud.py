@@ -73,7 +73,7 @@ def test_create__not_authed(client, ten_rows, test_user):
         f"/{test_user.username}/{ten_rows}/rows/",
         json={"row": {"roman_numeral": "XI"}},
     )
-    assert post_resp.status_code == 400
+    assert post_resp.status_code == 401
     assert post_resp.json == {"error": "not authenticated"}
 
 

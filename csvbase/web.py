@@ -62,41 +62,20 @@ logger = getLogger(__name__)
 bp = Blueprint("csvbase", __name__)
 
 
-@bp.errorhandler(exc.TableDoesNotExistException)
-def handle_table_does_not_exist(e):
-    message = "table does not exist"
-    http_code = 404
+EXCEPTION_MESSAGE_CODE_MAP = {
+    exc.UserDoesNotExistException: ("user does not exist", 404),
+    exc.RowDoesNotExistException: ("row does not exist", 404),
+    exc.TableDoesNotExistException: ("table does not exist", 404),
+    exc.NotAuthenticatedException: ("not authenticated", 401),
+}
+
+@bp.errorhandler(exc.CSVBaseException)
+def handle_csvbase_exceptions(e):
+    message, http_code = EXCEPTION_MESSAGE_CODE_MAP[e.__class__]
     if is_browser():
-        return f"{http_code}: {message}", http_code
-    else:
-        return jsonify({"error": message}), http_code
-
-
-@bp.errorhandler(exc.UserDoesNotExistException)
-def handle_user_does_not_exist(e):
-    message = "user does not exist"
-    http_code = 404
-    if is_browser():
-        return f"{http_code}: {message}", http_code
-    else:
-        return jsonify({"error": message}), http_code
-
-
-@bp.errorhandler(exc.RowDoesNotExistException)
-def handle_row_does_not_exist(e):
-    message = "row does not exist"
-    http_code = 404
-    if is_browser():
-        return f"{http_code}: {message}", http_code
-    else:
-        return jsonify({"error": message}), http_code
-
-
-@bp.errorhandler(exc.NotAuthenticatedException)
-def handle_row_does_not_exist(e):
-    message = "not authenticated"
-    http_code = 400
-    if is_browser():
+        # web browsers handle 401 specially, use 400
+        if http_code == 401:
+            http_code = 400
         return f"{http_code}: {message}", http_code
     else:
         return jsonify({"error": message}), http_code
