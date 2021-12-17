@@ -51,6 +51,8 @@ def init_app():
     def inject_heroku():
         return dict(HEROKU="HEROKU" in environ)
 
+    app.jinja_env.filters["snake_case"] = snake_case
+
     sesh = flask_scoped_session(sessionmaker(bind=db.engine))
     sesh.init_app(app)
 
@@ -254,7 +256,7 @@ def get_table(username: str, table_name: str) -> Response:
         page = svc.table_page(sesh, user_uuid, username, table_name, keyset)
         return make_response(
             render_template(
-                "table.html",
+                "table_view.html",
                 cols=cols,
                 page=page,
                 keyset=keyset,
@@ -266,6 +268,18 @@ def get_table(username: str, table_name: str) -> Response:
         return make_csv_response(
             svc.table_as_csv(sesh, user_uuid, username, table_name)
         )
+
+@bp.route("/<username>/<table_name>/docs", methods=["GET"])
+def get_table_apidocs(username: str, table_name: str) -> str:
+    sesh = get_sesh()
+    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    user_uuid = svc.user_uuid_for_name(sesh, username)
+
+    return render_template(
+        "table_api.html",
+        username=username,
+        table_name=table_name,
+    )
 
 
 @bp.route("/<username>/<table_name>/rows/", methods=["POST"])
@@ -527,3 +541,8 @@ def json_or_400() -> Dict[str, Any]:
 
 def get_sesh() -> Session:
     return current_app.scoped_session  # type: ignore
+
+
+def snake_case(inp: str) -> str:
+    # FIXME: this ignores capitalisations...
+    return inp.replace("-", "_")

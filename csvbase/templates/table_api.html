@@ -1,0 +1,22 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "table.html" %}
+
+{% block tab_contents %}
+  <div class="container">
+    <h2>Pandas</h2>
+    <p>To load this dataset into <a href="https://pandas.pydata.org/">pandas</a>, do the following</p>
+    <pre>import pandas
+# you just use the same url as the table paeg
+{{table_name|snake_case}} = pandas.read_csv("{{url_for('csvbase.get_table', username=username, table_name=table_name, _external=True)}}")
+</pre>
+
+    <h2>R</h2>
+    <p>To load this dataset into <a href="https://www.r-project.org/">R</a>, do the following</p>
+    <pre># you just use the same url as the table page
+{{table_name|snake_case}} &lt;- read.csv('{{url_for('csvbase.get_table', username=username, table_name=table_name, _external=True)}}')</pre>
+
+    <h2>ReST</h2>
+    <p>(Forthcoming)</p>
+  </div>
+{% endblock %}
+

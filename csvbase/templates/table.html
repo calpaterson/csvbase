@@ -1,72 +1,26 @@
-{# -*- mode: jinja2 -*- #}
 {% extends "base.html" %}
 
 {% block main %}
   <div class="container">
     <h1><a href="{{ url_for('csvbase.user', username=username) }}">{{ username }}</a>/<a href="{{ url_for('csvbase.get_table', username=username, table_name=table_name) }}">{{ table_name }}</a></h1>
-  </div>
-  <div class="container">
-    <table class="table">
-      <thead>
-        <tr>
-          {% for col in cols %}
-            {% if col.name == "csvbase_row_id" %}
-              <th>Row ID</th>
-            {% else %}
-              <th>{{ col.name }}</th>
-            {% endif %}
-          {% endfor %}
-        </tr>
-      </thead>
 
-      {% for row in page.rows %}
-        <tr>
-          {% for col in row %}
-            {% if loop.index == 1 %}
-              <td><a
-                    href="{{ url_for('csvbase.get_row', username=username, table_name=table_name, row_id=col) }}"
-                    >{{col}}</a></td>
-            {% else %}
-              <td>{{col}}</td>
-            {% endif %}
-          {% endfor %}
-        </tr>
-      {% endfor %}
-    </table>
+    <div class="mb-3">
+      <ul class="nav nav-tabs">
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'csvbase.get_table' %}active{%endif%}"
+             href="{{ url_for('csvbase.get_table', username=username, table_name=table_name) }}">View</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'csvbase.get_table_apidocs' %}active{%endif%}"
+             href="{{ url_for('csvbase.get_table_apidocs', username=username, table_name=table_name) }}"
+             >API docs (Pandas, R, ReST)</a>
+        </li>
+      </ul>
+    </div>
   </div>
 
-  <nav>
-    <ul class="pagination justify-content-center">
-      {% if page.has_less %}
-        <li class="page-item">
-          <a class="page-link"
-             href="{{ url_for('csvbase.get_table', username=username, table_name=table_name, op='lt', n=page.rows[0].csvbase_row_id) }}">Previous page</a>
-        </li>
-      {% else %}
-        <li class="page-item disabled">
-          <a class="page-link" href="#" tabindex="-1">Previous page</a>
-        </li>
-      {% endif %}
 
-      <li class="page-item active">
-        {% if page.rows %}
-          <a class="page-link" href="#">Rows {{ page.rows[0].csvbase_row_id }} to {{ page.rows[-1].csvbase_row_id }}</a>
-        {% else %}
-          <a class="page-link" href="#">Row {{keyset.n + 1}} onwards</a>
-        {% endif %}
-      </li>
-
-      {% if page.has_more %}
-        <li class="page-item">
-          <a class="page-link"
-             href="{{ url_for('csvbase.get_table', username=username, table_name=table_name, op='gt', n=page.rows[-1].csvbase_row_id) }}">Next page</a>
-        </li>
-      {% else %}
-        <li class="page-item disabled">
-          <a class="page-link" href="#" tabindex="-1">Next page</a>
-        </li>
-      {% endif %}
-    </ul>
-</nav>
+  {% block tab_contents %}
+  {% endblock %}
 
 {% endblock %}
