@@ -13,7 +13,7 @@
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.get_table_apidocs' %}active{%endif%}"
              href="{{ url_for('csvbase.get_table_apidocs', username=username, table_name=table_name) }}"
-             >API docs (Pandas, R, ReST)</a>
+             >API docs (Pandas, R, RESTful HTTP)</a>
         </li>
       </ul>
     </div>
