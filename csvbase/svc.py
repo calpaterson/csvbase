@@ -348,7 +348,7 @@ def user_exists(sesh: Session, username: str) -> None:
 
 def create_user(
     sesh, crypt_context, username, password_plain, email: Optional[str] = None
-) -> UUID:
+) -> User:
     user_uuid = uuid4()
     password_hashed = crypt_context.hash(password_plain)
     registered = datetime.now(timezone.utc)
@@ -367,7 +367,13 @@ def create_user(
 
     sesh.add(user)
 
-    return user_uuid
+    return User(
+        user_uuid=user.user_uuid,
+        username=username,
+        registered=user.registered,
+        api_key=user.api_key.api_key,
+        email=email,
+    )
 
 
 def is_correct_password(sesh, crypt_context, username, password) -> Optional[bool]:
