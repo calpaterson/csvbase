@@ -23,3 +23,6 @@ bootstrap-5.1.3-dist.zip:
 
 csvbase/static/bootstrap.min.css: bootstrap-5.1.3-dist.zip
 	unzip -p bootstrap-5.1.3-dist.zip bootstrap-5.1.3-dist/css/bootstrap.min.css > $@
+
+deploy:
+	git push heroku main
