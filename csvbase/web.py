@@ -283,9 +283,13 @@ def get_table_apidocs(username: str, table_name: str) -> str:
         "csvbase.get_table", username=username, table_name=table_name, _external=True
     )
     scheme, public_netloc, path, _, _ = urlsplit(table_url)
-    private_table_url = (
-        f"{scheme}://{user.username}:{user.hex_api_key()}@{public_netloc}{path}"
-    )
+    if am_user(username):
+        url_username = user.username
+        url_hex_key = user.hex_api_key()
+    else:
+        url_username = "your_username"
+        url_hex_key = "your_api_key"
+    private_table_url = f"{scheme}://{url_username}:{url_hex_key}@{public_netloc}{path}"
 
     # if the table is not public the user will need basic auth to get it
     if not is_public:

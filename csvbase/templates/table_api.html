@@ -38,7 +38,8 @@
     <pre>curl {{table_url}} -o {{table_name|snake_case}}.csv</pre>
     <h3>Updating the dataset</h3>
     <p>After changing the dataset, send it back with the <code>PUT</code> HTTP Verb (as CSV)</p>
-    <pre>curl -XPUT {{private_table_url}} --data-binary @{{table_name|snake_case}}.csv</pre>
+    <pre>{%if g.username == username %}# your api key has been filled in here
+{% endif %}curl -XPUT {{private_table_url}} --data-binary @{{table_name|snake_case}}.csv</pre>
   </div>
 {% endblock %}
 
