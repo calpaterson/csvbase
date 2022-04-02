@@ -529,7 +529,7 @@ def byte_buf_to_str_buf(byte_buf):
     return Reader(byte_buf)
 
 
-def set_current_user_for_session(user, session: Optional[Any] = None):
+def set_current_user_for_session(user: User, session: Optional[Any] = None) -> None:
     """Sets the current user and creates a web session."""
     g.user_uuid = user.user_uuid
     g.username = user.username
