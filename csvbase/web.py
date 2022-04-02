@@ -150,8 +150,8 @@ def new_table_form_submission():
             sesh,
             current_app.config["CRYPT_CONTEXT"],
             request.form["username"],
-            request.form.get("email"),
             request.form["password"],
+            request.form.get("email"),
         )
         set_current_user_for_session(user)
         flash("Account created")

@@ -347,7 +347,7 @@ def user_exists(sesh: Session, username: str) -> None:
 
 
 def create_user(
-    sesh, crypt_context, username, password_plain, email: Optional[str] = None
+    sesh, crypt_context, username: str, password_plain: str, email: Optional[str] = None
 ) -> User:
     user_uuid = uuid4()
     password_hashed = crypt_context.hash(password_plain)
@@ -376,7 +376,9 @@ def create_user(
     )
 
 
-def is_correct_password(sesh, crypt_context, username, password) -> Optional[bool]:
+def is_correct_password(
+    sesh: Session, crypt_context, username: str, password: str
+) -> Optional[bool]:
     user = sesh.query(models.User).filter(models.User.username == username).first()
     if user is None:
         return None
@@ -398,7 +400,9 @@ def is_valid_api_key(sesh: Session, username: str, hex_api_key: str) -> bool:
     return exists
 
 
-def tables_for_user(sesh, user_uuid, include_private=False) -> Iterable[str]:
+def tables_for_user(
+    sesh: Session, user_uuid: UUID, include_private: bool = False
+) -> Iterable[str]:
     rs = (
         sesh.query(models.Table.table_name)
         .filter(models.Table.user_uuid == user_uuid)
