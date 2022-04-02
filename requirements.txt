@@ -2,6 +2,9 @@ argon2-cffi==21.1.0
 cchardet==2.1.7
 flask-sqlalchemy-session==1.1
 flask==2.0.2
+# werkzeug 2.1.0 broke flask-sqlalchemy-session:
+# https://github.com/dtheodor/flask-sqlalchemy-session/issues/14
+werkzeug<2.1.0
 gunicorn==20.1.0
 passlib==1.7.4
 pgcopy==1.5.0
