@@ -146,14 +146,14 @@ def upload_file() -> str:
 def new_table_form_submission():
     sesh = get_sesh()
     if "username" in request.form:
-        user_uuid = svc.create_user(
+        user = svc.create_user(
             sesh,
             current_app.config["CRYPT_CONTEXT"],
             request.form["username"],
             request.form.get("email"),
             request.form["password"],
         )
-        set_current_user_for_session(request.form["username"], user_uuid)
+        set_current_user_for_session(user)
         flash("Account created")
     else:
         am_a_user_or_400()

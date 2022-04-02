@@ -16,18 +16,12 @@ def random_string() -> str:
 def make_user(sesh, crypt_context):
     username = "testuser-" + random_string()
     password = "password"
-    user_uuid = svc.create_user(sesh, crypt_context, username, password, email=None)
-    api_key = (
-        sesh.query(models.APIKey.api_key)
-        .filter(models.APIKey.user_uuid == user_uuid)
-        .scalar()
-    )
-    # FIXME: change create_user to return a User, then copy into the below
+    user = svc.create_user(sesh, crypt_context, username, password, email=None)
     return ExtendedUser(
         username=username,
-        user_uuid=user_uuid,
-        password="password",
-        registered=datetime.now(timezone.utc),
-        api_key=api_key,
-        email=None,
+        user_uuid=user.user_uuid,
+        password=password,
+        registered=user.registered,
+        api_key=user.api_key,
+        email=user.email,
     )
