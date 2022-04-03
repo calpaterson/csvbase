@@ -1,7 +1,7 @@
 import re
 from uuid import UUID
 import io
-from typing import Optional, Type, List, Iterable, Tuple, Dict
+from typing import Optional, Type, List, Iterable, Tuple, Dict, Any
 from datetime import datetime, timezone
 import csv
 from logging import getLogger
@@ -240,6 +240,7 @@ def table_as_xlsx(
     username: str,
     table_name: str,
     include_row_id: bool = True,
+    excel_table: bool = False,
 ) -> io.BytesIO:
     xlsx_buf = io.BytesIO()
 
@@ -252,13 +253,34 @@ def table_as_xlsx(
         sesh, user_uuid, username, table_name, include_row_id=include_row_id
     )
 
-    with xlsxwriter.Workbook(xlsx_buf, {"constant_memory": True}) as workbook:
+    workbook_args = {}
+    if not excel_table:
+        workbook_args["constant_memory"] = True
+
+    with xlsxwriter.Workbook(xlsx_buf, workbook_args) as workbook:
         worksheet = workbook.add_worksheet()
 
-        worksheet.write_row(0, 0, column_names)
+        if excel_table:
+            rows = list(rows)
+            table_args: Dict[str, Any] = {}
+            table_args["data"] = rows
+            table_args["columns"] = [
+                {"header": column_name} for column_name in column_names
+            ]
 
-        for index, row in enumerate(rows, start=1):
-            worksheet.write_row(index, 0, row)
+            worksheet.add_table(
+                first_row=0,
+                first_col=0,
+                last_row=len(rows),
+                # FIXME: last_col should be zero indexed, isn't - bug?
+                last_col=len(column_names) - 1,
+                options=table_args,
+            )
+        else:
+            worksheet.write_row(0, 0, column_names)
+
+            for index, row in enumerate(rows, start=1):
+                worksheet.write_row(index, 0, row)
 
     xlsx_buf.seek(0)
     return xlsx_buf

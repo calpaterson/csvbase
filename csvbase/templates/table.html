@@ -14,7 +14,12 @@
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.get_table_apidocs' %}active{%endif%}"
              href="{{ url_for('csvbase.get_table_apidocs', username=username, table_name=table_name) }}"
-             >API docs (Pandas, R, RESTful HTTP)</a>
+             >API docs (Pandas, R, REST)</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'csvbase.table_export' %}active{%endif%}"
+             href="{{ url_for('csvbase.table_export', username=username, table_name=table_name) }}"
+             >Export (Excel, CSV, OpenOffice)</a>
         </li>
       </ul>
     </div>

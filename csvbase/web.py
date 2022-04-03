@@ -304,14 +304,33 @@ def get_table_xlsx(username: str, table_name: str) -> Response:
     )
 
 
+@bp.route("/<username>/<table_name:table_name>/export", methods=["GET"])
+def table_export(username: str, table_name: str) -> str:
+    sesh = get_sesh()
+    is_public = svc.is_public(sesh, username, table_name)
+    is_public or am_user_or_400(username)
+    return render_template(
+        "table_export.html",
+        username=username,
+        table_name=table_name,
+        is_public=is_public,
+    )
+
+
 @bp.route("/<username>/<table_name:table_name>/export/xlsx", methods=["GET"])
 def export_table_xlsx(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     user = svc.user_by_name(sesh, username)
 
+    excel_table = "excel-table" in request.args
+
+    xlsx_buf = svc.table_as_xlsx(
+        sesh, user.user_uuid, username, table_name, excel_table=excel_table
+    )
+
     return make_xlsx_response(
-        svc.table_as_xlsx(sesh, user.user_uuid, username, table_name),
+        xlsx_buf,
         make_download_filename(username, table_name, "xlsx"),
     )
 
