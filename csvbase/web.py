@@ -245,15 +245,15 @@ def get_table(username: str, table_name: str) -> Response:
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     user = svc.user_by_name(sesh, username)
 
-    # passing a default and type here means the default is used if what they
-    # provide can't be parsed
-    n: int = request.args.get("n", default=0, type=int)
-    op: Literal["greater_than", "less_than"] = (
-        "greater_than" if request.args.get("op", default="gt") == "gt" else "less_than"
-    )
-    keyset = KeySet(n=n, op=op)
-
     if is_browser():
+        # passing a default and type here means the default is used if what they
+        # provide can't be parsed
+        n: int = request.args.get("n", default=0, type=int)
+        op: Literal["greater_than", "less_than"] = (
+            "greater_than" if request.args.get("op", default="gt") == "gt" else "less_than"
+        )
+        keyset = KeySet(n=n, op=op)
+
         cols = svc.get_columns(sesh, username, table_name, include_row_id=True)
         page = svc.table_page(sesh, user.user_uuid, username, table_name, keyset)
         return make_response(
