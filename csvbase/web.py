@@ -1,15 +1,17 @@
 from uuid import UUID
+from datetime import date
 import io
 import shutil
 import codecs
 from logging import basicConfig, INFO, getLogger
-from typing import Optional, Any, Dict, List, Tuple, NoReturn
+from typing import Optional, Any, Dict, List, Tuple
 from os import environ
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 
 from typing_extensions import Literal
 from cchardet import UniversalDetector
 from werkzeug.wrappers.response import Response
+from werkzeug.routing import BaseConverter
 from flask import (
     g,
     session as flask_session,
@@ -60,6 +62,8 @@ def init_app():
     app.config["SESSION_COOKIE_NAME"] = "csvbase_websesh"
     app.config["SECRET_KEY"] = "no peeking"
 
+    app.url_map.converters["table_name"] = TableNameConverter
+
     app.register_blueprint(bp)
 
     db.make_tables()
@@ -74,6 +78,10 @@ def init_app():
     sesh.init_app(app)
 
     return app
+
+
+class TableNameConverter(BaseConverter):
+    regex = r"[A-z][-A-z0-9]+"
 
 
 @bp.errorhandler(exc.CSVBaseException)
@@ -239,7 +247,7 @@ def blank_table_form_post() -> Response:
     )
 
 
-@bp.route("/<username>/<table_name>", methods=["GET"])
+@bp.route("/<username>/<table_name:table_name>", methods=["GET"])
 def get_table(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
@@ -274,7 +282,7 @@ def get_table(username: str, table_name: str) -> Response:
         )
 
 
-@bp.route("/<username>/<table_name>.csv", methods=["GET"])
+@bp.route("/<username>/<table_name:table_name>.csv", methods=["GET"])
 def get_table_csv(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
@@ -285,7 +293,30 @@ def get_table_csv(username: str, table_name: str) -> Response:
     )
 
 
-@bp.route("/<username>/<table_name>/docs", methods=["GET"])
+@bp.route("/<username>/<table_name:table_name>.xlsx", methods=["GET"])
+def get_table_xlsx(username: str, table_name: str) -> Response:
+    sesh = get_sesh()
+    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    user = svc.user_by_name(sesh, username)
+
+    return make_xlsx_response(
+        svc.table_as_xlsx(sesh, user.user_uuid, username, table_name)
+    )
+
+
+@bp.route("/<username>/<table_name:table_name>/export/xlsx", methods=["GET"])
+def export_table_xlsx(username: str, table_name: str) -> Response:
+    sesh = get_sesh()
+    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    user = svc.user_by_name(sesh, username)
+
+    return make_xlsx_response(
+        svc.table_as_xlsx(sesh, user.user_uuid, username, table_name),
+        make_download_filename(username, table_name, "xlsx"),
+    )
+
+
+@bp.route("/<username>/<table_name:table_name>/docs", methods=["GET"])
 def get_table_apidocs(username: str, table_name: str) -> str:
     sesh = get_sesh()
     is_public = svc.is_public(sesh, username, table_name)
@@ -318,7 +349,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
     )
 
 
-@bp.route("/<username>/<table_name>/rows/", methods=["POST"])
+@bp.route("/<username>/<table_name:table_name>/rows/", methods=["POST"])
 def create_row(username: str, table_name: str) -> Tuple[Response, int]:
     sesh = get_sesh()
     svc.user_exists(sesh, username)
@@ -337,7 +368,7 @@ def create_row(username: str, table_name: str) -> Tuple[Response, int]:
     return jsonify(body), 201
 
 
-@bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["GET"])
+@bp.route("/<username>/<table_name:table_name>/rows/<int:row_id>", methods=["GET"])
 def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]:
     sesh = get_sesh()
     svc.user_exists(sesh, username)
@@ -372,7 +403,7 @@ def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]
         )
 
 
-@bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["PUT"])
+@bp.route("/<username>/<table_name:table_name>/rows/<int:row_id>", methods=["PUT"])
 def update_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
@@ -384,7 +415,7 @@ def update_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
     return "", 204
 
 
-@bp.route("/<username>/<table_name>/rows/<int:row_id>", methods=["DELETE"])
+@bp.route("/<username>/<table_name:table_name>/rows/<int:row_id>", methods=["DELETE"])
 def delete_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
@@ -394,7 +425,9 @@ def delete_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
     return "", 204
 
 
-@bp.route("/<username>/<table_name>/rows/<int:row_id>/edit", methods=["POST"])
+@bp.route(
+    "/<username>/<table_name:table_name>/rows/<int:row_id>/edit", methods=["POST"]
+)
 def update_row_by_form_post(username, table_name, row_id):
     sesh = get_sesh()
     columns = svc.get_columns(sesh, username, table_name)
@@ -412,7 +445,7 @@ def update_row_by_form_post(username, table_name, row_id):
 
 
 # FIXME: assert table name and user name match regex
-@bp.route("/<username>/<table_name>", methods=["PUT"])
+@bp.route("/<username>/<table_name:table_name>", methods=["PUT"])
 def upsert_table(username, table_name):
     sesh = get_sesh()
     am_user_or_400(username)
@@ -509,7 +542,7 @@ def make_text_response(text: str, status=200):
     return resp
 
 
-def make_csv_response(csv_buf, status=200):
+def make_csv_response(csv_buf: io.StringIO) -> Response:
     def generate():
         minibuf = csv_buf.read(4096)
         while minibuf:
@@ -517,6 +550,30 @@ def make_csv_response(csv_buf, status=200):
             minibuf = csv_buf.read(4096)
 
     return current_app.response_class(generate(), mimetype="text/csv")
+
+
+def make_download_filename(username: str, table_name: str, extension: str) -> str:
+    timestamp = date.today().isoformat()
+    return f"{table_name}-{timestamp}.{extension}"
+
+
+def make_xlsx_response(
+    xlsx_buf: io.BytesIO, download_filename: Optional[str] = None
+) -> Response:
+    def generate():
+        minibuf = xlsx_buf.read(4096)
+        while minibuf:
+            yield minibuf
+            minibuf = xlsx_buf.read(4096)
+
+    excel_mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    response = current_app.response_class(generate(), mimetype=excel_mimetype)
+    if download_filename is not None:
+        response.headers[
+            "Content-Disposition"
+        ] = f'attachment; filename="{download_filename}"'
+    return response
 
 
 def is_browser():

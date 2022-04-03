@@ -11,6 +11,7 @@ from uuid import uuid4
 import secrets
 import binascii
 
+import xlsxwriter
 from pgcopy import CopyManager
 from sqlalchemy import table as satable, column as sacolumn, types as satypes
 from sqlalchemy.orm import Session
@@ -233,7 +234,43 @@ def table_as_csv(
     return csv_buf
 
 
-def table_as_rows(sesh, user_uuid, username, table_name, include_row_id=False):
+def table_as_xlsx(
+    sesh: Session,
+    user_uuid: UUID,
+    username: str,
+    table_name: str,
+    include_row_id: bool = True,
+) -> io.BytesIO:
+    xlsx_buf = io.BytesIO()
+
+    column_names = [
+        c.name
+        for c in get_columns(sesh, username, table_name, include_row_id=include_row_id)
+    ]
+
+    rows = table_as_rows(
+        sesh, user_uuid, username, table_name, include_row_id=include_row_id
+    )
+
+    with xlsxwriter.Workbook(xlsx_buf, {"constant_memory": True}) as workbook:
+        worksheet = workbook.add_worksheet()
+
+        worksheet.write_row(0, 0, column_names)
+
+        for index, row in enumerate(rows, start=1):
+            worksheet.write_row(index, 0, row)
+
+    xlsx_buf.seek(0)
+    return xlsx_buf
+
+
+def table_as_rows(
+    sesh: Session,
+    user_uuid: UUID,
+    username: str,
+    table_name: str,
+    include_row_id: bool = False,
+) -> Iterable[Tuple[PythonType]]:
     table = get_sqla_table(sesh, username, table_name)
     columns = get_columns(sesh, username, table_name, include_row_id=include_row_id)
     q = select([getattr(table.c, c.name) for c in columns]).order_by(
