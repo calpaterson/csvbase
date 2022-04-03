@@ -5,10 +5,28 @@
   <div class="container">
     {% if not is_public %}
     <h2>Private url</h2>
-    <p>Your private url for this table is <a href="{{table_url}}"><code>{{table_url}}</code></a></p>
+    <p>Your private url for this table
+    is <a href="{{table_url}}"><code>{{table_url}}</code></a>.  This has been
+    pre-populated in the examples below to make life easier.</p>
     {% endif %}
 
-    <h2>Pandas</h2>
+    <h2>A quick note on two basics</h2>
+    <h3>Single url policy</h3>
+    <p>In CSVBase, the url for the webpage of a table is also the url for that table&apos;s
+      API.</p>
+
+      <p>CSVBase does HTTP content negotiation to detect what is wanted and
+        will provide what&apos;s needed - HTML for browsers and CSV for other HTTP
+      clients.  You can bypass this by putting a file extension
+      (eg <code>.csv</code>) on the end.</p>
+
+    <h3>Basic auth for auth</h3>
+    <p>CSVBase uses HTTP basic auth for API authentication.  Your username is
+    your username and <strong>your API key</strong> (not your site password!)
+    is your password.  This is done to make integration really easy.</p>
+
+    <h2>Loading the data into other things</h2>
+    <h3>Pandas</h3>
     <p>To load this dataset into <a href="https://pandas.pydata.org/">pandas</a>, do the following</p>
     {% if is_public %}
       <pre>import pandas
@@ -17,20 +35,32 @@
 </pre>
     {% else %}
       <pre>import pandas, requests
-{{table_name|snake_case}} = pandas.read_csv(requests.get("{{table_url}}", stream=True).raw)
+{{table_name|snake_case}} = pandas.read_csv(
+        requests.get(
+            "{{table_url}}",
+            stream=True
+        ).raw
+)
 </pre>
     {% endif %}
 
     {% if not is_public %}
-      <p><em>Please note, as <a href="{{ url_for('csvbase.get_table', username=username, table_name=table_name) }}">{{table_name}}</a> is private you need <strong>requests</strong> to work around pandas bug <a href="https://github.com/pandas-dev/pandas/issues/16716">#16716</a></em></p>
+      <p><em>As <a href="{{ url_for('csvbase.get_table', username=username, table_name=table_name) }}">{{table_name}}</a> is private, <strong>requests</strong> is used here to work around pandas bug <a href="https://github.com/pandas-dev/pandas/issues/16716">#16716</a></em></p>
     {% endif %}
 
-    <h2>R</h2>
+    <h3>R</h3>
     <p>To load this dataset into <a href="https://www.r-project.org/">R</a>, do the following</p>
     <pre># you just use the same url as the table page
 {{table_name|snake_case}} &lt;- read.csv('{{table_url}}')</pre>
 
-    <h2>ReST</h2>
+    <h3>Anything else</h3>
+    <p>CSV files are compatible with nearly everything and you should be able
+    to provide either <a href="{{table_url}}">{{table_url}}</a> or a the CSV
+    file downloaded from that url to nearly any tool.</p>  Some tools may have
+    trouble with HTTP content negotiation, and if so you can just add ".csv" to
+    the end of the url to bypass that.<p>
+
+    <h2>REST API</h2>
     <h3>Getting the dataset</h3>
     <p>To download the dataset, just use it's url - the same as on the website</p>
     <pre>curl {{table_url}}</pre>
