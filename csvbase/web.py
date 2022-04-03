@@ -432,7 +432,7 @@ def user(username):
 
 
 @bp.route("/sign-in", methods=["GET", "POST"])
-def sign_in():
+def sign_in() -> Response:
     sesh = get_sesh()
     if request.method == "GET":
         return make_response(render_template("sign_in.html", whence=request.referrer))
@@ -456,7 +456,7 @@ def sign_in():
                 )
         else:
             logger.warning("wrong password for %s", username)
-            abort(400)
+            raise exc.WrongAuthException()
 
 
 @bp.route("/sign-out", methods=["GET"])
