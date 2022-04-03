@@ -206,27 +206,37 @@ def upsert_table(
     copy_manager.copy(row_gen)
 
 
-def table_as_csv(sesh: Session, user_uuid, username, table_name) -> io.StringIO:
+def table_as_csv(
+    sesh: Session,
+    user_uuid: UUID,
+    username: str,
+    table_name: str,
+    include_row_id: bool = True,
+) -> io.StringIO:
     csv_buf = io.StringIO()
 
-    columns = [c.name for c in get_columns(sesh, username, table_name)]
+    columns = [
+        c.name
+        for c in get_columns(sesh, username, table_name, include_row_id=include_row_id)
+    ]
 
     # this allows for putting the columns in with proper csv escaping
     writer = csv.writer(csv_buf)
     writer.writerow(columns)
 
     # FIXME: This is probably too slow
-    for row in table_as_rows(sesh, user_uuid, username, table_name):
+    for row in table_as_rows(
+        sesh, user_uuid, username, table_name, include_row_id=include_row_id
+    ):
         writer.writerow(row)
 
     csv_buf.seek(0)
     return csv_buf
 
 
-def table_as_rows(sesh, user_uuid, username, table_name):
+def table_as_rows(sesh, user_uuid, username, table_name, include_row_id=False):
     table = get_sqla_table(sesh, username, table_name)
-    columns = get_columns(sesh, username, table_name, include_row_id=False)
-    # explictly exclude csvbase_row_id for now
+    columns = get_columns(sesh, username, table_name, include_row_id=include_row_id)
     q = select([getattr(table.c, c.name) for c in columns]).order_by(
         table.c.csvbase_row_id
     )
