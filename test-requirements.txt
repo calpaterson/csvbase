@@ -5,4 +5,5 @@ pandas==1.3.5
 pytest-flask==1.2.0
 pytest==6.2.5
 sqlalchemy-stubs==0.4
+types-requests
 -r requirements.txt
