@@ -38,7 +38,6 @@ BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
 
 
 def types_for_csv(csv_buf, dialect, has_headers=True) -> List[Column]:
-    # FIXME: This should return a list of Column
     # look just at the first 5 lines - that hopefully is easy to explain
     reader = csv.reader(csv_buf, dialect)
     headers = next(reader)
@@ -97,7 +96,7 @@ def user_by_user_uuid(sesh, user_uuid) -> User:
         )
 
 
-def table_exists(sesh, user_uuid, table_name):
+def table_exists(sesh: Session, user_uuid: UUID, table_name: str) -> bool:
     return sesh.query(
         sesh.query(models.Table)
         .filter(

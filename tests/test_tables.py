@@ -2,6 +2,7 @@ from os import path
 from io import StringIO
 
 import pandas
+from pandas.testing import assert_frame_equal
 from flask import url_for
 import pytest
 
@@ -14,10 +15,10 @@ def test_csvs_in_and_out(test_user, sesh, client):
         "csvbase.upsert_table", username=test_user.username, table_name=table_name
     )
 
-    with open(path.join(test_data_path, "WID.csv")) as csv:
+    with open(path.join(test_data_path, "WID.csv")) as wid_csv:
         put_resp = client.put(
             url,
-            data=csv,
+            data=wid_csv,
             headers={
                 "Content-Type": "text/csv",
                 "Authorization": test_user.basic_auth(),
@@ -27,4 +28,9 @@ def test_csvs_in_and_out(test_user, sesh, client):
 
     get_resp = client.get(url)
     buf = StringIO(get_resp.data.decode("utf-8"))
-    df = pandas.read_csv(buf)
+    out_df = pandas.read_csv(buf)
+
+    with open(path.join(test_data_path, "WID.csv")) as wid_csv:
+        in_df = pandas.read_csv(wid_csv)
+
+    assert_frame_equal(in_df, out_df.drop("csvbase_row_id", axis=1))
