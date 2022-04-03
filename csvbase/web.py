@@ -250,7 +250,9 @@ def get_table(username: str, table_name: str) -> Response:
         # provide can't be parsed
         n: int = request.args.get("n", default=0, type=int)
         op: Literal["greater_than", "less_than"] = (
-            "greater_than" if request.args.get("op", default="gt") == "gt" else "less_than"
+            "greater_than"
+            if request.args.get("op", default="gt") == "gt"
+            else "less_than"
         )
         keyset = KeySet(n=n, op=op)
 
@@ -270,6 +272,17 @@ def get_table(username: str, table_name: str) -> Response:
         return make_csv_response(
             svc.table_as_csv(sesh, user.user_uuid, username, table_name)
         )
+
+
+@bp.route("/<username>/<table_name>.csv", methods=["GET"])
+def get_table_csv(username: str, table_name: str) -> Response:
+    sesh = get_sesh()
+    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    user = svc.user_by_name(sesh, username)
+
+    return make_csv_response(
+        svc.table_as_csv(sesh, user.user_uuid, username, table_name)
+    )
 
 
 @bp.route("/<username>/<table_name>/docs", methods=["GET"])
