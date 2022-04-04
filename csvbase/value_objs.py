@@ -84,6 +84,9 @@ class ColumnType(enum.Enum):
     def python_type(self) -> Type:
         return _PYTHON_TYPE_MAP[self]
 
+    def pretty_type(self) -> str:
+        return _PRETTY_TYPE_MAP[self]
+
 
 PythonType = Union[int, bool, float, date, str]
 
@@ -110,6 +113,14 @@ _PYTHON_TYPE_MAP = {
     ColumnType.FLOAT: float,
     ColumnType.BOOLEAN: bool,
     ColumnType.DATE: date,
+}
+
+_PRETTY_TYPE_MAP = {
+    ColumnType.TEXT: "string",
+    ColumnType.INTEGER: "integer",
+    ColumnType.FLOAT: "float",
+    ColumnType.BOOLEAN: "boolean",
+    ColumnType.DATE: "date",
 }
 
 

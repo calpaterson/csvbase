@@ -16,10 +16,10 @@
         </tr>
       </thead>
       <tbody>
-        {% for col, v in row %}
+        {% for col, v in row.items() %}
           <tr>
             <td>{{ col.name }}</td>
-            <td>{{ col.pretty_type() }}</td>
+            <td>{{ col.type_.pretty_type() }}</td>
             <td>{{ v }}</td>
           </tr>
         {% endfor %}
