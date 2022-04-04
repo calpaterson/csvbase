@@ -1,5 +1,5 @@
 from uuid import UUID
-from datetime import date
+from datetime import date, timedelta
 import io
 import shutil
 import codecs
@@ -27,6 +27,7 @@ from flask import (
     flash,
     jsonify,
 )
+from flask_cors import cross_origin
 from passlib.context import CryptContext
 from sqlalchemy.orm import sessionmaker, Session
 from flask_sqlalchemy_session import flask_scoped_session
@@ -41,6 +42,8 @@ from . import exc
 logger = getLogger(__name__)
 
 bp = Blueprint("csvbase", __name__)
+
+CORS_EXPIRY = timedelta(hours=8)
 
 
 EXCEPTION_MESSAGE_CODE_MAP = {
@@ -249,6 +252,7 @@ def blank_table_form_post() -> Response:
 
 
 @bp.route("/<username>/<table_name:table_name>", methods=["GET"])
+@cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
 def get_table(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
@@ -420,6 +424,7 @@ def export_table_csv(username: str, table_name: str) -> Response:
 
 
 @bp.route("/<username>/<table_name:table_name>/rows/", methods=["POST"])
+@cross_origin(max_age=CORS_EXPIRY, methods=["POST"])
 def create_row(username: str, table_name: str) -> Tuple[Response, int]:
     sesh = get_sesh()
     svc.user_exists(sesh, username)
@@ -439,6 +444,7 @@ def create_row(username: str, table_name: str) -> Tuple[Response, int]:
 
 
 @bp.route("/<username>/<table_name:table_name>/rows/<int:row_id>", methods=["GET"])
+@cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT", "DELETE"])
 def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]:
     sesh = get_sesh()
     svc.user_exists(sesh, username)
@@ -474,6 +480,7 @@ def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]
 
 
 @bp.route("/<username>/<table_name:table_name>/rows/<int:row_id>", methods=["PUT"])
+@cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT", "DELETE"])
 def update_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
@@ -486,6 +493,7 @@ def update_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
 
 
 @bp.route("/<username>/<table_name:table_name>/rows/<int:row_id>", methods=["DELETE"])
+@cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT", "DELETE"])
 def delete_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
@@ -516,6 +524,7 @@ def update_row_by_form_post(username, table_name, row_id):
 
 # FIXME: assert table name and user name match regex
 @bp.route("/<username>/<table_name:table_name>", methods=["PUT"])
+@cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
 def upsert_table(username, table_name):
     sesh = get_sesh()
     am_user_or_400(username)
