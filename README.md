@@ -1,3 +1,7 @@
+<div align="center">
+    <img alt="csvbase logo" src="https://github.com/calpaterson/csvbase/raw/main/logo/128x128.png">
+</div>
+
 # csvbase
 
 ## Getting CSV test data
