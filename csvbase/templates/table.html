@@ -12,14 +12,24 @@
              href="{{ url_for('csvbase.get_table', username=username, table_name=table_name) }}">View</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'csvbase.get_table_apidocs' %}active{%endif%}"
-             href="{{ url_for('csvbase.get_table_apidocs', username=username, table_name=table_name) }}"
-             >API docs (Pandas, R, REST)</a>
-        </li>
-        <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.table_export' %}active{%endif%}"
              href="{{ url_for('csvbase.table_export', username=username, table_name=table_name) }}"
-             >Export (Excel, CSV, OpenOffice)</a>
+             >Export (Excel, Pandas, R, etc)</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'csvbase.get_table_apidocs' %}active{%endif%}"
+             href="{{ url_for('csvbase.get_table_apidocs', username=username, table_name=table_name) }}"
+             >API (REST)</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link disabled"
+             href=""
+             >API (GraphQL)</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link disabled"
+             href=""
+             >Schema</a>
         </li>
       </ul>
     </div>

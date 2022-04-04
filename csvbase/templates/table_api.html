@@ -25,34 +25,6 @@
     your username and <strong>your API key</strong> (not your site password!)
     is your password.  This is done to make integration really easy.</p>
 
-    <h2>Loading the data into other things</h2>
-    <h3>Pandas</h3>
-    <p>To load this dataset into <a href="https://pandas.pydata.org/">pandas</a>, do the following</p>
-    {% if is_public %}
-      <pre>import pandas
-# you just use the same url as the table page
-{{table_name|snake_case}} = pandas.read_csv("{{table_url}}")
-</pre>
-    {% else %}
-      <pre>import pandas, requests
-{{table_name|snake_case}} = pandas.read_csv(
-        requests.get(
-            "{{table_url}}",
-            stream=True
-        ).raw
-)
-</pre>
-    {% endif %}
-
-    {% if not is_public %}
-      <p><em>As <a href="{{ url_for('csvbase.get_table', username=username, table_name=table_name) }}">{{table_name}}</a> is private, <strong>requests</strong> is used here to work around pandas bug <a href="https://github.com/pandas-dev/pandas/issues/16716">#16716</a></em></p>
-    {% endif %}
-
-    <h3>R</h3>
-    <p>To load this dataset into <a href="https://www.r-project.org/">R</a>, do the following</p>
-    <pre># you just use the same url as the table page
-{{table_name|snake_case}} &lt;- read.csv('{{table_url}}')</pre>
-
     <h3>Anything else</h3>
     <p>CSV files are compatible with nearly everything and you should be able
     to provide either <a href="{{table_url}}">{{table_url}}</a> or a the CSV
@@ -62,7 +34,7 @@
 
     <h2>REST API</h2>
     <h3>Getting the dataset</h3>
-    <p>To download the dataset, just use it's url - the same as on the website</p>
+    <p>To download the dataset, just use it&apos;s url - the same as on the website</p>
     <pre>curl {{table_url}}</pre>
     <p>Or to save it to a file with curl, do:</p>
     <pre>curl {{table_url}} -o {{table_name|snake_case}}.csv</pre>

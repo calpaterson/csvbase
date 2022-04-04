@@ -39,3 +39,7 @@ class WrongAuthException(CSVBaseException):
 
 class InvalidAPIKeyException(CSVBaseException):
     pass
+
+
+class InvalidRequest(CSVBaseException):
+    pass

@@ -51,6 +51,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
     exc.NotAllowedException: ("not allowed", 403),
     exc.WrongAuthException: ("wrong auth", 400),
     exc.InvalidAPIKeyException: ("invalid api key", 400),
+    exc.InvalidRequest: ("invalid request", 400),
 }
 
 
@@ -282,59 +283,6 @@ def get_table(username: str, table_name: str) -> Response:
         )
 
 
-@bp.route("/<username>/<table_name:table_name>.csv", methods=["GET"])
-def get_table_csv(username: str, table_name: str) -> Response:
-    sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    user = svc.user_by_name(sesh, username)
-
-    return make_csv_response(
-        svc.table_as_csv(sesh, user.user_uuid, username, table_name)
-    )
-
-
-@bp.route("/<username>/<table_name:table_name>.xlsx", methods=["GET"])
-def get_table_xlsx(username: str, table_name: str) -> Response:
-    sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    user = svc.user_by_name(sesh, username)
-
-    return make_xlsx_response(
-        svc.table_as_xlsx(sesh, user.user_uuid, username, table_name)
-    )
-
-
-@bp.route("/<username>/<table_name:table_name>/export", methods=["GET"])
-def table_export(username: str, table_name: str) -> str:
-    sesh = get_sesh()
-    is_public = svc.is_public(sesh, username, table_name)
-    is_public or am_user_or_400(username)
-    return render_template(
-        "table_export.html",
-        username=username,
-        table_name=table_name,
-        is_public=is_public,
-    )
-
-
-@bp.route("/<username>/<table_name:table_name>/export/xlsx", methods=["GET"])
-def export_table_xlsx(username: str, table_name: str) -> Response:
-    sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    user = svc.user_by_name(sesh, username)
-
-    excel_table = "excel-table" in request.args
-
-    xlsx_buf = svc.table_as_xlsx(
-        sesh, user.user_uuid, username, table_name, excel_table=excel_table
-    )
-
-    return make_xlsx_response(
-        xlsx_buf,
-        make_download_filename(username, table_name, "xlsx"),
-    )
-
-
 @bp.route("/<username>/<table_name:table_name>/docs", methods=["GET"])
 def get_table_apidocs(username: str, table_name: str) -> str:
     sesh = get_sesh()
@@ -365,6 +313,109 @@ def get_table_apidocs(username: str, table_name: str) -> str:
         table_url=table_url,
         private_table_url=private_table_url,
         is_public=is_public,
+    )
+
+
+@bp.route("/<username>/<table_name:table_name>/export", methods=["GET"])
+def table_export(username: str, table_name: str) -> str:
+    sesh = get_sesh()
+    is_public = svc.is_public(sesh, username, table_name)
+    is_public or am_user_or_400(username)
+    user = svc.user_by_name(sesh, username)
+
+    table_url = url_for(
+        "csvbase.get_table", username=username, table_name=table_name, _external=True
+    )
+    scheme, public_netloc, path, _, _ = urlsplit(table_url)
+    if am_user(username):
+        url_username = user.username
+        url_hex_key = user.hex_api_key()
+    else:
+        url_username = "your_username"
+        url_hex_key = "your_api_key"
+    private_table_url = f"{scheme}://{url_username}:{url_hex_key}@{public_netloc}{path}"
+
+    # if the table is not public the user will need basic auth to get it
+    if not is_public:
+        table_url = private_table_url
+
+    return render_template(
+        "table_export.html",
+        username=username,
+        table_name=table_name,
+        table_url=table_url,
+        private_table_url=private_table_url,
+        is_public=is_public,
+    )
+
+
+@bp.route("/<username>/<table_name:table_name>.csv", methods=["GET"])
+def get_table_csv(username: str, table_name: str) -> Response:
+    sesh = get_sesh()
+    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    user = svc.user_by_name(sesh, username)
+
+    return make_csv_response(
+        svc.table_as_csv(sesh, user.user_uuid, username, table_name)
+    )
+
+
+@bp.route("/<username>/<table_name:table_name>.xlsx", methods=["GET"])
+def get_table_xlsx(username: str, table_name: str) -> Response:
+    sesh = get_sesh()
+    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    user = svc.user_by_name(sesh, username)
+
+    return make_xlsx_response(
+        svc.table_as_xlsx(sesh, user.user_uuid, username, table_name)
+    )
+
+
+@bp.route("/<username>/<table_name:table_name>/export/xlsx", methods=["GET"])
+def export_table_xlsx(username: str, table_name: str) -> Response:
+    sesh = get_sesh()
+    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    user = svc.user_by_name(sesh, username)
+
+    excel_table = "excel-table" in request.args
+
+    xlsx_buf = svc.table_as_xlsx(
+        sesh, user.user_uuid, username, table_name, excel_table=excel_table
+    )
+
+    return make_xlsx_response(
+        xlsx_buf,
+        make_download_filename(username, table_name, "xlsx"),
+    )
+
+
+CSV_SEPARATOR_MAP: Dict[str, str] = {"comma": ",", "tab": "\t", "vertical-bar": "|"}
+
+
+@bp.route("/<username>/<table_name:table_name>/export/csv", methods=["GET"])
+def export_table_csv(username: str, table_name: str) -> Response:
+    sesh = get_sesh()
+    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    user = svc.user_by_name(sesh, username)
+
+    separator = request.args.get("separator", "comma")
+    try:
+        delimiter = CSV_SEPARATOR_MAP[separator]
+    except KeyError:
+        raise exc.InvalidRequest(f"invalid separator: {separator}")
+
+    csv_buf = svc.table_as_csv(
+        sesh,
+        user.user_uuid,
+        username,
+        table_name,
+        delimiter=delimiter,
+    )
+
+    extension = "tsv" if separator == "tab" else "csv"
+    return make_csv_response(
+        csv_buf,
+        make_download_filename(username, table_name, extension),
     )
 
 
@@ -561,19 +612,26 @@ def make_text_response(text: str, status=200):
     return resp
 
 
-def make_csv_response(csv_buf: io.StringIO) -> Response:
+def make_download_filename(username: str, table_name: str, extension: str) -> str:
+    timestamp = date.today().isoformat()
+    return f"{table_name}-{timestamp}.{extension}"
+
+
+def make_csv_response(
+    csv_buf: io.StringIO, download_filename: Optional[str] = None
+) -> Response:
     def generate():
         minibuf = csv_buf.read(4096)
         while minibuf:
             yield minibuf
             minibuf = csv_buf.read(4096)
 
-    return current_app.response_class(generate(), mimetype="text/csv")
-
-
-def make_download_filename(username: str, table_name: str, extension: str) -> str:
-    timestamp = date.today().isoformat()
-    return f"{table_name}-{timestamp}.{extension}"
+    response = current_app.response_class(generate(), mimetype="text/csv")
+    if download_filename is not None:
+        response.headers[
+            "Content-Disposition"
+        ] = f'attachment; filename="{download_filename}"'
+    return response
 
 
 def make_xlsx_response(

@@ -212,6 +212,7 @@ def table_as_csv(
     username: str,
     table_name: str,
     include_row_id: bool = True,
+    delimiter: str = ",",
 ) -> io.StringIO:
     csv_buf = io.StringIO()
 
@@ -221,7 +222,7 @@ def table_as_csv(
     ]
 
     # this allows for putting the columns in with proper csv escaping
-    writer = csv.writer(csv_buf)
+    writer = csv.writer(csv_buf, delimiter=delimiter)
     writer.writerow(columns)
 
     # FIXME: This is probably too slow
