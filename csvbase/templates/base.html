@@ -10,9 +10,37 @@
       <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css' ) }}">
     {% endif %}
     <title>CSVBase</title>
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='logo/192x192.png') }}">
   </head>
   <body>
     {% block body %}
+
+      <nav class="navbar navbar-light bg-light">
+        <div class="container">
+          <a class="navbar-brand" href="{{ url_for('csvbase.landing') }}">
+            <img src="/static/logo/192x192.png" alt=" " width="24" height="24" class="d-inline-block align-text">
+            csvbase
+          </a>
+
+          <ul class="navbar-nav">
+            {% if g.username %}
+              <li class="nav-item">
+                <a
+                  class="nav-link {% if request.path == url_for('csvbase.user', username=g.username) %}active{% endif %}"
+                  href="{{ url_for('csvbase.user', username=g.username) }}">{{g.username}}
+                </a>
+              </li>
+            {% else %}
+              <li class="nav-item">
+                <a class="nav-link"
+                   href="{{ url_for('csvbase.sign_in') }}"
+                   >Sign in</a>
+              </li>
+            {% endif %}
+          </ul>
+        </div>
+      </nav>
+
       {% with messages = get_flashed_messages() %}
         {% if messages %}
           <div class="container">
@@ -24,16 +52,7 @@
           </div>
         {% endif %}
       {% endwith %}
-      <div class="container">
-        <div style="float: right">
-          {% if g.username %}
-            <p>Logged in as <a href="{{ url_for('csvbase.user', username=g.username) }}">{{g.username}}</a>.
-              (<a href="{{ url_for('csvbase.sign_out') }}">Sign out</a>)</p>
-            {% else %}
-              <a href="{{ url_for('csvbase.sign_in') }}">Sign in</a>
-            {% endif %}
-        </div>
-      </div>
+
       {% block main %}
       {% endblock %}
     {% endblock %}
