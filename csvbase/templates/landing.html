@@ -4,21 +4,33 @@
 {% block main %}
   <div class="container">
     <div class="px-4 py-5 my-3 text-center">
+      <img alt="logo" src="{{ url_for('static', filename='logo/192x192.png') }}">
       <h1 class="display-5 fw-bold">csvbase</h1>
       <div class="col-lg-6 mx-auto">
         <p class="lead mb-4">Turn CSV files into read+write APIs</p>
         <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-          <a href="{{ url_for('csvbase.paste') }}" type="button" class="btn btn-primary btn-lg px-4 gap-3">Paste a new CSV file</a>
+          <a href="{{ url_for('csvbase.paste') }}" type="button" class="btn btn-primary btn-lg px-4 gap-3">Paste a CSV file</a>
+          <a href="{{ url_for('csvbase.get_table', username='calpaterson', table_name='stock-exchanges') }}" type="button" class="btn btn-secondary btn-lg px-4 gap-3">See an example</a>
         </div>
       </div>
     </div>
   </div>
 
+{# some notes for the revamp: #}
+{# - you start with a csv file #}
+{#   - or paste from ms excel #}
+{# - you get a REST API #}
+{#   - and, soon, graphql too #}
+{# - easy to load into pandas #}
+{#   - or R, or ms excel #}
+{# - public or private #}
+{# - open source (soon...) #}
+
   <div class="container px-4 py-5" id="featured-3">
     <div class="row g-4 py-5 row-cols-1 row-cols-lg-3">
       <div class="feature col">
         <h2>Start with a CSV file</h2>
-        <p>You can start by uploading a CSV file or by just copying and pasting straight from Microsoft Excel.</p>
+        <p>Or paste straight from MS Excel</p>
       </div>
       <div class="feature col">
         <h2>Public and private data</h2>
