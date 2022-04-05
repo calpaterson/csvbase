@@ -73,6 +73,9 @@ class DataLicence(enum.Enum):
     def render(self) -> str:
         return _DATA_LICENCE_PP_MAP[self]
 
+    def short_render(self) -> str:
+        return _DATA_LICENCE_SHORT_MAP[self]
+
 
 _DATA_LICENCE_PP_MAP = {
     DataLicence.ALL_RIGHTS_RESERVED: "All rights reserved",
@@ -80,6 +83,14 @@ _DATA_LICENCE_PP_MAP = {
     DataLicence.ODC_BY: "ODB-By (attribution required)",
     DataLicence.ODBL: "ODbl (attribution & sharealike)",
     DataLicence.OGL: "Open Government Licence",
+}
+
+_DATA_LICENCE_SHORT_MAP = {
+    DataLicence.ALL_RIGHTS_RESERVED: "All rights reserved",
+    DataLicence.PDDL: "Public domain",
+    DataLicence.ODC_BY: "ODB-By",
+    DataLicence.ODBL: "ODbl",
+    DataLicence.OGL: "OGL",
 }
 
 

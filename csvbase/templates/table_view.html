@@ -6,7 +6,7 @@
     <table class="table">
       <thead>
         <tr>
-          {% for col in cols %}
+          {% for col in table.columns %}
             {% if col.name == "csvbase_row_id" %}
               <th>Row ID</th>
             {% else %}

@@ -297,12 +297,12 @@ def get_table(username: str, table_name: str) -> Response:
         )
         keyset = KeySet(n=n, op=op)
 
-        cols = svc.get_columns(sesh, username, table_name, include_row_id=True)
+        table = svc.get_table(sesh, username, table_name)
         page = svc.table_page(sesh, user.user_uuid, username, table_name, keyset)
         return make_response(
             render_template(
                 "table_view.html",
-                cols=cols,
+                table=table,
                 page=page,
                 keyset=keyset,
                 username=username,
