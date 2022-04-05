@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Tuple, Union, Type
+from typing import Optional, Sequence, Tuple, Union, Type, Iterable
 from typing_extensions import Literal
 from uuid import UUID
 from datetime import datetime, date
@@ -41,6 +41,46 @@ class Page:
     has_less: bool
     has_more: bool
     rows: Sequence[Tuple]
+
+
+@dataclass
+class Table:
+    table_name: str
+    is_public: bool
+    description_markdown: str
+    data_licence: "DataLicence"
+    columns: Sequence["Column"]
+
+    def columns_except_row_id(self) -> Iterable["Column"]:
+        for column in self.columns:
+            if column.name == "csvbase_row_id":
+                continue
+            else:
+                yield column
+
+    def render_description(self) -> str:
+        return self.description_markdown
+
+
+@enum.unique
+class DataLicence(enum.Enum):
+    ALL_RIGHTS_RESERVED = 0
+    PDDL = 1
+    ODC_BY = 2
+    ODBL = 3
+    OGL = 4
+
+    def render(self) -> str:
+        return _DATA_LICENCE_PP_MAP[self]
+
+
+_DATA_LICENCE_PP_MAP = {
+    DataLicence.ALL_RIGHTS_RESERVED: "All rights reserved",
+    DataLicence.PDDL: "PDDL (public domain)",
+    DataLicence.ODC_BY: "ODB-By (attribution required)",
+    DataLicence.ODBL: "ODbl (attribution & sharealike)",
+    DataLicence.OGL: "Open Government Licence",
+}
 
 
 @enum.unique

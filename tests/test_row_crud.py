@@ -1,5 +1,5 @@
 from csvbase import svc
-from csvbase.value_objs import Column, ColumnType
+from csvbase.value_objs import Column, ColumnType, DataLicence
 from .utils import random_string
 
 import pytest
@@ -12,7 +12,14 @@ ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
 @pytest.fixture(scope="function")
 def ten_rows(test_user, sesh):
     table_name = random_string()
-    svc.upsert_table_metadata(sesh, test_user.user_uuid, table_name, public=True)
+    svc.upsert_table_metadata(
+        sesh,
+        test_user.user_uuid,
+        table_name,
+        is_public=True,
+        description="Roman numerals",
+        licence=DataLicence.ALL_RIGHTS_RESERVED,
+    )
     svc.create_table(
         sesh,
         test_user.username,
@@ -31,7 +38,12 @@ def ten_rows(test_user, sesh):
 def private_table(test_user, module_sesh):
     table_name = random_string()
     svc.upsert_table_metadata(
-        module_sesh, test_user.user_uuid, table_name, public=False
+        module_sesh,
+        test_user.user_uuid,
+        table_name,
+        is_public=False,
+        description="",
+        licence=DataLicence.ALL_RIGHTS_RESERVED,
     )
     svc.create_table(
         module_sesh,

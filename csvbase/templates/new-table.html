@@ -64,6 +64,20 @@
         <label class="form-check-label" for="is-private">Private</label>
       </div>
 
+      <div class="mb-3 row g-3">
+        <div class="col-auto">
+          <label for="licence-select" class="col-form-label">Data licence</label>
+        </div>
+        <div class="col-auto">
+          <select class="form-select" name="data-licence">
+            {% for data_licence in DataLicence %}
+              <option {% if data_licence == DataLicence.ALL_RIGHTS_RESERVED %}selected{% endif %}
+                value="{{ data_licence.value }}">{{ data_licence.render() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
       {% if not g.username %}
         <p>As you&apos;re not logged in, please create an account.  (If you already have an account, <a href="{{ url_for('csvbase.sign_in') }}">sign in</a>.)</p>
       <p>
@@ -82,9 +96,9 @@
       </p>
     {% endif %}
 
-    <p>
-      <input type="submit" class="btn btn-primary" value="Create my API!">
-    </p>
+    <div class="mb-3">
+        <input type="submit" class="btn btn-primary" value="Create my API!">
+    </div>
     </form>
   </div>
 {% endblock %}

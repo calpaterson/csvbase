@@ -3,7 +3,7 @@ import io
 import csv
 
 from csvbase import svc
-from csvbase.value_objs import KeySet, Column, ColumnType, Page
+from csvbase.value_objs import KeySet, Column, ColumnType, Page, DataLicence
 from .utils import random_string
 
 import pytest
@@ -20,8 +20,26 @@ def letters_table(test_user, module_sesh):
         writer.writerow(char)
     csv_buf.seek(0)
 
-    svc.upsert_table(
-        module_sesh, test_user.user_uuid, test_user.username, table_name, csv_buf
+    dialect, columns = svc.types_for_csv(csv_buf)
+    csv_buf.seek(0)
+    svc.create_table(module_sesh, test_user.username, table_name, columns)
+    svc.upsert_table_metadata(
+        module_sesh,
+        test_user.user_uuid,
+        table_name,
+        True,
+        "",
+        DataLicence.ALL_RIGHTS_RESERVED,
+    )
+    svc.upsert_table_data(
+        module_sesh,
+        test_user.user_uuid,
+        test_user.username,
+        table_name,
+        csv_buf,
+        dialect,
+        columns,
+        truncate_first=False,
     )
     module_sesh.commit()
     return table_name

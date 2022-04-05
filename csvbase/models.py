@@ -63,10 +63,24 @@ class Table(Base):
     __tableargs__ = (CheckConstraint("table_name ~ '^[A-z][-A-z0-9]+$'"),)
 
     user_uuid = Column(PGUUID, ForeignKey("users.user_uuid"), primary_key=True)
-    table_name = Column(
-        satypes.String(length=200), nullable=False, index=True, primary_key=True
-    )
     public = Column(satypes.Boolean, nullable=False)
     created = Column(
         satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
     )
+    table_name = Column(
+        satypes.String(length=200), nullable=False, index=True, primary_key=True
+    )
+    licence_id = Column(
+        satypes.SmallInteger, ForeignKey("data_licences.licence_id"), nullable=False
+    )
+    description = Column(
+        satypes.String(length=200),
+        nullable=False,
+    )
+
+
+class DataLicence(Base):
+    __tablename__ = "data_licences"
+
+    licence_id = Column(satypes.SmallInteger, primary_key=True, autoincrement=False)
+    licence_name = Column(satypes.String)

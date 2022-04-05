@@ -1,12 +1,10 @@
 import re
 from uuid import UUID
 import io
-from typing import Optional, Type, List, Iterable, Tuple, Dict, Any
+from typing import Optional, List, Iterable, Tuple, Dict, Any, Union, Sequence, Type
 from datetime import datetime, timezone
 import csv
 from logging import getLogger
-from dataclasses import dataclass
-from datetime import date
 from uuid import uuid4
 import secrets
 import binascii
@@ -15,7 +13,7 @@ import xlsxwriter
 from pgcopy import CopyManager
 from sqlalchemy import table as satable, column as sacolumn, types as satypes
 from sqlalchemy.orm import Session
-from sqlalchemy.sql.expression import TableClause, select
+from sqlalchemy.sql.expression import TableClause, select, TextClause, text
 from sqlalchemy.schema import (
     CreateTable,
     Table as SATable,
@@ -24,7 +22,16 @@ from sqlalchemy.schema import (
     MetaData,
 )
 
-from .value_objs import KeySet, Page, Column, ColumnType, PythonType, User
+from .value_objs import (
+    KeySet,
+    Page,
+    Column,
+    ColumnType,
+    PythonType,
+    User,
+    Table,
+    DataLicence,
+)
 from . import models
 from .db import engine
 from . import exc
@@ -38,7 +45,16 @@ FLOAT_REGEX = re.compile(r"^(\d+\.)|(\.\d+)|(\d+\.\d?)$")
 BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
 
 
-def types_for_csv(csv_buf, dialect, has_headers=True) -> List[Column]:
+def types_for_csv(csv_buf: io.StringIO) -> Tuple[Type[csv.Dialect], List[Column]]:
+    # FIXME: should be "peek csv" or similar
+    try:
+        dialect = csv.Sniffer().sniff(csv_buf.read(1024))
+    except csv.Error:
+        logger.warning("unable to sniff dialect, falling back to excel")
+        dialect = csv.excel
+    logger.info("sniffed dialect: %s", dialect)
+    csv_buf.seek(0)
+
     # look just at the first 5 lines - that hopefully is easy to explain
     reader = csv.reader(csv_buf, dialect)
     headers = next(reader)
@@ -56,10 +72,10 @@ def types_for_csv(csv_buf, dialect, has_headers=True) -> List[Column]:
         else:
             rv.append(Column(key, ColumnType.TEXT))
     logger.info("inferred: %s", rv)
-    return rv
+    return dialect, rv
 
 
-def user_by_name(sesh, username) -> User:
+def user_by_name(sesh, username: str) -> User:
     sqla_user = sesh.query(models.User).filter(models.User.username == username).first()
     if sqla_user is None:
         raise exc.UserDoesNotExistException(username)
@@ -77,12 +93,12 @@ def user_by_name(sesh, username) -> User:
         )
 
 
-def user_by_user_uuid(sesh, user_uuid) -> User:
+def user_by_user_uuid(sesh, user_uuid: UUID) -> User:
     sqla_user = (
         sesh.query(models.User).filter(models.User.user_uuid == user_uuid).first()
     )
     if sqla_user is None:
-        raise exc.UserDoesNotExistException(user_uuid)
+        raise exc.UserDoesNotExistException(str(user_uuid))
     else:
         if sqla_user.email_obj is not None:
             email = sqla_user.email_obj.email_address
@@ -105,6 +121,24 @@ def table_exists(sesh: Session, user_uuid: UUID, table_name: str) -> bool:
         )
         .exists()
     ).scalar()
+
+
+def get_table(sesh, username_or_uuid: Union[UUID, str], table_name) -> Table:
+    if isinstance(username_or_uuid, str):
+        user = user_by_name(sesh, username_or_uuid)
+    else:
+        user = user_by_user_uuid(sesh, username_or_uuid)
+
+    table_model = sesh.query(models.Table).get((user.user_uuid, table_name))
+    columns = get_columns(sesh, user.username, table_name, include_row_id=True)
+    table = Table(
+        table_name=table_name,
+        is_public=table_model.public,
+        description_markdown=table_model.description,
+        data_licence=DataLicence(table_model.licence_id),
+        columns=columns,
+    )
+    return table
 
 
 def get_columns(sesh, username, table_name, include_row_id=False) -> List["Column"]:
@@ -147,12 +181,19 @@ def create_table(
 
 
 def upsert_table_metadata(
-    sesh: Session, user_uuid: UUID, table_name: str, public: bool
+    sesh: Session,
+    user_uuid: UUID,
+    table_name: str,
+    is_public: bool,
+    description: str,
+    licence: DataLicence,
 ) -> None:
     table_obj = sesh.query(models.Table).get((user_uuid, table_name)) or models.Table(
         user_uuid=user_uuid, table_name=table_name
     )
-    table_obj.public = public
+    table_obj.public = is_public
+    table_obj.description = description
+    table_obj.licence_id = licence.value
     sesh.add(table_obj)
 
 
@@ -162,36 +203,25 @@ def make_drop_table_ddl(sesh: Session, username: str, table_name: str) -> DropTa
     return DropTable(sqla_table)  # type: ignore
 
 
-def upsert_table(
+def make_truncate_table_ddl(
+    sesh: Session, username: str, table_name: str
+) -> TextClause:
+    return text(f'TRUNCATE "{username}__{table_name}"')
+
+
+def upsert_table_data(
     sesh: Session,
-    user_uuid,
-    username,
+    user_uuid: UUID,
+    username: str,
     table_name: str,
     csv_buf: io.StringIO,
-    public=False,
+    dialect: Type[csv.Dialect],
+    columns: Sequence[Column],
+    truncate_first=True,
 ) -> None:
-    try:
-        dialect = csv.Sniffer().sniff(csv_buf.read(1024))
-    except csv.Error:
-        logger.warning("unable to sniff dialect, falling back to excel")
-        dialect = csv.excel
-    logger.info("sniffed dialect: %s", dialect)
-    csv_buf.seek(0)
-    columns = types_for_csv(csv_buf, dialect)
-    csv_buf.seek(0)
-
-    already_exists = table_exists(sesh, user_uuid, table_name)
-    if already_exists:
-        # FIXME: could truncate or delete all here to save time
-        sesh.execute(make_drop_table_ddl(sesh, username, table_name))
-        logger.info("dropped %s/%s", username, table_name)
-    else:
-        upsert_table_metadata(sesh, user_uuid, table_name, public)
-
-    create_table(sesh, username, table_name, columns)
-    logger.info(
-        "%s %s/%s", "(re)created" if already_exists else "created", username, table_name
-    )
+    if truncate_first:
+        sesh.execute(make_truncate_table_ddl(sesh, username, table_name))
+        logger.info("truncated %s/%s", username, table_name)
 
     # Copy in with binary copy
     reader = csv.reader(csv_buf, dialect)

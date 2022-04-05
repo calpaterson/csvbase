@@ -9,6 +9,7 @@ import pytest
 from .utils import test_data_path, random_string
 
 
+@pytest.mark.xfail(reason="putting a whole csv is no longer enough")
 def test_csvs_in_and_out(test_user, sesh, client):
     table_name = random_string()
     url = url_for(

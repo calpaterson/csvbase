@@ -33,7 +33,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from flask_sqlalchemy_session import flask_scoped_session
 import werkzeug.http
 
-from .value_objs import KeySet, ColumnType, PythonType, Column, User
+from .value_objs import KeySet, ColumnType, PythonType, Column, User, DataLicence
 from . import svc
 from . import db
 from . import exc
@@ -122,8 +122,9 @@ def put_user_in_g() -> None:
 
     elif auth is not None:
         sesh = get_sesh()
-        if svc.is_valid_api_key(sesh, auth.username or "", auth.password or ""):
-            user = svc.user_by_name(sesh, auth.username)
+        username = auth.username or ""
+        if svc.is_valid_api_key(sesh, username, auth.password or ""):
+            user = svc.user_by_name(sesh, username)
             set_current_user(user)
         else:
             raise exc.WrongAuthException()
@@ -141,6 +142,7 @@ def paste() -> str:
     return render_template(
         "new-table.html",
         method="paste",
+        DataLicence=DataLicence,
         action_url=url_for("csvbase.new_table_form_submission"),
     )
 
@@ -150,6 +152,7 @@ def upload_file() -> str:
     return render_template(
         "new-table.html",
         method="upload-file",
+        DataLicence=DataLicence,
         action_url=url_for("csvbase.new_table_form_submission"),
     )
 
@@ -177,10 +180,26 @@ def new_table_form_submission():
     else:
         csv_buf = byte_buf_to_str_buf(request.files["csv-file"])
     if "private" in request.form:
-        public = False
+        is_public = False
     else:
-        public = True
-    svc.upsert_table(sesh, g.user_uuid, g.username, table_name, csv_buf, public=public)
+        is_public = True
+    data_licence = DataLicence(request.form.get("data-licence", type=int))
+    dialect, columns = svc.types_for_csv(csv_buf)
+    csv_buf.seek(0)
+    svc.create_table(sesh, g.username, table_name, columns)
+    svc.upsert_table_metadata(
+        sesh, g.user_uuid, table_name, is_public, "", data_licence
+    )
+    svc.upsert_table_data(
+        sesh,
+        g.user_uuid,
+        g.username,
+        table_name,
+        csv_buf,
+        dialect,
+        columns,
+        truncate_first=False,
+    )
     sesh.commit()
     return redirect(
         url_for("csvbase.get_table", username=g.username, table_name=table_name)
@@ -218,6 +237,7 @@ def blank_table() -> str:
     return render_template(
         "new-blank-table.html",
         action_url=url_for("csvbase.blank_table_form_post"),
+        DataLicence=DataLicence,
         cols=cols,
         ColumnType=ColumnType,
     )
@@ -238,12 +258,20 @@ def blank_table_form_post() -> Response:
             break
         index += 1
     table_name = request.form["table-name"]
+    licence = DataLicence(request.form.get("licence", type=int))
+    if "private" in request.form:
+        is_public = False
+    else:
+        is_public = True
+
     svc.create_table(sesh, g.username, table_name, cols)
     svc.upsert_table_metadata(
         sesh,
         g.user_uuid,
         table_name,
-        request.form.get("private", default=False, type=bool),
+        is_public,
+        "",
+        licence,
     )
     sesh.commit()
     return redirect(
@@ -532,8 +560,17 @@ def upsert_table(username, table_name):
     byte_buf = io.BytesIO()
     shutil.copyfileobj(request.stream, byte_buf)
     str_buf = byte_buf_to_str_buf(byte_buf)
-    svc.upsert_table(
-        sesh, svc.user_by_name(sesh, username).user_uuid, username, table_name, str_buf
+    dialect, columns = svc.types_for_csv(str_buf)
+    str_buf.seek(0)
+    svc.upsert_table_data(
+        sesh,
+        svc.user_by_name(sesh, username).user_uuid,
+        username,
+        table_name,
+        str_buf,
+        dialect,
+        columns,
+        truncate_first=True,
     )
     sesh.commit()
     return make_text_response(f"upserted {username}/{table_name}")

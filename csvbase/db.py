@@ -1,7 +1,9 @@
 from os import environ
 
 from sqlalchemy import create_engine
+from sqlalchemy.sql.expression import text
 
+from .value_objs import DataLicence
 from .models import Base
 
 if "HEROKU" in environ:
@@ -15,3 +17,17 @@ else:
 
 def make_tables():
     Base.metadata.create_all(bind=engine, checkfirst=True)
+
+    dl_insert = text(
+        """
+    INSERT INTO data_licences (licence_id, licence_name)
+        VALUES (:licence_id, :licence_name)
+    ON CONFLICT
+        DO NOTHING
+    """
+    )
+    with engine.begin() as conn:
+        conn.execute(
+            dl_insert,
+            [{"licence_id": e.value, "licence_name": e.name} for e in DataLicence],
+        )
