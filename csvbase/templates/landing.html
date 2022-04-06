@@ -3,14 +3,17 @@
 
 {% block main %}
   <div class="container">
-    <div class="px-4 py-5 my-3 text-center">
+    <div class="px-4 py-2 text-center">
       <img alt="logo" src="{{ url_for('static', filename='logo/192x192.png') }}" width="192" height="192">
       <h1 class="display-5 fw-bold">csvbase</h1>
       <div class="col-lg-6 mx-auto">
         <p class="lead mb-4">Turn CSV files into read+write APIs</p>
         <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-          <a href="{{ url_for('csvbase.paste') }}" type="button" class="btn btn-primary btn-lg px-4 gap-3">Paste a CSV file</a>
-          <a href="{{ url_for('csvbase.get_table', username='calpaterson', table_name='stock-exchanges') }}" type="button" class="btn btn-secondary btn-lg px-4 gap-3">See an example</a>
+          <a href="{{ url_for('csvbase.paste') }}"
+             type="button"
+             class="btn btn-primary btn-lg px-4 gap-3">Paste a CSV file</a>
+          <a href="{{ url_for('csvbase.get_table', username='calpaterson', table_name='stock-exchanges') }}"
+             type="button" class="btn btn-secondary btn-lg px-4 gap-3">See an example</a>
         </div>
       </div>
     </div>
