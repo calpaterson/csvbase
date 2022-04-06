@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 from typing import TYPE_CHECKING, Any, List
 
 from sqlalchemy.dialects.postgresql import UUID as _PGUUID, BYTEA
@@ -60,16 +60,18 @@ class APIKey(Base):
 
 class Table(Base):
     __tablename__ = "tables"
-    __tableargs__ = (CheckConstraint("table_name ~ '^[A-z][-A-z0-9]+$'"),)
+    __tableargs__ = (
+        CheckConstraint("table_name ~ '^[A-z][-A-z0-9]+$'"),
+        UniqueConstraint("user_uuid", "table_name"),
+    )
 
-    user_uuid = Column(PGUUID, ForeignKey("users.user_uuid"), primary_key=True)
+    table_id = Column(PGUUID, primary_key=True, default=uuid4)
+    user_uuid = Column(PGUUID, ForeignKey("users.user_uuid"), nullable=False)
     public = Column(satypes.Boolean, nullable=False)
     created = Column(
         satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
     )
-    table_name = Column(
-        satypes.String(length=200), nullable=False, index=True, primary_key=True
-    )
+    table_name = Column(satypes.String(length=200), nullable=False, index=True)
     licence_id = Column(
         satypes.SmallInteger, ForeignKey("data_licences.licence_id"), nullable=False
     )

@@ -129,7 +129,16 @@ def get_table(sesh, username_or_uuid: Union[UUID, str], table_name) -> Table:
     else:
         user = user_by_user_uuid(sesh, username_or_uuid)
 
-    table_model = sesh.query(models.Table).get((user.user_uuid, table_name))
+    table_model: Optional[models.Table] = (
+        sesh.query(models.Table)
+        .filter(
+            models.Table.user_uuid == user.user_uuid,
+            models.Table.table_name == table_name,
+        )
+        .first()
+    )
+    if table_model is None:
+        raise exc.TableDoesNotExistException(user.username, table_name)
     columns = get_columns(sesh, user.username, table_name, include_row_id=True)
     table = Table(
         table_name=table_name,
@@ -188,13 +197,19 @@ def upsert_table_metadata(
     description: str,
     licence: DataLicence,
 ) -> None:
-    table_obj = sesh.query(models.Table).get((user_uuid, table_name)) or models.Table(
-        user_uuid=user_uuid, table_name=table_name
+    table_obj: Optional[models.Table] = (
+        sesh.query(models.Table)
+        .filter(
+            models.Table.user_uuid == user_uuid, models.Table.table_name == table_name
+        )
+        .first()
     )
+    if table_obj is None:
+        table_obj = models.Table(user_uuid=user_uuid, table_name=table_name)
+        sesh.add(table_obj)
     table_obj.public = is_public
     table_obj.description = description
     table_obj.licence_id = licence.value
-    sesh.add(table_obj)
 
 
 def make_drop_table_ddl(sesh: Session, username: str, table_name: str) -> DropTable:
