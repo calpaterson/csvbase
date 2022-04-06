@@ -3,7 +3,12 @@
 
 {% block main %}
   <div class="container">
-    <h1><a href="{{ url_for('csvbase.user', username=username) }}">{{ username }}</a>/<a href="{{ url_for('csvbase.get_table', username=username, table_name=table_name) }}">{{ table_name }}</a>/rows/{{ row_id }}</h1>
+    <h1 class="py-2"><a href="{{ url_for('csvbase.user', username=username) }}"
+           >{{ username }}</a> / <a
+           href="{{ url_for('csvbase.get_table', username=username, table_name=table_name) }}"
+           >{{ table_name }}</a> / rows / <a
+                        href="{{ url_for('csvbase.get_row', username=username, table_name=table_name, row_id=row_id) }}"
+                        >{{ row_id }}</a></h1>
   </div>
   <div class="container">
     {% if g.username != username %}
@@ -26,17 +31,28 @@
       </tbody>
     </table>
     {% else %}
-      <form action="{{ url_for('csvbase.update_row_by_form_post', username=username, table_name=table_name, row_id=row_id) }}" method="POST">
+      <div class="py-3"
+      <form
+        action="{{ url_for('csvbase.update_row_by_form_post', username=username, table_name=table_name, row_id=row_id) }}"
+        method="POST">
         {% for col, v in row.items() %}
-          <div class="form-group">
-            <label>{{ col.name }}</label>
-            <input
-              type="{{ col.type_.html_type() }}"
-              name="{{ col.name }}" value="{{ v }}">
+          <div class="mb-3 row g-3">
+            <div class="col-2">
+              <label class="col-form-label" for="{{col.name}}-input">{{ col.name }}</label>
+            </div>
+            <div class="col-auto">
+              <input
+                id="{{col.name}}-input"
+                type="{{ col.type_.html_type() }}"
+                name="{{ col.name }}" value="{{ v }}">
+            </div>
           </div>
         {% endfor %}
-        <input type="submit" value="Update">
+        <div class="mb-3">
+          <input class="btn btn-primary" type="submit" value="Save row">
+        </div>
       </form>
+      </div>
     {% endif %}
   </div>
 {% endblock %}
