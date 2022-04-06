@@ -16,17 +16,21 @@ else:
 
 
 def make_tables():
+    with engine.begin() as conn:
+        conn.execute("CREATE SCHEMA IF NOT EXISTS metadata")
+        conn.execute("CREATE SCHEMA IF NOT EXISTS userdata")
     Base.metadata.create_all(bind=engine, checkfirst=True)
 
     dl_insert = text(
         """
-    INSERT INTO data_licences (licence_id, licence_name)
+    INSERT INTO metadata.data_licences (licence_id, licence_name)
         VALUES (:licence_id, :licence_name)
     ON CONFLICT
         DO NOTHING
     """
     )
     with engine.begin() as conn:
+        conn.execute("CREATE SCHEMA IF NOT EXISTS metadata")
         conn.execute(
             dl_insert,
             [{"licence_id": e.value, "licence_name": e.name} for e in DataLicence],

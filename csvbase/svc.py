@@ -11,9 +11,15 @@ import binascii
 
 import xlsxwriter
 from pgcopy import CopyManager
-from sqlalchemy import table as satable, column as sacolumn, types as satypes
+from sqlalchemy import column as sacolumn, types as satypes
 from sqlalchemy.orm import Session
-from sqlalchemy.sql.expression import TableClause, select, TextClause, text
+from sqlalchemy.sql.expression import (
+    TableClause,
+    select,
+    TextClause,
+    text,
+    table as satable,
+)
 from sqlalchemy.schema import (
     CreateTable,
     Table as SATable,
@@ -155,7 +161,7 @@ def get_columns(sesh, username, table_name, include_row_id=False) -> List["Colum
     stmt = f"""
     SELECT attname AS column_name, atttypid::regtype AS sql_type
     FROM   pg_attribute
-    WHERE  attrelid = 'public.{username}__{table_name}'::regclass
+    WHERE  attrelid = 'userdata.{username}__{table_name}'::regclass
     AND    attnum > 0
     AND    NOT attisdropped
     ORDER  BY attnum;
@@ -169,12 +175,13 @@ def get_columns(sesh, username, table_name, include_row_id=False) -> List["Colum
     return rv
 
 
-def get_sqla_table(sesh, username, table_name) -> TableClause:
+def get_userdata_tableclause(sesh, username, table_name) -> TableClause:
     columns = get_columns(sesh, username, table_name, include_row_id=True)
     return satable(
         f"{username}__{table_name}",
         *[sacolumn(c.name, type_=c.type_.sqla_type()) for c in columns],
-    )
+        schema="userdata",
+    )  # type: ignore
 
 
 def create_table(
@@ -185,7 +192,9 @@ def create_table(
     ]
     for col in columns:
         cols.append(SAColumn(col.name, type_=col.type_.sqla_type()))
-    table = SATable(f"{username}__{table_name}", MetaData(bind=engine), *cols)
+    table = SATable(
+        f"{username}__{table_name}", MetaData(bind=engine), *cols, schema="userdata"
+    )
     sesh.execute(CreateTable(table))
 
 
@@ -213,7 +222,7 @@ def upsert_table_metadata(
 
 
 def make_drop_table_ddl(sesh: Session, username: str, table_name: str) -> DropTable:
-    sqla_table = get_sqla_table(sesh, username, table_name)
+    sqla_table = get_userdata_tableclause(sesh, username, table_name)
     # sqlalchemy-stubs doesn't match sqla 1.4
     return DropTable(sqla_table)  # type: ignore
 
@@ -247,7 +256,7 @@ def upsert_table_data(
 
     raw_conn = sesh.connection().connection
     cols = [c.name for c in get_columns(sesh, username, table_name)]
-    copy_manager = CopyManager(raw_conn, f"{username}__{table_name}", cols)
+    copy_manager = CopyManager(raw_conn, f"userdata.{username}__{table_name}", cols)
     copy_manager.copy(row_gen)
 
 
@@ -339,7 +348,7 @@ def table_as_rows(
     table_name: str,
     include_row_id: bool = False,
 ) -> Iterable[Tuple[PythonType]]:
-    table = get_sqla_table(sesh, username, table_name)
+    table = get_userdata_tableclause(sesh, username, table_name)
     columns = get_columns(sesh, username, table_name, include_row_id=include_row_id)
     q = select([getattr(table.c, c.name) for c in columns]).order_by(
         table.c.csvbase_row_id
@@ -352,7 +361,7 @@ def table_page(
 ) -> Page:
     """Get a page from a table based on the provided KeySet"""
     # FIXME: this doesn't handle empty tables
-    table = get_sqla_table(sesh, username, table_name)
+    table = get_userdata_tableclause(sesh, username, table_name)
     if keyset.op == "greater_than":
         where_cond = table.c.csvbase_row_id > keyset.n
     else:
@@ -401,7 +410,7 @@ def get_row(
     sesh: Session, username: str, table_name: str, row_id: int
 ) -> Dict[Column, PythonType]:
     columns = get_columns(sesh, username, table_name, include_row_id=False)
-    table = get_sqla_table(sesh, username, table_name)
+    table = get_userdata_tableclause(sesh, username, table_name)
     cursor = sesh.execute(table.select().where(table.c.csvbase_row_id == row_id))
     row = cursor.fetchone()
     if row is None:
@@ -418,7 +427,7 @@ def update_row(
     values: Dict[str, PythonType],
 ) -> bool:
     """Update a given row, returning True if it existed (and was updated) and False otherwise."""
-    table = get_sqla_table(sesh, username, table_name)
+    table = get_userdata_tableclause(sesh, username, table_name)
     result = sesh.execute(
         table.update().where(table.c.csvbase_row_id == row_id).values(values)
     )
@@ -427,13 +436,13 @@ def update_row(
 
 def delete_row(sesh: Session, username: str, table_name: str, row_id: int) -> bool:
     """Update a given row, returning True if it existed (and was updated) and False otherwise."""
-    table = get_sqla_table(sesh, username, table_name)
+    table = get_userdata_tableclause(sesh, username, table_name)
     result = sesh.execute(table.delete().where(table.c.csvbase_row_id == row_id))
     return result.rowcount > 0
 
 
 def insert_row(sesh: Session, username: str, table_name: str, values: Dict) -> int:
-    table = get_sqla_table(sesh, username, table_name)
+    table = get_userdata_tableclause(sesh, username, table_name)
     return sesh.execute(
         table.insert().values(values).returning(table.c.csvbase_row_id)
     ).scalar()
