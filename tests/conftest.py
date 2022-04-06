@@ -6,6 +6,7 @@ import pytest
 from passlib.context import CryptContext
 
 from csvbase import web, svc, db, models
+from csvbase.value_objs import DataLicence, Column, ColumnType
 from .value_objs import ExtendedUser
 from .utils import random_string, make_user
 
@@ -51,3 +52,53 @@ def test_user(module_sesh, app):
 @pytest.fixture(scope="session")
 def configure_logging():
     basicConfig(level=DEBUG)
+
+
+ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
+
+
+@pytest.fixture(scope="function")
+def ten_rows(test_user, sesh):
+    table_name = random_string()
+    svc.upsert_table_metadata(
+        sesh,
+        test_user.user_uuid,
+        table_name,
+        is_public=True,
+        description="Roman numerals",
+        licence=DataLicence.ALL_RIGHTS_RESERVED,
+    )
+    svc.create_table(
+        sesh,
+        test_user.username,
+        table_name,
+        [Column("roman_numeral", type_=ColumnType.TEXT)],
+    )
+    for roman_numeral in ROMAN_NUMERALS:
+        svc.insert_row(
+            sesh, test_user.username, table_name, {"roman_numeral": roman_numeral}
+        )
+    sesh.commit()
+    return table_name
+
+
+@pytest.fixture(scope="module")
+def private_table(test_user, module_sesh):
+    table_name = random_string()
+    svc.upsert_table_metadata(
+        module_sesh,
+        test_user.user_uuid,
+        table_name,
+        is_public=False,
+        description="",
+        licence=DataLicence.ALL_RIGHTS_RESERVED,
+    )
+    svc.create_table(
+        module_sesh,
+        test_user.username,
+        table_name,
+        [Column("x", type_=ColumnType.INTEGER)],
+    )
+    svc.insert_row(module_sesh, test_user.username, table_name, {"x": 1})
+    module_sesh.commit()
+    return table_name

@@ -37,7 +37,7 @@
 
     <h2>Pandas</h2>
     <p>To load this dataset into <a href="https://pandas.pydata.org/">pandas</a>, do the following</p>
-    {% if is_public %}
+    {% if table.is_public %}
       <pre>import pandas
 # you just use the same url as the table page
 {{table_name|snake_case}} = pandas.read_csv("{{table_url}}")
@@ -53,7 +53,7 @@
 </pre>
     {% endif %}
 
-    {% if not is_public %}
+    {% if not table.is_public %}
       <p><em>As <a href="{{ url_for('csvbase.get_table', username=username, table_name=table_name) }}">{{table_name}}</a> is private, <strong>requests</strong> is used here to work around pandas bug <a href="https://github.com/pandas-dev/pandas/issues/16716">#16716</a></em></p>
     {% endif %}
 

@@ -318,8 +318,8 @@ def get_table(username: str, table_name: str) -> Response:
 @bp.route("/<username>/<table_name:table_name>/docs", methods=["GET"])
 def get_table_apidocs(username: str, table_name: str) -> str:
     sesh = get_sesh()
-    is_public = svc.is_public(sesh, username, table_name)
-    is_public or am_user_or_400(username)
+    table = svc.get_table(sesh, username, table_name)
+    table.is_public or am_user_or_400(username)
     user = svc.user_by_name(sesh, username)
 
     table_url = url_for(
@@ -335,7 +335,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
     private_table_url = f"{scheme}://{url_username}:{url_hex_key}@{public_netloc}{path}"
 
     # if the table is not public the user will need basic auth to get it
-    if not is_public:
+    if not table.is_public:
         table_url = private_table_url
 
     return render_template(
@@ -343,16 +343,16 @@ def get_table_apidocs(username: str, table_name: str) -> str:
         username=username,
         table_name=table_name,
         table_url=table_url,
+        table=table,
         private_table_url=private_table_url,
-        is_public=is_public,
     )
 
 
 @bp.route("/<username>/<table_name:table_name>/export", methods=["GET"])
 def table_export(username: str, table_name: str) -> str:
     sesh = get_sesh()
-    is_public = svc.is_public(sesh, username, table_name)
-    is_public or am_user_or_400(username)
+    table = svc.get_table(sesh, username, table_name)
+    table.is_public or am_user_or_400(username)
     user = svc.user_by_name(sesh, username)
 
     table_url = url_for(
@@ -368,16 +368,16 @@ def table_export(username: str, table_name: str) -> str:
     private_table_url = f"{scheme}://{url_username}:{url_hex_key}@{public_netloc}{path}"
 
     # if the table is not public the user will need basic auth to get it
-    if not is_public:
+    if not table.is_public:
         table_url = private_table_url
 
     return render_template(
         "table_export.html",
         username=username,
+        table=table,
         table_name=table_name,
         table_url=table_url,
         private_table_url=private_table_url,
-        is_public=is_public,
     )
 
 

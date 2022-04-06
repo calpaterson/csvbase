@@ -3,7 +3,7 @@
 
 {% block tab_contents %}
   <div class="container">
-    {% if not is_public %}
+    {% if not table.is_public %}
     <h2>Private url</h2>
     <p>Your private url for this table
     is <a href="{{table_url}}"><code>{{table_url}}</code></a>.  This has been
