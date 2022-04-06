@@ -177,11 +177,11 @@ def get_columns(sesh, username, table_name, include_row_id=False) -> List["Colum
 
 def get_userdata_tableclause(sesh, username, table_name) -> TableClause:
     columns = get_columns(sesh, username, table_name, include_row_id=True)
-    return satable(
+    return satable(  # type: ignore
         f"{username}__{table_name}",
         *[sacolumn(c.name, type_=c.type_.sqla_type()) for c in columns],
         schema="userdata",
-    )  # type: ignore
+    )
 
 
 def create_table(
