@@ -1,11 +1,23 @@
 import pytest
 
 
-@pytest.mark.xfail(reason="test not implemented", strict=True)
+@pytest.mark.xfail(reason="feature not implemented")
 def test_read__happy(client, ten_rows, test_user):
     resp = client.get(f"/{test_user.username}/{ten_rows}")
     assert resp.status_code == 200, resp.data
-    assert resp.json == {"row_id": 1, "row": {"roman_numeral": "I"}}
+    assert resp.json == {
+        "name": "ten_rows",
+        "is_public": True,
+        "caption": "Roman Numerals",
+        "data_licence": "All Rights Reserved",
+        "columns": [
+            {"name": "csv_row_id", "type": "integer"},
+            {
+                "name": "roman_numeral",
+                "type": "text",
+            },
+        ],
+    }
 
 
 @pytest.mark.xfail(reason="test not implemented", strict=True)
