@@ -28,6 +28,7 @@
             rows="10"
             cols="50"
             class="form-control"
+            style="resize: both"
             id="table-readme"
             disabled></textarea>
           <div class="form-text">Space to explain more.  <a href="https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet">Markdown</a> supported (but not HTML).</div>
@@ -70,6 +71,9 @@
 
     {% if g.username == username %}
       <h2>Delete table</h2>
+      <div class="alert alert-danger" role="alert">
+        Not yet implemented
+      </div>
       <form>
         <div class="row">
           <div class="col-auto">
@@ -82,7 +86,7 @@
               >
           </div>
           <div class="col-auto">
-            <input type="submit" class="btn btn-danger" value="Delete table forever">
+            <input type="submit" disabled class="btn btn-danger" value="Delete table forever">
           </div>
         </div>
       </form>
