@@ -384,6 +384,21 @@ def table_export(username: str, table_name: str) -> str:
     )
 
 
+@bp.route("/<username>/<table_name:table_name>/schema_and_settings", methods=["GET"])
+def table_schema_and_settings(username: str, table_name: str) -> str:
+    sesh = get_sesh()
+    table = svc.get_table(sesh, username, table_name)
+    table.is_public or am_user_or_400(username)
+
+    return render_template(
+        "table_schema_and_settings.html",
+        username=username,
+        page_title=f"Schema & Settings: {username}/{table_name}",
+        DataLicence=DataLicence,
+        table=table,
+    )
+
+
 @bp.route("/<username>/<table_name:table_name>.csv", methods=["GET"])
 def get_table_csv(username: str, table_name: str) -> Response:
     sesh = get_sesh()

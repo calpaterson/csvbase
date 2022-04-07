@@ -1,0 +1,103 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "table.html" %}
+
+{% block tab_contents %}
+  <div class="container">
+    <h2>Schema</h2>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Column name</th>
+            <th>Column type</th>
+            <th>Missing data?</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for col in table.columns %}
+            <tr>
+              {% if col.name == "csvbase_row_id" %}
+                <td>Row ID (<code>csvbase_row_id</code>)</td>
+                <td>{{col.type_.pretty_type()}}</td>
+                <td>No</td>
+              {% else %}
+                <td>{{ col.name }}</td>
+                <td>{{col.type_.pretty_type()}}</td>
+                <td>Yes</td>
+            {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mb-3">
+    <h2>Edit settings</h2>
+    <form method="POST">
+      <div class="row mb-3">
+        <div class="col-auto">
+          <label for="table-caption" class="form-label">Caption</label>
+          <input type="text" class="form-control" id="table-caption" size="50" maxlength="200">
+          <div class="form-text">A short caption explaining what the table is</div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-auto">
+          <label for="table-readme" class="form-label">Readme</label>
+          <textarea rows="10" cols="50" class="form-control" id="table-readme"></textarea>
+          <div class="form-text">Space to explain more.  <a href="https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet">Markdown</a> supported (but not HTML).</div>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-auto">
+          <label for="licence-select" class="col-form-label">Data licence</label>
+        </div>
+        <div class="col-auto">
+          <select class="form-select" name="data-licence">
+            {% for data_licence in DataLicence %}
+              <option {% if data_licence == DataLicence.ALL_RIGHTS_RESERVED %}selected{% endif %}
+                value="{{ data_licence.value }}">{{ data_licence.render() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-auto">
+          <input type="checkbox" class="form-check-input" name="private" id="is-private">
+          <label class="form-check-label" for="is-private">Private</label>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-auto">
+          <input type="submit" class="btn btn-success" value="Save settings">
+        </div>
+      </div>
+    </form>
+    </div>
+
+    {% if g.username == username %}
+      <h2>Delete table</h2>
+      <form>
+        <div class="row">
+          <div class="col-auto">
+            <input
+              type="text"
+              class="form-control"
+              pattern="^{{table.table_name}}$"
+              required
+              title="<username>/<table_name>"
+              >
+          </div>
+          <div class="col-auto">
+            <input type="submit" class="btn btn-danger" value="Delete table forever">
+          </div>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+{% endblock %}
+

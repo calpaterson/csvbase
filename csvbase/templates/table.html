@@ -13,23 +13,28 @@
     <h1
       class="py-2"><a
       href="{{ url_for('csvbase.user', username=username) }}">{{ username }}</a> / <a
-      href="{{ url_for('csvbase.get_table', username=username, table_name=table_name) }}"
-      >{{ table_name }}</a> {{ data_licence_badge(table.data_licence) }}</h1>
+      href="{{ url_for('csvbase.get_table', username=username, table_name=table.table_name) }}"
+      >{{ table.table_name }}</a> {{ data_licence_badge(table.data_licence) }}</h1>
 
     <div class="mb-3">
       <ul class="nav nav-tabs">
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.get_table' %}active{%endif%}"
-             href="{{ url_for('csvbase.get_table', username=username, table_name=table_name) }}">View</a>
+             href="{{ url_for('csvbase.get_table', username=username, table_name=table.table_name) }}">View</a>
         </li>
         <li class="nav-item">
+          <a class="nav-link disabled"
+             href="">Readme</a>
+        </li>
+
+        <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.table_export' %}active{%endif%}"
-             href="{{ url_for('csvbase.table_export', username=username, table_name=table_name) }}"
+             href="{{ url_for('csvbase.table_export', username=username, table_name=table.table_name) }}"
              >Export (Excel, Pandas, R, etc)</a>
         </li>
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.get_table_apidocs' %}active{%endif%}"
-             href="{{ url_for('csvbase.get_table_apidocs', username=username, table_name=table_name) }}"
+             href="{{ url_for('csvbase.get_table_apidocs', username=username, table_name=table.table_name) }}"
              >API (REST)</a>
         </li>
         <li class="nav-item">
@@ -38,14 +43,9 @@
              >API (GraphQL)</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link disabled"
-             href=""
-             >Schema</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link disabled"
-             href=""
-             >Settings</a>
+          <a class="nav-link {% if request.endpoint == 'csvbase.table_schema_and_settings' %}active{%endif%}"
+             href="{{url_for('csvbase.table_schema_and_settings', username=username, table_name=table.table_name)}}"
+             >Schema & Settings</a>
         </li>
       </ul>
     </div>
