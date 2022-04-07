@@ -1,0 +1,36 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "table.html" %}
+
+{% block tab_contents %}
+  <div class="container">
+    <h2>Schema</h2>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Column name</th>
+            <th>Column type</th>
+            <th>Missing data?</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for col in table.columns %}
+            <tr>
+              {% if col.name == "csvbase_row_id" %}
+                <td>Row ID (<code>csvbase_row_id</code>)</td>
+                <td>{{col.type_.pretty_type()}}</td>
+                <td>No</td>
+              {% else %}
+                <td>{{ col.name }}</td>
+                <td>{{col.type_.pretty_type()}}</td>
+                <td>Yes</td>
+            {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+{% endblock %}
+
