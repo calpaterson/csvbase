@@ -51,6 +51,9 @@ class Table:
     data_licence: "DataLicence"
     columns: Sequence["Column"]
 
+    def has_caption(self) -> bool:
+        return not self.caption.isspace()
+
     def columns_except_row_id(self) -> Iterable["Column"]:
         for column in self.columns:
             if column.name == "csvbase_row_id":

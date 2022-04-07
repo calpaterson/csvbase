@@ -414,6 +414,34 @@ def table_settings(username: str, table_name: str) -> str:
     )
 
 
+@bp.route("/<username>/<table_name:table_name>/settings", methods=["POST"])
+def post_table_settings(username: str, table_name: str) -> Response:
+    sesh = get_sesh()
+    am_user_or_400(username)
+
+    caption = request.form["caption"]
+    if "private" in request.form:
+        is_public = False
+    else:
+        is_public = True
+    data_licence = DataLicence(request.form.get("data-licence", type=int))
+
+    svc.upsert_table_metadata(
+        sesh, g.user_uuid, table_name, is_public, caption, data_licence
+    )
+    sesh.commit()
+
+    flash(f"Saved settings for {username}/{table_name}")
+
+    return redirect(
+        url_for(
+            "csvbase.table_settings",
+            username=username,
+            table_name=table_name,
+        )
+    )
+
+
 @bp.route("/<username>/<table_name:table_name>.csv", methods=["GET"])
 def get_table_csv(username: str, table_name: str) -> Response:
     sesh = get_sesh()

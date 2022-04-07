@@ -9,15 +9,27 @@
       <div class="row mb-3">
         <div class="col-auto">
           <label for="table-caption" class="form-label">Caption</label>
-          <input type="text" class="form-control" id="table-caption" size="50" maxlength="200">
-          <div class="form-text">A short caption explaining what the table is</div>
+          <input
+            type="text"
+            class="form-control"
+            id="table-caption"
+            size="50"
+            maxlength="200"
+            name="caption"
+            value="{{ table.caption }}">
+          <div class="form-text">A short caption outlining what the table contains.</div>
         </div>
       </div>
 
       <div class="row mb-3">
         <div class="col-auto">
           <label for="table-readme" class="form-label">Readme</label>
-          <textarea rows="10" cols="50" class="form-control" id="table-readme"></textarea>
+          <textarea
+            rows="10"
+            cols="50"
+            class="form-control"
+            id="table-readme"
+            disabled></textarea>
           <div class="form-text">Space to explain more.  <a href="https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet">Markdown</a> supported (but not HTML).</div>
         </div>
       </div>
@@ -29,7 +41,7 @@
         <div class="col-auto">
           <select class="form-select" name="data-licence">
             {% for data_licence in DataLicence %}
-              <option {% if data_licence == DataLicence.ALL_RIGHTS_RESERVED %}selected{% endif %}
+              <option {% if data_licence == table.data_licence %}selected{% endif %}
                 value="{{ data_licence.value }}">{{ data_licence.render() }}</option>
             {% endfor %}
           </select>
@@ -38,7 +50,12 @@
 
       <div class="row mb-3">
         <div class="col-auto">
-          <input type="checkbox" class="form-check-input" name="private" id="is-private">
+          <input
+            type="checkbox"
+            class="form-check-input"
+            name="private"
+            {% if not table.is_public %}checked{% endif %}
+            id="is-private">
           <label class="form-check-label" for="is-private">Private</label>
         </div>
       </div>
