@@ -302,6 +302,7 @@ def get_table(username: str, table_name: str) -> Response:
         return make_response(
             render_template(
                 "table_view.html",
+                page_title=f"{username}/{table_name}",
                 table=table,
                 page=page,
                 keyset=keyset,
@@ -340,6 +341,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
 
     return render_template(
         "table_api.html",
+        page_title=f"REST docs: {username}/{table_name}",
         username=username,
         table_name=table_name,
         table_url=table_url,
@@ -373,6 +375,7 @@ def table_export(username: str, table_name: str) -> str:
 
     return render_template(
         "table_export.html",
+        page_title=f"Export: {username}/{table_name}",
         username=username,
         table=table,
         table_name=table_name,
@@ -484,6 +487,7 @@ def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]
             make_response(
                 render_template(
                     "row.html",
+                    page_title=f"{username}/{table_name}/rows/{row_id}",
                     row=row,
                     row_id=row_id,
                     username=username,
@@ -587,6 +591,7 @@ def user(username):
     return make_response(
         render_template(
             "user.html",
+            page_title=f"{username}",
             username=username,
             table_names=tables,
         )
