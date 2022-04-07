@@ -65,7 +65,7 @@ def ten_rows(test_user, sesh):
         test_user.user_uuid,
         table_name,
         is_public=True,
-        description="Roman numerals",
+        caption="Roman numerals",
         licence=DataLicence.ALL_RIGHTS_RESERVED,
     )
     svc.create_table(
@@ -90,7 +90,7 @@ def private_table(test_user, module_sesh):
         test_user.user_uuid,
         table_name,
         is_public=False,
-        description="",
+        caption="",
         licence=DataLicence.ALL_RIGHTS_RESERVED,
     )
     svc.create_table(

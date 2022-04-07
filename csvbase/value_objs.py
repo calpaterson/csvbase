@@ -47,7 +47,7 @@ class Page:
 class Table:
     table_name: str
     is_public: bool
-    description_markdown: str
+    caption: str
     data_licence: "DataLicence"
     columns: Sequence["Column"]
 
@@ -57,9 +57,6 @@ class Table:
                 continue
             else:
                 yield column
-
-    def render_description(self) -> str:
-        return self.description_markdown
 
 
 @enum.unique

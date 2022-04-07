@@ -74,23 +74,36 @@ class Table(Base):
         METADATA_SCHEMA_TABLE_ARG,
     )
 
-    table_id = Column(PGUUID, primary_key=True, default=uuid4)
+    table_uuid = Column(PGUUID, primary_key=True, default=uuid4)
     user_uuid = Column(PGUUID, ForeignKey("metadata.users.user_uuid"), nullable=False)
     public = Column(satypes.Boolean, nullable=False)
     created = Column(
         satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
     )
-    table_name = Column(satypes.String(length=200), nullable=False, index=True)
     licence_id = Column(
         satypes.SmallInteger,
         ForeignKey("metadata.data_licences.licence_id"),
         nullable=False,
     )
-    # FIXME: caption!
-    description = Column(
+    table_name = Column(satypes.String(length=200), nullable=False, index=True)
+    caption = Column(
         satypes.String(length=200),
         nullable=False,
     )
+
+    readme_obj: "RelationshipProperty[TableReadme]" = relationship(
+        "TableReadme", uselist=False, backref="table"
+    )
+
+
+class TableReadme(Base):
+    __tablename__ = "table_readmes"
+    __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+
+    table_uuid = Column(
+        PGUUID, ForeignKey("metadata.tables.table_uuid"), primary_key=True
+    )
+    readme_markdown = Column(satypes.String(length=10_000), nullable=False)
 
 
 class DataLicence(Base):

@@ -149,7 +149,7 @@ def get_table(sesh, username_or_uuid: Union[UUID, str], table_name) -> Table:
     table = Table(
         table_name=table_name,
         is_public=table_model.public,
-        description_markdown=table_model.description,
+        caption=table_model.caption,
         data_licence=DataLicence(table_model.licence_id),
         columns=columns,
     )
@@ -203,7 +203,7 @@ def upsert_table_metadata(
     user_uuid: UUID,
     table_name: str,
     is_public: bool,
-    description: str,
+    caption: str,
     licence: DataLicence,
 ) -> None:
     table_obj: Optional[models.Table] = (
@@ -217,7 +217,7 @@ def upsert_table_metadata(
         table_obj = models.Table(user_uuid=user_uuid, table_name=table_name)
         sesh.add(table_obj)
     table_obj.public = is_public
-    table_obj.description = description
+    table_obj.caption = caption
     table_obj.licence_id = licence.value
 
 
