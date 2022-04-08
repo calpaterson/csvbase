@@ -1,18 +1,17 @@
 from uuid import UUID, uuid4
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING
 
 from sqlalchemy.dialects.postgresql import UUID as _PGUUID, BYTEA
 from sqlalchemy import (
     Column,
     ForeignKey,
-    and_,
     types as satypes,
     UniqueConstraint,
     func,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import CheckConstraint
-from sqlalchemy.orm import RelationshipProperty, foreign, relationship, remote, backref
+from sqlalchemy.orm import RelationshipProperty, relationship
 
 Base = declarative_base()
 

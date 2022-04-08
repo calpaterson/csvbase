@@ -1,9 +1,8 @@
 import random
 import string
 from os import path
-from datetime import datetime, timezone
 
-from csvbase import svc, models
+from csvbase import svc
 from .value_objs import ExtendedUser
 
 test_data_path = path.join(path.dirname(__file__), "test-data")

@@ -1,7 +1,3 @@
-from csvbase import svc
-from csvbase.value_objs import Column, ColumnType, DataLicence
-from .utils import random_string
-
 import pytest
 
 from .utils import make_user

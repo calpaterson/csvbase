@@ -1,13 +1,11 @@
-from datetime import datetime, timezone
 from logging import basicConfig, DEBUG
 
 from sqlalchemy.orm import sessionmaker
 import pytest
 from passlib.context import CryptContext
 
-from csvbase import web, svc, db, models
+from csvbase import db, svc, web
 from csvbase.value_objs import DataLicence, Column, ColumnType
-from .value_objs import ExtendedUser
 from .utils import random_string, make_user
 
 

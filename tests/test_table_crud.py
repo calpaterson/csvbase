@@ -33,7 +33,7 @@ def test_read__table_does_not_exist(client, test_user):
 
 
 def test_read__user_does_not_exist(client, test_user):
-    resp = client.get(f"/someone/something", headers={"Accept": ContentType.JSON.value})
+    resp = client.get("/someone/something", headers={"Accept": ContentType.JSON.value})
     assert resp.status_code == 404, resp.data
     assert resp.json == {"error": "user does not exist"}
 

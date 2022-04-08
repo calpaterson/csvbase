@@ -1,8 +1,6 @@
 class CSVBaseException(Exception):
     """ABC for CSVBase exceptions to make it possible to catch them collectively"""
 
-    pass
-
 
 class TableDoesNotExistException(CSVBaseException):
     def __init__(self, username: str, table_name: str):
