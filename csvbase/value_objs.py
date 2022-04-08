@@ -179,3 +179,10 @@ _PRETTY_TYPE_MAP = {
 class Column:
     name: str
     type_: ColumnType
+
+
+@enum.unique
+class ContentType(enum.Enum):
+    HTML = "text/html"
+    CSV = "text/csv"
+    JSON = "application/json"

@@ -1,20 +1,24 @@
 import pytest
 
+from csvbase.value_objs import ContentType
 
-@pytest.mark.xfail(reason="feature not implemented")
+
 def test_read__happy(client, ten_rows, test_user):
-    resp = client.get(f"/{test_user.username}/{ten_rows}")
+    resp = client.get(
+        f"/{test_user.username}/{ten_rows}", headers={"Accept": ContentType.JSON.value}
+    )
     assert resp.status_code == 200, resp.data
     assert resp.json == {
-        "name": "ten_rows",
+        "name": ten_rows,
         "is_public": True,
-        "caption": "Roman Numerals",
-        "data_licence": "All Rights Reserved",
+        "caption": "Roman numerals",
+        "data_licence": "All rights reserved",
         "columns": [
-            {"name": "csv_row_id", "type": "integer"},
+            {"name": "csvbase_row_id", "type": "integer"},
             {
                 "name": "roman_numeral",
-                "type": "text",
+                # FIXME: is "string" the right name?
+                "type": "string",
             },
         ],
     }

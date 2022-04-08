@@ -4,7 +4,7 @@ import io
 import shutil
 import codecs
 from logging import basicConfig, INFO, getLogger
-from typing import Optional, Any, Dict, List, Tuple
+from typing import Optional, Any, Dict, List, Tuple, Sequence
 from os import environ
 from urllib.parse import urlsplit
 
@@ -33,7 +33,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from flask_sqlalchemy_session import flask_scoped_session
 import werkzeug.http
 
-from .value_objs import KeySet, ColumnType, PythonType, Column, User, DataLicence
+from .value_objs import KeySet, ColumnType, Column, User, DataLicence, ContentType
 from . import svc
 from . import db
 from . import exc
@@ -55,6 +55,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
     exc.WrongAuthException: ("wrong auth", 400),
     exc.InvalidAPIKeyException: ("invalid api key", 400),
     exc.InvalidRequest: ("invalid request", 400),
+    exc.CantNegotiateContentType: ("can't agree on a content type", 406),
 }
 
 
@@ -286,7 +287,11 @@ def get_table(username: str, table_name: str) -> Response:
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     user = svc.user_by_name(sesh, username)
 
-    if is_browser():
+    content_type = negotiate_content_type(
+        [ContentType.HTML, ContentType.JSON], default=ContentType.CSV
+    )
+
+    if content_type is ContentType.HTML:
         # passing a default and type here means the default is used if what they
         # provide can't be parsed
         n: int = request.args.get("n", default=0, type=int)
@@ -309,6 +314,20 @@ def get_table(username: str, table_name: str) -> Response:
                 username=username,
                 table_name=table_name,
             )
+        )
+    elif content_type is ContentType.JSON:
+        table = svc.get_table(sesh, username, table_name)
+        return jsonify(
+            {
+                "name": table.table_name,
+                "is_public": table.is_public,
+                "caption": table.caption,
+                "data_licence": table.data_licence.short_render(),
+                "columns": [
+                    {"name": column.name, "type": column.type_.pretty_type()}
+                    for column in table.columns
+                ],
+            }
         )
     else:
         return make_csv_response(
@@ -762,11 +781,25 @@ def make_xlsx_response(
     return response
 
 
-def is_browser():
+def is_browser() -> bool:
     # bit of content negotiation magic
     accepts = werkzeug.http.parse_accept_header(request.headers.get("Accept"))
     best = accepts.best_match(["text/html", "text/csv"], default="text/csv")
     return best == "text/html"
+
+
+def negotiate_content_type(
+    supported_mediatypes: Sequence[ContentType], default: Optional[ContentType] = None
+) -> ContentType:
+    accepts = werkzeug.http.parse_accept_header(request.headers.get("Accept"))
+    best = accepts.best_match(
+        [ct.value for ct in supported_mediatypes],
+        default=default.value if default is not None else None,
+    )
+    if best is None:
+        raise exc.CantNegotiateContentType(supported_mediatypes)
+    else:
+        return ContentType(best)
 
 
 def byte_buf_to_str_buf(byte_buf):
