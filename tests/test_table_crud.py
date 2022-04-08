@@ -24,23 +24,25 @@ def test_read__happy(client, ten_rows, test_user):
     }
 
 
-@pytest.mark.xfail(reason="test not implemented", strict=True)
 def test_read__table_does_not_exist(client, test_user):
-    resp = client.get(f"/{test_user.username}/something/")
+    resp = client.get(
+        f"/{test_user.username}/something", headers={"Accept": ContentType.JSON.value}
+    )
     assert resp.status_code == 404, resp.data
     assert resp.json == {"error": "table does not exist"}
 
 
-@pytest.mark.xfail(reason="test not implemented", strict=True)
 def test_read__user_does_not_exist(client, test_user):
-    resp = client.get("/someone/something/")
+    resp = client.get(f"/someone/something", headers={"Accept": ContentType.JSON.value})
     assert resp.status_code == 404, resp.data
     assert resp.json == {"error": "user does not exist"}
 
 
-@pytest.mark.xfail(reason="test not implemented", strict=True)
 def test_read__is_private_not_authed(client, private_table, test_user):
-    resp = client.get(f"/{test_user.username}/{private_table}")
+    resp = client.get(
+        f"/{test_user.username}/{private_table}",
+        headers={"Accept": ContentType.JSON.value},
+    )
     assert resp.status_code == 404, resp.data
     assert resp.json == {"error": "table does not exist"}
 

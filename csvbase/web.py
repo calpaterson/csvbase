@@ -284,8 +284,9 @@ def blank_table_form_post() -> Response:
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
 def get_table(username: str, table_name: str) -> Response:
     sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     user = svc.user_by_name(sesh, username)
+    if not svc.is_public(sesh, username, table_name) and not am_user(username):
+        raise exc.TableDoesNotExistException(username, table_name)
 
     content_type = negotiate_content_type(
         [ContentType.HTML, ContentType.JSON], default=ContentType.CSV
