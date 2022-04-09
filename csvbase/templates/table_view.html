@@ -41,7 +41,7 @@
       {% if page.has_less %}
         <li class="page-item">
           <a class="page-link"
-             href="{{ url_for('csvbase.get_table', username=username, table_name=table_name, op='lt', n=page.rows[0].csvbase_row_id) }}">Previous page</a>
+             href="{{ url_for('csvbase.table_view', username=username, table_name=table_name, op='lt', n=page.rows[0].csvbase_row_id) }}">Previous page</a>
         </li>
       {% else %}
         <li class="page-item disabled">
@@ -60,7 +60,7 @@
       {% if page.has_more %}
         <li class="page-item">
           <a class="page-link"
-             href="{{ url_for('csvbase.get_table', username=username, table_name=table_name, op='gt', n=page.rows[-1].csvbase_row_id) }}">Next page</a>
+             href="{{ url_for('csvbase.table_view', username=username, table_name=table_name, op='gt', n=page.rows[-1].csvbase_row_id) }}">Next page</a>
         </li>
       {% else %}
         <li class="page-item disabled">

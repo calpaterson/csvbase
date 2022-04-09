@@ -203,7 +203,7 @@ def new_table_form_submission():
     )
     sesh.commit()
     return redirect(
-        url_for("csvbase.get_table", username=g.username, table_name=table_name)
+        url_for("csvbase.table_view", username=g.username, table_name=table_name)
     )
 
 
@@ -276,13 +276,13 @@ def blank_table_form_post() -> Response:
     )
     sesh.commit()
     return redirect(
-        url_for("csvbase.get_table", username=g.username, table_name=table_name)
+        url_for("csvbase.table_view", username=g.username, table_name=table_name)
     )
 
 
 @bp.route("/<username>/<table_name:table_name>", methods=["GET"])
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
-def get_table(username: str, table_name: str) -> Response:
+def table_view(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     user = svc.user_by_name(sesh, username)
     if not svc.is_public(sesh, username, table_name) and not am_user(username):
@@ -344,7 +344,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
     user = svc.user_by_name(sesh, username)
 
     table_url = url_for(
-        "csvbase.get_table", username=username, table_name=table_name, _external=True
+        "csvbase.table_view", username=username, table_name=table_name, _external=True
     )
     scheme, public_netloc, path, _, _ = urlsplit(table_url)
     if am_user(username):
@@ -378,7 +378,7 @@ def table_export(username: str, table_name: str) -> str:
     user = svc.user_by_name(sesh, username)
 
     table_url = url_for(
-        "csvbase.get_table", username=username, table_name=table_name, _external=True
+        "csvbase.table_view", username=username, table_name=table_name, _external=True
     )
     scheme, public_netloc, path, _, _ = urlsplit(table_url)
     if am_user(username):

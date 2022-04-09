@@ -8,7 +8,7 @@ import pytest
 @pytest.mark.parametrize(
     "method, endpoint, endpoint_args",
     [
-        ("GET", "csvbase.get_table", {"username": "test", "table_name": "test"}),
+        ("GET", "csvbase.table_view", {"username": "test", "table_name": "test"}),
         ("POST", "csvbase.create_row", {"username": "test", "table_name": "test"}),
         (
             "PUT",

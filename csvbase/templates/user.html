@@ -7,7 +7,7 @@
     <h2>Your tables</h2>
     <ul>
       {% for table_name in table_names %}
-        <li><a href="{{ url_for('csvbase.get_table', username=username, table_name=table_name) }}">{{table_name}}</a></li>
+        <li><a href="{{ url_for('csvbase.table_view', username=username, table_name=table_name) }}">{{table_name}}</a></li>
       {% endfor %}
     </ul>
     <p>Or <a href="{{ url_for('csvbase.paste')}}"> paste a new table</a></p>

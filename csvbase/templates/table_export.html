@@ -54,7 +54,7 @@
     {% endif %}
 
     {% if not table.is_public %}
-      <p><em>As <a href="{{ url_for('csvbase.get_table', username=username, table_name=table_name) }}">{{table_name}}</a> is private, <strong>requests</strong> is used here to work around pandas bug <a href="https://github.com/pandas-dev/pandas/issues/16716">#16716</a></em></p>
+      <p><em>As <a href="{{ url_for('csvbase.table_view', username=username, table_name=table_name) }}">{{table_name}}</a> is private, <strong>requests</strong> is used here to work around pandas bug <a href="https://github.com/pandas-dev/pandas/issues/16716">#16716</a></em></p>
     {% endif %}
 
     <h3>R</h3>
