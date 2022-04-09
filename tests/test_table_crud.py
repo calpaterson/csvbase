@@ -3,48 +3,61 @@ import pytest
 from csvbase.value_objs import ContentType
 
 
-def test_read__happy(client, ten_rows, test_user):
+@pytest.fixture(scope="module", params=[ContentType.JSON, ContentType.HTML])
+def content_type(request):
+    yield request.param
+
+
+def test_read__happy(client, ten_rows, test_user, content_type):
     resp = client.get(
-        f"/{test_user.username}/{ten_rows}", headers={"Accept": ContentType.JSON.value}
+        f"/{test_user.username}/{ten_rows}", headers={"Accept": content_type.value}
     )
     assert resp.status_code == 200, resp.data
-    assert resp.json == {
-        "name": ten_rows,
-        "is_public": True,
-        "caption": "Roman numerals",
-        "data_licence": "All rights reserved",
-        "columns": [
-            {"name": "csvbase_row_id", "type": "integer"},
-            {
-                "name": "roman_numeral",
-                # FIXME: is "string" the right name?
-                "type": "string",
-            },
-        ],
-    }
+    assert content_type.value in resp.headers["Content-Type"]
+    if content_type is ContentType.JSON:
+        assert resp.json == {
+            "name": ten_rows,
+            "is_public": True,
+            "caption": "Roman numerals",
+            "data_licence": "All rights reserved",
+            "columns": [
+                {"name": "csvbase_row_id", "type": "integer"},
+                {
+                    "name": "roman_numeral",
+                    # FIXME: is "string" the right name?
+                    "type": "string",
+                },
+            ],
+        }
 
 
-def test_read__table_does_not_exist(client, test_user):
+def test_read__table_does_not_exist(client, test_user, content_type):
     resp = client.get(
-        f"/{test_user.username}/something", headers={"Accept": ContentType.JSON.value}
+        f"/{test_user.username}/something", headers={"Accept": content_type.value}
     )
     assert resp.status_code == 404, resp.data
-    assert resp.json == {"error": "table does not exist"}
+    assert content_type.value in resp.headers["Content-Type"]
+    if content_type is ContentType.JSON:
+        assert resp.json == {"error": "table does not exist"}
 
 
-def test_read__user_does_not_exist(client, test_user):
-    resp = client.get("/someone/something", headers={"Accept": ContentType.JSON.value})
+def test_read__user_does_not_exist(client, test_user, content_type):
+    resp = client.get("/someone/something", headers={"Accept": content_type.value})
     assert resp.status_code == 404, resp.data
-    assert resp.json == {"error": "user does not exist"}
+    assert content_type.value in resp.headers["Content-Type"]
+    if content_type is ContentType.JSON:
+        assert resp.json == {"error": "user does not exist"}
 
 
-def test_read__is_private_not_authed(client, private_table, test_user):
+def test_read__is_private_not_authed(client, private_table, test_user, content_type):
     resp = client.get(
         f"/{test_user.username}/{private_table}",
-        headers={"Accept": ContentType.JSON.value},
+        headers={"Accept": content_type.value},
     )
     assert resp.status_code == 404, resp.data
-    assert resp.json == {"error": "table does not exist"}
+    assert content_type.value in resp.headers["Content-Type"]
+    if content_type is ContentType.JSON:
+        assert resp.json == {"error": "table does not exist"}
 
 
 @pytest.mark.xfail(reason="test not implemented", strict=True)
