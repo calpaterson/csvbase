@@ -34,9 +34,13 @@
         </tbody>
       </table>
     </div>
-  </div>
 
   <nav>
+    <div class="row">
+      <div class="col-auto">
+        <a class="btn btn-success" disabled>Add row</a>
+      </div>
+      <div class="col-md-4 offset-md-3">
     <ul class="pagination justify-content-center">
       {% if page.has_less %}
         <li class="page-item">
@@ -68,5 +72,6 @@
         </li>
       {% endif %}
     </ul>
+    </div>
   </nav>
 {% endblock %}

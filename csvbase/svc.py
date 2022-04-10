@@ -412,9 +412,11 @@ def table_page(
 def get_row(
     sesh: Session, username: str, table_name: str, row_id: int
 ) -> Dict[Column, PythonType]:
-    columns = get_columns(sesh, username, table_name, include_row_id=False)
-    table = get_userdata_tableclause(sesh, username, table_name)
-    cursor = sesh.execute(table.select().where(table.c.csvbase_row_id == row_id))
+    columns = get_columns(sesh, username, table_name, include_row_id=True)
+    table_clause = get_userdata_tableclause(sesh, username, table_name)
+    cursor = sesh.execute(
+        table_clause.select().where(table_clause.c.csvbase_row_id == row_id)
+    )
     row = cursor.fetchone()
     if row is None:
         raise exc.RowDoesNotExistException(username, table_name, row_id)

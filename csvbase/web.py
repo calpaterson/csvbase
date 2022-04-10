@@ -577,13 +577,14 @@ def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]
             200,
         )
     else:
+        row_without_row_id = (c for c in row.items() if c[0].name != "csvbase_row_id")
         return (
             jsonify(
                 {
                     "row_id": row_id,
                     "row": {
                         column.name: column.type_.value_to_json(value)
-                        for column, value in row.items()
+                        for column, value in row_without_row_id
                     },
                 }
             ),
