@@ -4,7 +4,7 @@ import io
 import shutil
 import codecs
 from logging import basicConfig, INFO, getLogger
-from typing import Optional, Any, Dict, List, Tuple, Sequence
+from typing import Optional, Any, Dict, List, Tuple, Sequence, Union, Type
 from os import environ
 from urllib.parse import urlsplit
 
@@ -37,6 +37,7 @@ from .value_objs import KeySet, ColumnType, Column, User, DataLicence, ContentTy
 from . import svc
 from . import db
 from . import exc
+from .types import UserSubmittedCSVData, UserSubmittedBytes
 
 
 logger = getLogger(__name__)
@@ -176,6 +177,7 @@ def new_table_form_submission():
 
     table_name = request.form["table-name"]
     textarea = request.form.get("csv-textarea")
+    csv_buf: UserSubmittedCSVData
     if textarea:
         csv_buf = io.StringIO(textarea)
     else:
@@ -803,7 +805,10 @@ def negotiate_content_type(
         return ContentType(best)
 
 
-def byte_buf_to_str_buf(byte_buf):
+def byte_buf_to_str_buf(byte_buf: UserSubmittedBytes) -> codecs.StreamReader:
+    """Convert a readable byte buffer into a readable str buffer.
+
+    Tries to detect the character set along the way, falling back to utf-8."""
     detector = UniversalDetector()
     for line in byte_buf.readlines():
         detector.feed(line)
@@ -820,7 +825,10 @@ def byte_buf_to_str_buf(byte_buf):
         logger.warning("unable to detect charset, assuming utf-8")
         encoding = "utf-8"
     Reader = codecs.getreader(encoding)
-    return Reader(byte_buf)
+    # FIXME: the issue here seems to be that StreamReader is typed to want
+    # specifically an IO[bytes] but will actually work with other things that
+    # are file-like enough
+    return Reader(byte_buf)  # type: ignore
 
 
 def set_current_user_for_session(user: User, session: Optional[Any] = None) -> None:

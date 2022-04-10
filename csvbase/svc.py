@@ -41,6 +41,7 @@ from .value_objs import (
 from . import models
 from .db import engine
 from . import exc
+from .types import UserSubmittedCSVData
 
 logger = getLogger(__name__)
 
@@ -51,8 +52,10 @@ FLOAT_REGEX = re.compile(r"^(\d+\.)|(\.\d+)|(\d+\.\d?)$")
 BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
 
 
-def types_for_csv(csv_buf: io.StringIO) -> Tuple[Type[csv.Dialect], List[Column]]:
-    # FIXME: should be "peek csv" or similar
+def types_for_csv(
+    csv_buf: UserSubmittedCSVData,
+) -> Tuple[Type[csv.Dialect], List[Column]]:
+    # FIXME: should be called "peek csv" or similar
     try:
         dialect = csv.Sniffer().sniff(csv_buf.read(1024))
     except csv.Error:
@@ -238,7 +241,7 @@ def upsert_table_data(
     user_uuid: UUID,
     username: str,
     table_name: str,
-    csv_buf: io.StringIO,
+    csv_buf: UserSubmittedCSVData,
     dialect: Type[csv.Dialect],
     columns: Sequence[Column],
     truncate_first=True,
