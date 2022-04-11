@@ -106,6 +106,15 @@ class ColumnType(enum.Enum):
     def from_sql_type(sqla_type: str) -> "ColumnType":
         return _REVERSE_SQL_TYPE_MAP[sqla_type]
 
+    def from_str(self, as_string: str) -> "PythonType":
+        if self is ColumnType.BOOLEAN:
+            if as_string.lower()[0] in ["f", "n"]:
+                return False
+            else:
+                return True
+        else:
+            return ColumnType.python_type(self)(as_string)
+
     def sqla_type(self) -> Type["SQLAlchemyType"]:
         """The equivalent SQLAlchemy type"""
         return _SQLA_TYPE_MAP[self]
