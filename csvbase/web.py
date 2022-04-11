@@ -566,7 +566,7 @@ def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]
         return (
             make_response(
                 render_template(
-                    "row.html",
+                    "row_view_or_edit.html",
                     page_title=f"{username}/{table_name}/rows/{row_id}",
                     row=row,
                     row_id=row_id,
@@ -590,6 +590,29 @@ def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]
             ),
             200,
         )
+
+
+@bp.route(
+    "/<username>/<table_name:table_name>/rows/<int:row_id>/delete-check",
+    methods=["GET"],
+)
+def row_delete_check(username: str, table_name: str, row_id: int) -> Response:
+    sesh = get_sesh()
+    svc.user_exists(sesh, username)
+    if not svc.is_public(sesh, username, table_name) and not am_user(username):
+        raise exc.TableDoesNotExistException(username, table_name)
+    row = svc.get_row(sesh, username, table_name, row_id)
+
+    return make_response(
+        render_template(
+            "row_delete_check.html",
+            page_title=f"Delete {username}/{table_name}/rows/{row_id}?",
+            row=row,
+            row_id=row_id,
+            username=username,
+            table_name=table_name,
+        )
+    )
 
 
 @bp.route("/<username>/<table_name:table_name>/rows/<int:row_id>", methods=["PUT"])
@@ -617,9 +640,27 @@ def delete_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
 
 
 @bp.route(
+    "/<username>/<table_name:table_name>/rows/<int:row_id>/delete-row-for-browsers",
+    methods=["POST"],
+)
+def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Response:
+    # extremely annoying to need a special endpoint for this but browser forms
+    # don't support the DELETE verb
+    sesh = get_sesh()
+    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    if not svc.delete_row(sesh, username, table_name, row_id):
+        raise exc.RowDoesNotExistException(username, table_name, row_id)
+    sesh.commit()
+    flash(f"Deleted row {row_id}")
+    return redirect(
+        url_for("csvbase.table_view", username=username, table_name=table_name)
+    )
+
+
+@bp.route(
     "/<username>/<table_name:table_name>/rows/<int:row_id>/edit", methods=["POST"]
 )
-def update_row_by_form_post(username, table_name, row_id):
+def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
     columns = svc.get_columns(sesh, username, table_name)
     values = {

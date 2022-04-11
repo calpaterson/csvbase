@@ -1,0 +1,23 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "row.html" %}
+
+{% import 'row_macros.html' as row_macros %}
+
+{% block body_contents %}
+  <div class="container">
+    <h2>Delete confirmation</h2>
+    <p>Are you sure you want to delete this row?  This cannot be undone.</p>
+    <form
+      method="POST"
+      action="{{ url_for('csvbase.delete_row_for_browsers', username=username, table_name=table_name, row_id=row_id) }}">
+      <div class="mb-3">
+        <a href="{{ url_for('csvbase.get_row', username=username, table_name=table_name, row_id=row_id) }}"
+           class="btn btn-secondary">Cancel</a>
+           <input class="btn btn-danger"
+                  type="submit"
+                  value="Delete it"
+                  >
+      </div>
+      {{ row_macros.row_table(row) }}
+  </div>
+{% endblock %}

@@ -10,64 +10,7 @@
                         href="{{ url_for('csvbase.get_row', username=username, table_name=table_name, row_id=row_id) }}"
                         >{{ row_id }}</a></h1>
   </div>
-  <div class="container">
-    {% if g.username != username %}
-    <table class="table table-responsive">
-      <thead>
-        <tr>
-          <th>Column name</th>
-          <th>Column type</th>
-          <th>Column value</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for col, v in row.items() %}
-          <tr>
-            {% if col.name == "csvbase_row_id" %}
-              <td>Row ID</td>
-            {% else %}
-              <td>{{ col.name }}</td>
-            {% endif %}
-            <td>{{ col.type_.pretty_type() }}</td>
-            <td>{{ v }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-      <div class="py-3">
-      <form
-        action="{{ url_for('csvbase.update_row_by_form_post', username=username, table_name=table_name, row_id=row_id) }}"
-        method="POST">
-        {% for col, v in row.items() %}
-          <div class="mb-3 row g-3">
-            <div class="col-2">
-              {% if col.name == "csvbase_row_id" %}
-                <label class="col-form-label" for="{{col.name}}-input">Row ID</label>
-              {% else %}
-                <label class="col-form-label" for="{{col.name}}-input">{{ col.name }}</label>
-              {% endif %}
-            </div>
-            <div class="col-auto">
-              <input
-                {% if col.name == "csvbase_row_id" %}disabled{% endif %}
-                id="{{col.name}}-input"
-                type="{{ col.type_.html_type() }}"
-                name="{{ col.name }}" value="{{ v }}">
-            </div>
-            {% if col.name == "csvbase_row_id" %}
-              <div class="col-auto">
-                <div class="form-text">This cannot be changed</div>
-              </div>
-            {% endif %}
-          </div>
-        {% endfor %}
-        <div class="mb-3">
-          <input class="btn btn-primary" type="submit" value="Save row">
-          <input disabled class="btn btn-danger" type="submit" value="Delete row">
-        </div>
-      </form>
-      </div>
-    {% endif %}
-  </div>
+
+  {% block body_contents %}
+  {% endblock %}
 {% endblock %}

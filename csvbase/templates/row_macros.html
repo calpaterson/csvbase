@@ -1,0 +1,26 @@
+{# -*- mode: jinja2 -*- #}
+
+{% macro row_table(row) %}
+      <table class="table table-responsive">
+        <thead>
+          <tr>
+            <th>Column name</th>
+            <th>Column type</th>
+            <th>Column value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for col, v in row.items() %}
+            <tr>
+              {% if col.name == "csvbase_row_id" %}
+                <td>Row ID</td>
+              {% else %}
+                <td>{{ col.name }}</td>
+              {% endif %}
+              <td>{{ col.type_.pretty_type() }}</td>
+              <td>{{ v }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+{% endmacro %}
