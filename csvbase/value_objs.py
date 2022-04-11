@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Tuple, Union, Type, Iterable
+from typing import Optional, Sequence, Tuple, Union, Type, Iterable, Any, Dict
 from typing_extensions import Literal
 from uuid import UUID
 from datetime import datetime, date
@@ -106,7 +106,8 @@ class ColumnType(enum.Enum):
     def from_sql_type(sqla_type: str) -> "ColumnType":
         return _REVERSE_SQL_TYPE_MAP[sqla_type]
 
-    def sqla_type(self):
+    def sqla_type(self) -> Type["SQLAlchemyType"]:
+        """The equivalent SQLAlchemy type"""
         return _SQLA_TYPE_MAP[self]
 
     def value_to_json(self, value) -> str:
@@ -115,11 +116,11 @@ class ColumnType(enum.Enum):
         else:
             return value
 
-    def from_string_to_python(self, str) -> "PythonType":
+    def from_string_to_python(self, string: str) -> "PythonType":
         if self is ColumnType.DATE:
-            return date.fromisoformat(str)
+            return date.fromisoformat(string)
         else:
-            return self.python_type()(str)
+            return self.python_type()(string)
 
     def html_type(self) -> str:
         if self is ColumnType.BOOLEAN:
@@ -140,8 +141,15 @@ class ColumnType(enum.Enum):
 
 
 PythonType = Union[int, bool, float, date, str]
+SQLAlchemyType = Union[
+    satypes.BigInteger,
+    satypes.Boolean,
+    satypes.Float,
+    satypes.Date,
+    satypes.Text,
+]
 
-_SQLA_TYPE_MAP = {
+_SQLA_TYPE_MAP: Dict["ColumnType", Type[SQLAlchemyType]] = {
     ColumnType.TEXT: satypes.Text,
     ColumnType.INTEGER: satypes.BigInteger,
     ColumnType.FLOAT: satypes.Float,
