@@ -106,15 +106,6 @@ class ColumnType(enum.Enum):
     def from_sql_type(sqla_type: str) -> "ColumnType":
         return _REVERSE_SQL_TYPE_MAP[sqla_type]
 
-    def from_str(self, as_string: str) -> "PythonType":
-        if self is ColumnType.BOOLEAN:
-            if as_string.lower()[0] in ["f", "n"]:
-                return False
-            else:
-                return True
-        else:
-            return ColumnType.python_type(self)(as_string)
-
     def sqla_type(self) -> Type["SQLAlchemyType"]:
         """The equivalent SQLAlchemy type"""
         return _SQLA_TYPE_MAP[self]
@@ -125,11 +116,33 @@ class ColumnType(enum.Enum):
         else:
             return value
 
-    def from_string_to_python(self, string: str) -> "PythonType":
-        if self is ColumnType.DATE:
-            return date.fromisoformat(string)
+    def from_string_to_python(self, as_string: str) -> Optional["PythonType"]:
+        """Parses values from string (ie: csv) into Python objects, according
+        to ColumnType."""
+        if as_string == "" or as_string is None:
+            return None
+        if self is ColumnType.BOOLEAN:
+            if as_string.lower()[0] in ["f", "n"]:
+                return False
+            else:
+                return True
+        elif self is ColumnType.DATE:
+            return date.fromisoformat(as_string)
         else:
-            return self.python_type()(string)
+            return self.python_type()(as_string)
+
+    def from_html_form_to_python(
+        self, form_value: Optional[str]
+    ) -> Optional["PythonType"]:
+        """Parses values from HTML forms into Python objects, according to ColumnType."""
+        if self is ColumnType.BOOLEAN:
+            return True if form_value == "on" else False
+        elif form_value is None:
+            return None
+        elif self is ColumnType.DATE:
+            return date.fromisoformat(form_value)
+        else:
+            return self.python_type()(form_value)
 
     def html_type(self) -> str:
         if self is ColumnType.BOOLEAN:

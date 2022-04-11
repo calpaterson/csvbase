@@ -722,7 +722,8 @@ def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Resp
     sesh = get_sesh()
     columns = svc.get_columns(sesh, username, table_name)
     values = {
-        c.name: c.type_.from_string_to_python(request.form[c.name]) for c in columns
+        c.name: c.type_.from_html_form_to_python(request.form.get(c.name))
+        for c in columns
     }
     svc.update_row(sesh, username, table_name, row_id, values)
     sesh.commit()

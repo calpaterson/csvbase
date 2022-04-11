@@ -26,7 +26,15 @@
                   {% if col.name == "csvbase_row_id" %}disabled{% endif %}
                   id="{{col.name}}-input"
                   type="{{ col.type_.html_type() }}"
-                  name="{{ col.name }}" value="{{ v }}">
+                  name="{{ col.name }}"
+                  {% if col.type_.name == "BOOLEAN" %}
+                    {% if v %}
+                      checked
+                    {% endif %}
+                  {% else %}
+                    value="{{ v }}"
+                  {% endif %}
+                  >
               </div>
               {% if col.name == "csvbase_row_id" %}
                 <div class="col-auto">

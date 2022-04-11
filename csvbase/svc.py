@@ -254,7 +254,8 @@ def upsert_table_data(
     reader = csv.reader(csv_buf, dialect)
     csv_buf.readline()  # pop the header, which is not useful
     row_gen = (
-        [col.type_.from_str(v) for col, v in zip(columns, line)] for line in reader
+        [col.type_.from_string_to_python(v) for col, v in zip(columns, line)]
+        for line in reader
     )
 
     raw_conn = sesh.connection().connection
@@ -429,7 +430,7 @@ def update_row(
     username: str,
     table_name: str,
     row_id: int,
-    values: Dict[str, PythonType],
+    values: Dict[str, Optional[PythonType]],
 ) -> bool:
     """Update a given row, returning True if it existed (and was updated) and False otherwise."""
     table = get_userdata_tableclause(sesh, username, table_name)
