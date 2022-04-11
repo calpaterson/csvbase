@@ -186,3 +186,4 @@ class ContentType(enum.Enum):
     HTML = "text/html"
     CSV = "text/csv"
     JSON = "application/json"
+    HTML_FORM = "application/x-www-form-urlencoded"

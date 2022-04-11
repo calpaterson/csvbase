@@ -1,0 +1,35 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "base.html" %}
+
+{% block main %}
+  <div class="container">
+    <h1>Add a new row to <a href="{{ url_for('csvbase.user', username=username) }}"
+                            >{{ username }}</a> / <a
+                            href="{{ url_for('csvbase.table_view', username=username, table_name=table_name) }}"
+                            >{{ table_name }}</a></h1>
+
+  </div>
+  <div class="container">
+    <form
+      action="{{ url_for('csvbase.create_row', username=username, table_name=table_name) }}"
+      method="POST">
+      {% for col in table.columns_except_row_id() %}
+        <div class="mb-3 row g-3">
+          <div class="col-2">
+            <label class="col-form-label" for="{{col.name}}-input">{{ col.name }}</label>
+          </div>
+          <div class="col-auto">
+            <input
+              id="{{col.name}}-input"
+              type="{{ col.type_.html_type() }}"
+              name="{{ col.name }}" value="">
+          </div>
+        </div>
+      {% endfor %}
+      <div class="mb-3">
+        <input class="btn btn-primary" type="submit" value="Save row">
+      </div>
+    </form>
+
+  </div>
+{% endblock %}

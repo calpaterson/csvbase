@@ -33,7 +33,15 @@ from sqlalchemy.orm import sessionmaker, Session
 from flask_sqlalchemy_session import flask_scoped_session
 import werkzeug.http
 
-from .value_objs import KeySet, ColumnType, Column, User, DataLicence, ContentType
+from .value_objs import (
+    KeySet,
+    ColumnType,
+    Column,
+    User,
+    DataLicence,
+    ContentType,
+    PythonType,
+)
 from . import svc
 from . import db
 from . import exc
@@ -57,6 +65,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
     exc.InvalidAPIKeyException: ("invalid api key", 400),
     exc.InvalidRequest: ("invalid request", 400),
     exc.CantNegotiateContentType: ("can't agree on a content type", 406),
+    exc.WrongContentType: ("you sent the wrong content type", 400),
 }
 
 
@@ -294,6 +303,7 @@ def table_view(username: str, table_name: str) -> Response:
         [ContentType.HTML, ContentType.JSON], default=ContentType.CSV
     )
 
+    table = svc.get_table(sesh, username, table_name)
     if content_type is ContentType.HTML:
         # passing a default and type here means the default is used if what they
         # provide can't be parsed
@@ -304,8 +314,6 @@ def table_view(username: str, table_name: str) -> Response:
             else "less_than"
         )
         keyset = KeySet(n=n, op=op)
-
-        table = svc.get_table(sesh, username, table_name)
         page = svc.table_page(sesh, user.user_uuid, username, table_name, keyset)
         return make_response(
             render_template(
@@ -319,7 +327,6 @@ def table_view(username: str, table_name: str) -> Response:
             )
         )
     elif content_type is ContentType.JSON:
-        table = svc.get_table(sesh, username, table_name)
         return jsonify(
             {
                 "name": table.table_name,
@@ -536,22 +543,52 @@ def export_table_csv(username: str, table_name: str) -> Response:
 
 @bp.route("/<username>/<table_name:table_name>/rows/", methods=["POST"])
 @cross_origin(max_age=CORS_EXPIRY, methods=["POST"])
-def create_row(username: str, table_name: str) -> Tuple[Response, int]:
+def create_row(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     svc.user_exists(sesh, username)
-    if not svc.is_public(sesh, username, table_name):
-        raise exc.TableDoesNotExistException(username, table_name)
+    table = svc.get_table(sesh, username, table_name)
     if not am_user(username):
         if am_a_user():
             raise exc.NotAllowedException()
         else:
             raise exc.NotAuthenticatedException()
-    body = json_or_400()
-    assert "row_id" not in body
-    row_id = svc.insert_row(sesh, username, table_name, body["row"])
+
+    values: Dict[str, PythonType]
+    if request.mimetype == ContentType.JSON.value:
+        values = json_or_400()["row"]
+    elif request.mimetype == ContentType.HTML_FORM.value:
+        values = {}
+        for col in table.columns_except_row_id():
+            from_form = request.form.get(col.name, type=col.type_.python_type())
+            if from_form is None:
+                raise exc.InvalidRequest()
+            values[col.name] = from_form
+    else:
+        raise exc.WrongContentType(
+            [ContentType.JSON, ContentType.HTML_FORM], request.mimetype
+        )
+
+    row_id = svc.insert_row(sesh, username, table_name, values)
     sesh.commit()
-    body["row_id"] = row_id
-    return jsonify(body), 201
+
+    content_type = negotiate_content_type(
+        [ContentType.HTML, ContentType.JSON], ContentType.JSON
+    )
+    if content_type is ContentType.JSON:
+        json_body = {"row": values, "row_id": row_id}
+        response = jsonify(json_body)
+        response.status_code = 201
+        return response
+    else:
+        flash(f"Created row {row_id}")
+        return redirect(
+            url_for(
+                "csvbase.table_view",
+                username=username,
+                table_name=table_name,
+                n=row_id - 1,
+            )
+        )
 
 
 @bp.route("/<username>/<table_name:table_name>/rows/<int:row_id>", methods=["GET"])
@@ -590,6 +627,27 @@ def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]
             ),
             200,
         )
+
+
+@bp.route(
+    "/<username>/<table_name:table_name>/add-row-form",
+    methods=["GET"],
+)
+def row_add_form(username: str, table_name: str) -> Response:
+    sesh = get_sesh()
+    table = svc.get_table(sesh, username, table_name)
+    if not table.is_public and not am_user(username):
+        raise exc.TableDoesNotExistException(username, table_name)
+
+    return make_response(
+        render_template(
+            "row-add.html",
+            page_title=f"Add a row to {username}/{table_name}",
+            username=username,
+            table_name=table_name,
+            table=table,
+        )
+    )
 
 
 @bp.route(

@@ -46,3 +46,8 @@ class InvalidRequest(CSVBaseException):
 class CantNegotiateContentType(CSVBaseException):
     def __init__(self, supported):
         super().__init__(supported)
+
+
+class WrongContentType(CSVBaseException):
+    def __init__(self, supported, recieved):
+        super().__init__((supported, recieved))

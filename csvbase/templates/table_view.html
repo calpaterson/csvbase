@@ -38,7 +38,7 @@
   <nav>
     <div class="row">
       <div class="col-auto">
-        <a class="btn btn-success" disabled>Add row</a>
+        <a class="btn btn-success" href=" {{ url_for('csvbase.row_add_form', username=username, table_name=table_name) }}">Add row</a>
       </div>
       <div class="col-md-4 offset-md-3">
     <ul class="pagination justify-content-center">

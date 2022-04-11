@@ -446,7 +446,9 @@ def delete_row(sesh: Session, username: str, table_name: str, row_id: int) -> bo
     return result.rowcount > 0
 
 
-def insert_row(sesh: Session, username: str, table_name: str, values: Dict) -> int:
+def insert_row(
+    sesh: Session, username: str, table_name: str, values: Dict[str, PythonType]
+) -> int:
     table = get_userdata_tableclause(sesh, username, table_name)
     return sesh.execute(
         table.insert().values(values).returning(table.c.csvbase_row_id)
