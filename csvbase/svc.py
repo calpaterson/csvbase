@@ -148,7 +148,7 @@ def get_table(sesh, username_or_uuid: Union[UUID, str], table_name) -> Table:
     )
     if table_model is None:
         raise exc.TableDoesNotExistException(user.username, table_name)
-    columns = get_columns(sesh, user.username, table_name, include_row_id=True)
+    columns = get_columns(sesh, user.username, table_name)
     table = Table(
         table_name=table_name,
         is_public=table_model.public,
@@ -159,7 +159,7 @@ def get_table(sesh, username_or_uuid: Union[UUID, str], table_name) -> Table:
     return table
 
 
-def get_columns(sesh, username, table_name, include_row_id=False) -> List["Column"]:
+def get_columns(sesh, username, table_name) -> List["Column"]:
     # lifted from https://dba.stackexchange.com/a/22420/28877
     stmt = f"""
     SELECT attname AS column_name, atttypid::regtype AS sql_type
@@ -172,14 +172,12 @@ def get_columns(sesh, username, table_name, include_row_id=False) -> List["Colum
     rs = sesh.execute(stmt)
     rv = []
     for name, sql_type in rs:
-        if name == "csvbase_row_id" and not include_row_id:
-            continue
         rv.append(Column(name=name, type_=ColumnType.from_sql_type(sql_type)))
     return rv
 
 
 def get_userdata_tableclause(sesh, username, table_name) -> TableClause:
-    columns = get_columns(sesh, username, table_name, include_row_id=True)
+    columns = get_columns(sesh, username, table_name)
     return satable(  # type: ignore
         f"{username}__{table_name}",
         *[sacolumn(c.name, type_=c.type_.sqla_type()) for c in columns],
@@ -273,8 +271,9 @@ def upsert_table_data(
         for line in reader
     )
 
+    table = get_table(sesh, username, table_name)
     raw_conn = sesh.connection().connection
-    cols = [c.name for c in get_columns(sesh, username, table_name)]
+    cols = [c.name for c in table.user_columns()]
     copy_manager = CopyManager(raw_conn, f"userdata.{username}__{table_name}", cols)
     copy_manager.copy(row_gen)
 
@@ -284,24 +283,18 @@ def table_as_csv(
     user_uuid: UUID,
     username: str,
     table_name: str,
-    include_row_id: bool = True,
     delimiter: str = ",",
 ) -> io.StringIO:
     csv_buf = io.StringIO()
 
-    columns = [
-        c.name
-        for c in get_columns(sesh, username, table_name, include_row_id=include_row_id)
-    ]
+    columns = [c.name for c in get_columns(sesh, username, table_name)]
 
     # this allows for putting the columns in with proper csv escaping
     writer = csv.writer(csv_buf, delimiter=delimiter)
     writer.writerow(columns)
 
     # FIXME: This is probably too slow
-    for row in table_as_rows(
-        sesh, user_uuid, username, table_name, include_row_id=include_row_id
-    ):
+    for row in table_as_rows(sesh, user_uuid, username, table_name):
         writer.writerow(row)
 
     csv_buf.seek(0)
@@ -313,19 +306,13 @@ def table_as_xlsx(
     user_uuid: UUID,
     username: str,
     table_name: str,
-    include_row_id: bool = True,
     excel_table: bool = False,
 ) -> io.BytesIO:
     xlsx_buf = io.BytesIO()
 
-    column_names = [
-        c.name
-        for c in get_columns(sesh, username, table_name, include_row_id=include_row_id)
-    ]
+    column_names = [c.name for c in get_columns(sesh, username, table_name)]
 
-    rows = table_as_rows(
-        sesh, user_uuid, username, table_name, include_row_id=include_row_id
-    )
+    rows = table_as_rows(sesh, user_uuid, username, table_name)
 
     workbook_args = {}
     if not excel_table:
@@ -365,12 +352,11 @@ def table_as_rows(
     user_uuid: UUID,
     username: str,
     table_name: str,
-    include_row_id: bool = False,
 ) -> Iterable[Tuple[PythonType]]:
-    table = get_userdata_tableclause(sesh, username, table_name)
-    columns = get_columns(sesh, username, table_name, include_row_id=include_row_id)
-    q = select([getattr(table.c, c.name) for c in columns]).order_by(
-        table.c.csvbase_row_id
+    table_clause = get_userdata_tableclause(sesh, username, table_name)
+    columns = get_columns(sesh, username, table_name)
+    q = select([getattr(table_clause.c, c.name) for c in columns]).order_by(
+        table_clause.c.csvbase_row_id
     )
     yield from sesh.execute(q)
 
@@ -426,7 +412,7 @@ def table_page(
 
 
 def get_row(sesh: Session, username: str, table_name: str, row_id: int) -> Row:
-    columns = get_columns(sesh, username, table_name, include_row_id=True)
+    columns = get_columns(sesh, username, table_name)
     table_clause = get_userdata_tableclause(sesh, username, table_name)
     cursor = sesh.execute(
         table_clause.select().where(table_clause.c.csvbase_row_id == row_id)
@@ -443,7 +429,7 @@ def get_a_sample_row(sesh: Session, username: str, table_name: str) -> Row:
 
     If none exist, a made-up row is returned.  This function is for
     example/documentation purposes only."""
-    columns = get_columns(sesh, username, table_name, include_row_id=True)
+    columns = get_columns(sesh, username, table_name)
     table_clause = get_userdata_tableclause(sesh, username, table_name)
     cursor = sesh.execute(table_clause.select().order_by("csvbase_row_id").limit(1))
     row = cursor.fetchone()
@@ -455,7 +441,7 @@ def get_a_sample_row(sesh: Session, username: str, table_name: str) -> Row:
 
 
 def get_a_made_up_row(sesh: Session, username, table_name: str) -> Row:
-    columns = get_columns(sesh, username, table_name, include_row_id=True)
+    columns = get_columns(sesh, username, table_name)
     return {c: c.type_.example() for c in columns}
 
 
