@@ -372,6 +372,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
         "table_api.html",
         page_title=f"REST docs: {username}/{table_name}",
         username=username,
+        user=user,
         table_name=table_name,
         table_url=table_url,
         table=table,

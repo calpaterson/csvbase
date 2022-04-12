@@ -3,45 +3,85 @@
 
 {% block tab_contents %}
   <div class="container">
-    {% if not table.is_public %}
-    <h2>Private url</h2>
-    <p>Your private url for this table
-    is <a href="{{table_url}}"><code>{{table_url}}</code></a>.  This has been
-    pre-populated in the examples below to make life easier.</p>
-    {% endif %}
 
-    <h2>A quick note on two basics</h2>
-    <h3>Single url policy</h3>
-    <p>In CSVBase, the url for the webpage of a table is also the url for that table&apos;s
-      API.</p>
+    <h2>Table of contents</h2>
+    <ol>
+      <li>
+        <a href="#the-basics">The basics: auth and content negotations</a>
+        <ol>
+          <li><a href="#authentication">Authentication</a></li>
+          <li><a href="#content-negotiation">Content negotiation</a></li>
+        </ol>
+      </li>
+      <li>
+        <a href="#the-api">The API: endpoint-by-endpoint</a>
+      </li>
+    </ol>
 
-      <p>CSVBase does HTTP content negotiation to detect what is wanted and
-        will provide what&apos;s needed - HTML for browsers and CSV for other HTTP
-      clients.  You can bypass this by putting a file extension
-      (eg <code>.csv</code>) on the end.</p>
+    <h2 id="the-basics">The basics: auth and content negotiation</h2>
+    <h3 id="authentication">Authentication</h3>
+    <p>
+      On CSVBase, you authenticate using by putting your username and API key
+      in the url itself (known
+      as <a href="https://en.wikipedia.org/wiki/Basic_access_authentication">&quot;HTTP
+      basic auth&quot;</a>).
+    </p>
 
-    <h3>Basic auth for auth</h3>
-    <p>CSVBase uses HTTP basic auth for API authentication.  Your username is
-    your username and <strong>your API key</strong> (not your site password!)
-    is your password.  This is done to make integration really easy.</p>
+    <p>
+      {% if table.is_public %}
+        {{username}}/{{table_name}} is public so auth is needed only for <em>writes</em>.
+      {% else %}
+        {{username}}/{{table_name}} is private so auth is needed for all access.
+      {% endif %}
+    </p>
 
-    <h3>Anything else</h3>
-    <p>CSV files are compatible with nearly everything and you should be able
-    to provide either <a href="{{table_url}}">{{table_url}}</a> or a the CSV
-    file downloaded from that url to nearly any tool.</p>  Some tools may have
-    trouble with HTTP content negotiation, and if so you can just add ".csv" to
-    the end of the url to bypass that.<p>
+    <p>
+      Your API key is <code>{{ user.hex_api_key() }}</code> and this has been
+      inserted where required in all the below examples.
+    </p>
 
-    <h2>REST API</h2>
-    <h3>Getting the dataset</h3>
-    <p>To download the dataset, just use it&apos;s url - the same as on the website</p>
-    <pre>curl {{table_url}}</pre>
-    <p>Or to save it to a file with curl, do:</p>
-    <pre>curl {{table_url}} -o {{table_name|snake_case}}.csv</pre>
-    <h3>Updating the dataset</h3>
-    <p>After changing the dataset, send it back with the <code>PUT</code> HTTP Verb (as CSV)</p>
-    <pre>{%if g.username == username %}# your api key has been filled in here
-{% endif %}curl -XPUT {{private_table_url}} --data-binary @{{table_name|snake_case}}.csv</pre>
+    <h3 id="content-negotiation">Content negotiation</h3>
+    <p>
+      CSVBase APIs use <em>content negotiation</em> to decide what formats are in use.
+    </p>
+
+    <p>
+      This means it is important that you set the <code>Content-Type</code>
+      and <code>Accept</code> headers to be the mimetype you want: typically
+      that is <code>application/json</code> for both.  If you fail to include
+      these headers in your requests CSVBase will pick a (hopefully) sensible
+      default where possible.
+    </p>
+
+    <p>
+      You can bypass content negotiation for read-only requests by appending a
+      file extension to the url, eg <code>.json</code>.  This is useful when
+      dealing with software where you aren&apos;t able to set headers at
+      all <em>but should be a last resort.</em>
+    </p>
+
+    <h2 id="the-api">The API: endpoint-by-endpoint</h2>
+    <h3>Rows</h3>
+    <h4>Creating a row</h4>
+    <h4>Reading a row</h4>
+    <h4>Updating a row</h4>
+    <h4>Deleting a row</h4>
+
+    <h3>Table metadata</h3>
+    <h4>Getting the table metadata</h4>
+    {# <h4>Updating the table metadata</h4> #}
+
+
+
+    {# <h3>Getting the dataset</h3> #}
+    {# <p>To download the dataset, just use it&apos;s url - the same as on the website</p> #}
+    {# <pre>curl {{table_url}}</pre> #}
+    {# <p>Or to save it to a file with curl, do:</p> #}
+    {# <pre>curl {{table_url}} -o {{table_name|snake_case}}.csv</pre> #}
+    {# <h3>Updating the dataset</h3> #}
+    {# <p>After changing the dataset, send it back with the <code>PUT</code> HTTP Verb (as CSV)</p> #}
+    {# <pre>{%if g.username == username %}# your api key has been filled in here #}
+{# {% endif %}curl -XPUT {{private_table_url}} --data-binary @{{table_name|snake_case}}.csv</pre> #}
   </div>
 {% endblock %}
 
