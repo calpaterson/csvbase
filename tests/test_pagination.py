@@ -130,12 +130,12 @@ def test_pagination_over_the_top(sesh, test_user, letters_table):
 
 def test_pagination_under_the_bottom(sesh, test_user):
     table_name = random_string()
-    svc.create_table(
-        sesh, test_user.username, table_name, columns=[Column("x", ColumnType.INTEGER)]
-    )
+    x_column = Column("x", ColumnType.INTEGER)
+    svc.create_table(sesh, test_user.username, table_name, columns=[x_column])
 
     row_ids = [
-        svc.insert_row(sesh, test_user.username, table_name, {"x": 1}) for _ in range(5)
+        svc.insert_row(sesh, test_user.username, table_name, {x_column: 1})
+        for _ in range(5)
     ]
 
     for row_id in row_ids[:3]:

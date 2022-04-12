@@ -1,10 +1,11 @@
 from uuid import UUID
+import json
 from datetime import date, timedelta
 import io
 import shutil
 import codecs
 from logging import basicConfig, INFO, getLogger
-from typing import Optional, Any, Dict, List, Tuple, Sequence, Union, Type
+from typing import Optional, Any, Dict, List, Tuple, Sequence, Union, Type, Mapping
 from os import environ
 from urllib.parse import urlsplit
 
@@ -45,7 +46,7 @@ from .value_objs import (
 from . import svc
 from . import db
 from . import exc
-from .types import UserSubmittedCSVData, UserSubmittedBytes
+from .types import UserSubmittedCSVData, UserSubmittedBytes, Row
 
 
 logger = getLogger(__name__)
@@ -88,6 +89,7 @@ def init_app():
         return dict(HEROKU="HEROKU" in environ)
 
     app.jinja_env.filters["snake_case"] = snake_case
+    app.jinja_env.filters["ppjson"] = ppjson
 
     sesh = flask_scoped_session(sessionmaker(bind=db.engine))
     sesh.init_app(app)
@@ -368,6 +370,9 @@ def get_table_apidocs(username: str, table_name: str) -> str:
     if not table.is_public:
         table_url = private_table_url
 
+    made_up_row = svc.get_a_made_up_row(sesh, username, table_name)
+    sample_row = svc.get_a_sample_row(sesh, username, table_name)
+
     return render_template(
         "table_api.html",
         page_title=f"REST docs: {username}/{table_name}",
@@ -377,6 +382,9 @@ def get_table_apidocs(username: str, table_name: str) -> str:
         table_url=table_url,
         table=table,
         private_table_url=private_table_url,
+        sample_row=sample_row,
+        made_up_row=made_up_row,
+        row_to_json_dict=row_to_json_dict,
     )
 
 
@@ -554,29 +562,28 @@ def create_row(username: str, table_name: str) -> Response:
         else:
             raise exc.NotAuthenticatedException()
 
-    values: Dict[str, PythonType]
+    row: Row
     if request.mimetype == ContentType.JSON.value:
-        values = json_or_400()["row"]
+        row_as_dict = json_or_400()["row"]
+        row = {c: row_as_dict[c.name] for c in table.user_columns()}
     elif request.mimetype == ContentType.HTML_FORM.value:
-        values = {}
-        for col in table.columns_except_row_id():
-            from_form = request.form.get(col.name, type=col.type_.python_type())
-            if from_form is None:
-                raise exc.InvalidRequest()
-            values[col.name] = from_form
+        row = {
+            c: c.type_.from_html_form_to_python(request.form.get(c.name))
+            for c in table.columns
+        }
     else:
         raise exc.WrongContentType(
             [ContentType.JSON, ContentType.HTML_FORM], request.mimetype
         )
 
-    row_id = svc.insert_row(sesh, username, table_name, values)
+    row_id = svc.insert_row(sesh, username, table_name, row)
     sesh.commit()
 
     content_type = negotiate_content_type(
         [ContentType.HTML, ContentType.JSON], ContentType.JSON
     )
     if content_type is ContentType.JSON:
-        json_body = {"row": values, "row_id": row_id}
+        json_body = row_to_json_dict(row_id, row)
         response = jsonify(json_body)
         response.status_code = 201
         return response
@@ -594,40 +601,25 @@ def create_row(username: str, table_name: str) -> Response:
 
 @bp.route("/<username>/<table_name:table_name>/rows/<int:row_id>", methods=["GET"])
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT", "DELETE"])
-def get_row(username: str, table_name: str, row_id: int) -> Tuple[Response, int]:
+def get_row(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
     svc.user_exists(sesh, username)
     if not svc.is_public(sesh, username, table_name) and not am_user(username):
         raise exc.TableDoesNotExistException(username, table_name)
     row = svc.get_row(sesh, username, table_name, row_id)
     if is_browser():
-        return (
-            make_response(
-                render_template(
-                    "row_view_or_edit.html",
-                    page_title=f"{username}/{table_name}/rows/{row_id}",
-                    row=row,
-                    row_id=row_id,
-                    username=username,
-                    table_name=table_name,
-                )
-            ),
-            200,
+        return make_response(
+            render_template(
+                "row_view_or_edit.html",
+                page_title=f"{username}/{table_name}/rows/{row_id}",
+                row=row,
+                row_id=row_id,
+                username=username,
+                table_name=table_name,
+            )
         )
     else:
-        row_without_row_id = (c for c in row.items() if c[0].name != "csvbase_row_id")
-        return (
-            jsonify(
-                {
-                    "row_id": row_id,
-                    "row": {
-                        column.name: column.type_.value_to_json(value)
-                        for column, value in row_without_row_id
-                    },
-                }
-            ),
-            200,
-        )
+        return jsonify(row_to_json_dict(row_id, row))
 
 
 @bp.route(
@@ -676,26 +668,38 @@ def row_delete_check(username: str, table_name: str, row_id: int) -> Response:
 
 @bp.route("/<username>/<table_name:table_name>/rows/<int:row_id>", methods=["PUT"])
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT", "DELETE"])
-def update_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
+def update_row(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    table = svc.get_table(sesh, username, table_name)
+
     body = json_or_400()
+    if body["row_id"] != row_id:
+        raise exc.InvalidRequest("can't change row ids via an update")
     assert body["row_id"] == row_id, "row ids cannot be changed"
-    if not svc.update_row(sesh, username, table_name, row_id, body["row"]):
+    row = {
+        c: c.type_.from_json_to_python(body["row"][c.name])
+        for c in table.user_columns()
+    }
+    row[table.row_id_column()] = row_id
+
+    if not svc.update_row(sesh, username, table_name, row_id, row):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
     sesh.commit()
-    return "", 204
+    return jsonify(body)
 
 
 @bp.route("/<username>/<table_name:table_name>/rows/<int:row_id>", methods=["DELETE"])
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT", "DELETE"])
-def delete_row(username: str, table_name: str, row_id: int) -> Tuple[str, int]:
+def delete_row(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     if not svc.delete_row(sesh, username, table_name, row_id):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
     sesh.commit()
-    return "", 204
+    response = make_response()
+    response.status_code = 204
+    return response
 
 
 @bp.route(
@@ -722,11 +726,10 @@ def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Resp
 def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
     columns = svc.get_columns(sesh, username, table_name)
-    values = {
-        c.name: c.type_.from_html_form_to_python(request.form.get(c.name))
-        for c in columns
+    row: Row = {
+        c: c.type_.from_html_form_to_python(request.form.get(c.name)) for c in columns
     }
-    svc.update_row(sesh, username, table_name, row_id, values)
+    svc.update_row(sesh, username, table_name, row_id, row)
     sesh.commit()
     flash(f"Updated row {row_id}")
     return redirect(
@@ -964,3 +967,21 @@ def get_sesh() -> Session:
 def snake_case(inp: str) -> str:
     # FIXME: this ignores capitalisations...
     return inp.replace("-", "_")
+
+
+def ppjson(inp: Union[Mapping, Sequence]) -> str:
+    return json.dumps(inp, indent=4)
+
+
+def row_to_json_dict(row_id: int, row: Row, omit_row_id=False) -> Dict:
+    row_without_row_id = (c for c in row.items() if c[0].name != "csvbase_row_id")
+    json_dict: Dict = {
+        "row": {
+            column.name: column.type_.value_to_json(value)
+            for column, value in row_without_row_id
+        },
+    }
+    if not omit_row_id:
+        json_dict["row_id"] = row_id
+
+    return json_dict

@@ -54,12 +54,16 @@ class Table:
     def has_caption(self) -> bool:
         return not self.caption.isspace()
 
-    def columns_except_row_id(self) -> Iterable["Column"]:
+    def user_columns(self) -> Iterable["Column"]:
+        """Returns 'user_columns' - ie those not owned by csvbase."""
         for column in self.columns:
-            if column.name == "csvbase_row_id":
+            if column.name.startswith("csvbase_"):
                 continue
             else:
                 yield column
+
+    def row_id_column(self) -> "Column":
+        return self.columns[0]
 
 
 @enum.unique
@@ -102,6 +106,18 @@ class ColumnType(enum.Enum):
     BOOLEAN = 4
     DATE = 5
 
+    def example(self) -> "PythonType":
+        if self is ColumnType.TEXT:
+            return "foo"
+        elif self is ColumnType.INTEGER:
+            return 1
+        elif self is ColumnType.FLOAT:
+            return 3.14
+        elif self is ColumnType.BOOLEAN:
+            return False
+        else:
+            return date(2018, 1, 3)
+
     @staticmethod
     def from_sql_type(sqla_type: str) -> "ColumnType":
         return _REVERSE_SQL_TYPE_MAP[sqla_type]
@@ -143,6 +159,18 @@ class ColumnType(enum.Enum):
             return date.fromisoformat(form_value)
         else:
             return self.python_type()(form_value)
+
+    def from_json_to_python(self, json_value: Any) -> Optional["PythonType"]:
+        if self is ColumnType.BOOLEAN:
+            return json_value
+        elif self is ColumnType.INTEGER:
+            return int(json_value)
+        elif self is ColumnType.FLOAT:
+            return json_value
+        elif self is ColumnType.DATE:
+            return date.fromisoformat(json_value)
+        else:
+            return json_value
 
     def html_type(self) -> str:
         if self is ColumnType.BOOLEAN:

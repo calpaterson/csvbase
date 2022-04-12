@@ -72,10 +72,9 @@ def ten_rows(test_user, sesh):
         table_name,
         [Column("roman_numeral", type_=ColumnType.TEXT)],
     )
+    column = Column(name="roman_numeral", type_=ColumnType.TEXT)
     for roman_numeral in ROMAN_NUMERALS:
-        svc.insert_row(
-            sesh, test_user.username, table_name, {"roman_numeral": roman_numeral}
-        )
+        svc.insert_row(sesh, test_user.username, table_name, {column: roman_numeral})
     sesh.commit()
     return table_name
 
@@ -91,12 +90,13 @@ def private_table(test_user, module_sesh):
         caption="",
         licence=DataLicence.ALL_RIGHTS_RESERVED,
     )
+    x_column = Column("x", type_=ColumnType.INTEGER)
     svc.create_table(
         module_sesh,
         test_user.username,
         table_name,
-        [Column("x", type_=ColumnType.INTEGER)],
+        [x_column],
     )
-    svc.insert_row(module_sesh, test_user.username, table_name, {"x": 1})
+    svc.insert_row(module_sesh, test_user.username, table_name, {x_column: 1})
     module_sesh.commit()
     return table_name

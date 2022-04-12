@@ -41,7 +41,7 @@ from .value_objs import (
 from . import models
 from .db import engine
 from . import exc
-from .types import UserSubmittedCSVData
+from .types import UserSubmittedCSVData, Row
 
 logger = getLogger(__name__)
 
@@ -410,9 +410,7 @@ def table_page(
     )
 
 
-def get_row(
-    sesh: Session, username: str, table_name: str, row_id: int
-) -> Dict[Column, PythonType]:
+def get_row(sesh: Session, username: str, table_name: str, row_id: int) -> Row:
     columns = get_columns(sesh, username, table_name, include_row_id=True)
     table_clause = get_userdata_tableclause(sesh, username, table_name)
     cursor = sesh.execute(
@@ -425,15 +423,37 @@ def get_row(
         return {c: row[c.name] for c in columns}
 
 
+def get_a_sample_row(sesh: Session, username: str, table_name: str) -> Row:
+    """Returns a sample row from the table (the lowest row id).
+
+    If none exist, a made-up row is returned.  This function is for
+    example/documentation purposes only."""
+    columns = get_columns(sesh, username, table_name, include_row_id=True)
+    table_clause = get_userdata_tableclause(sesh, username, table_name)
+    cursor = sesh.execute(table_clause.select().order_by("csvbase_row_id").limit(1))
+    row = cursor.fetchone()
+    if row is None:
+        # return something made-up
+        return {c: c.type_.example() for c in columns}
+    else:
+        return {c: row[c.name] for c in columns}
+
+
+def get_a_made_up_row(sesh: Session, username, table_name: str) -> Row:
+    columns = get_columns(sesh, username, table_name, include_row_id=True)
+    return {c: c.type_.example() for c in columns}
+
+
 def update_row(
     sesh: Session,
     username: str,
     table_name: str,
     row_id: int,
-    values: Dict[str, Optional[PythonType]],
+    row: Row,
 ) -> bool:
     """Update a given row, returning True if it existed (and was updated) and False otherwise."""
     table = get_userdata_tableclause(sesh, username, table_name)
+    values = {c.name: v for c, v in row.items()}
     result = sesh.execute(
         table.update().where(table.c.csvbase_row_id == row_id).values(values)
     )
@@ -447,10 +467,9 @@ def delete_row(sesh: Session, username: str, table_name: str, row_id: int) -> bo
     return result.rowcount > 0
 
 
-def insert_row(
-    sesh: Session, username: str, table_name: str, values: Dict[str, PythonType]
-) -> int:
+def insert_row(sesh: Session, username: str, table_name: str, row: Row) -> int:
     table = get_userdata_tableclause(sesh, username, table_name)
+    values = {c.name: v for c, v in row.items()}
     return sesh.execute(
         table.insert().values(values).returning(table.c.csvbase_row_id)
     ).scalar()

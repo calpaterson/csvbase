@@ -15,6 +15,17 @@
       </li>
       <li>
         <a href="#the-api">The API: endpoint-by-endpoint</a>
+        <ol>
+          <li>
+            <a href="#rows">Rows</a>
+            <ol>
+              <li><a href="#rows-creating">Creating a new row</a></li>
+              <li><a href="#rows-reading">Reading a row</a></li>
+              <li><a href="#rows-updating">Updating an existing row</a></li>
+              <li><a href="#rows-deleting">Deleting a row</a></li>
+            </ol>
+          </li>
+        </ol>
       </li>
     </ol>
 
@@ -61,14 +72,60 @@
     </p>
 
     <h2 id="the-api">The API: endpoint-by-endpoint</h2>
-    <h3>Rows</h3>
-    <h4>Creating a row</h4>
-    <h4>Reading a row</h4>
-    <h4>Updating a row</h4>
-    <h4>Deleting a row</h4>
+    <h3 id="rows">Rows</h3>
+    <p>
+      Rows from {{username}}/{{table_name}} look like this is JSON:
+    </p>
 
-    <h3>Table metadata</h3>
-    <h4>Getting the table metadata</h4>
+    <pre>{{ row_to_json_dict(1, sample_row)|ppjson }}</pre>
+
+    <h4 id="rows-creating">Creating a new row</h4>
+    <p>
+      <code>POST</code> to <code>{{ url_for('csvbase.create_row', username=username, table_name=table_name, _external=True) }}</code>
+    </p>
+
+    <h5>Example body</h5>
+    <pre>{{ row_to_json_dict(1, sample_row, omit_row_id=True)|ppjson }}</pre>
+
+    <h5>Example response</h5>
+    <pre>{{ row_to_json_dict(1, sample_row, omit_row_id=False)|ppjson }}</pre>
+
+    <p>
+      Status code 201 upon success.
+    </p>
+
+    <h4 id="rows-reading">Reading a row</h4>
+    <p>
+      <code>GET</code> from <code>{{ url_for('csvbase.get_row', username=username, table_name=table_name, _external=True, row_id=1) }}</code>
+    </p>
+
+    <p>No body is provided with this request.  Status code 200 upon success.</p>
+
+    <h5>Example response</h5>
+    <pre>{{ row_to_json_dict(1, sample_row, omit_row_id=False)|ppjson }}</pre>
+
+    <h4 id="rows-updating">Updating an existing row</h4>
+    <p>
+      <code>PUT</code> to <code>{{ url_for('csvbase.update_row', username=username, table_name=table_name, _external=True, row_id=1) }}</code>
+    </p>
+
+    <h5>Example body</h5>
+    <pre>{{ row_to_json_dict(1, sample_row)|ppjson }}</pre>
+
+    <h5>Response</h5>
+    <p>
+      Upon success the body you sent will be echoed back, with status code 200.
+    </p>
+
+    <h4 id="rows-deleting">Deleting a row</h4>
+    <p>
+      <code>DELETE</code> from <code>{{ url_for('csvbase.delete_row', username=username, table_name=table_name, _external=True, row_id=1) }}</code>
+    </p>
+
+    <p>No body is required.  Status code 204 upon success.</p>
+
+    {# <h3>Table metadata</h3> #}
+    {# <h4>Getting the table metadata</h4> #}
     {# <h4>Updating the table metadata</h4> #}
 
 
