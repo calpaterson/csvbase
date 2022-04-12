@@ -739,7 +739,7 @@ def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Resp
 # FIXME: assert table name and user name match regex
 @bp.route("/<username>/<table_name:table_name>", methods=["PUT"])
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
-def upsert_table(username, table_name):
+def upsert_table(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     am_user_or_400(username)
     # FIXME: add checking for forms here
