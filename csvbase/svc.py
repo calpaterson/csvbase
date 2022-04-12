@@ -191,7 +191,22 @@ def create_table(
     sesh: Session, username: str, table_name: str, columns: Iterable[Column]
 ) -> None:
     cols: List[SAColumn] = [
-        SAColumn("csvbase_row_id", type_=satypes.BigInteger, primary_key=True)
+        SAColumn("csvbase_row_id", type_=satypes.BigInteger, primary_key=True),
+        # FIXME: would be good to have these two columns plus my
+        # "csvbase_created_by" and csvbase_updated_by, but needs support for
+        # datetimes as a type
+        # SAColumn(
+        #     "csvbase_created",
+        #     type_=satypes.TIMESTAMP(timezone=True),
+        #     nullable=False,
+        #     default="now()",
+        # ),
+        # SAColumn(
+        #     "csvbase_update",
+        #     type_=satypes.TIMESTAMP(timezone=True),
+        #     nullable=False,
+        #     default="now()",
+        # ),
     ]
     for col in columns:
         cols.append(SAColumn(col.name, type_=col.type_.sqla_type()))
