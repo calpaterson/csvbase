@@ -5,7 +5,7 @@
 
 {% block body_contents %}
   <div class="container">
-    {% if g.username != username %}
+    {% if g.current_username != username %}
       {{ row_macros.row_table(row) }}
     {% else %}
       <div class="py-3">

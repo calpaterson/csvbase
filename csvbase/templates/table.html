@@ -58,7 +58,7 @@
              href=""
              >API (GraphQL)</a>
         </li>
-        {% if username == g.username %}
+        {% if username == g.current_username %}
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'csvbase.table_settings' %}active{%endif%}"
                href="{{url_for('csvbase.table_settings', username=username, table_name=table.table_name)}}"

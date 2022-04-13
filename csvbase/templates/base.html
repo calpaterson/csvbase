@@ -23,11 +23,11 @@
           </a>
 
           <ul class="navbar-nav">
-            {% if g.username %}
+            {% if g.current_user %}
               <li class="nav-item">
                 <a
-                  class="nav-link {% if request.path == url_for('csvbase.user', username=g.username) %}active{% endif %}"
-                  href="{{ url_for('csvbase.user', username=g.username) }}">{{g.username}}
+                  class="nav-link {% if request.path == url_for('csvbase.user', username=g.current_username) %}active{% endif %}"
+                  href="{{ url_for('csvbase.user', username=g.current_username) }}">{{g.current_username}}
                 </a>
               </li>
             {% else %}

@@ -53,7 +53,7 @@
     </p>
 
     <p>
-      {% if 'current_user' in g and username == g.current_user.username %}
+      {% if owner == g.current_username %}
         Your API key is <code>{{ user.hex_api_key() }}</code> and this has been
         inserted where required in all the below examples.
       {% endif %}
@@ -160,7 +160,7 @@
     {# <pre>curl {{table_url}} -o {{table_name|snake_case}}.csv</pre> #}
     {# <h3>Updating the dataset</h3> #}
     {# <p>After changing the dataset, send it back with the <code>PUT</code> HTTP Verb (as CSV)</p> #}
-    {# <pre>{%if g.username == username %}# your api key has been filled in here #}
+    {# <pre>{%if g.current_username == username %}# your api key has been filled in here #}
 {# {% endif %}curl -XPUT {{private_table_url}} --data-binary @{{table_name|snake_case}}.csv</pre> #}
   </div>
 {% endblock %}

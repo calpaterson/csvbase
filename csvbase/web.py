@@ -216,7 +216,11 @@ def new_table_form_submission():
     )
     sesh.commit()
     return redirect(
-        url_for("csvbase.table_view", username=g.current_user.username, table_name=table_name)
+        url_for(
+            "csvbase.table_view",
+            username=g.current_user.username,
+            table_name=table_name,
+        )
     )
 
 
@@ -289,7 +293,11 @@ def blank_table_form_post() -> Response:
     )
     sesh.commit()
     return redirect(
-        url_for("csvbase.table_view", username=g.current_user.username, table_name=table_name)
+        url_for(
+            "csvbase.table_view",
+            username=g.current_user.username,
+            table_name=table_name,
+        )
     )
 
 
@@ -352,15 +360,15 @@ def get_table_apidocs(username: str, table_name: str) -> str:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
     table.is_public or am_user_or_400(username)
-    user = svc.user_by_name(sesh, username)
+    owner = svc.user_by_name(sesh, username)
 
     table_url = url_for(
         "csvbase.table_view", username=username, table_name=table_name, _external=True
     )
     scheme, public_netloc, path, _, _ = urlsplit(table_url)
     if am_user(username):
-        url_username = user.username
-        url_hex_key = user.hex_api_key()
+        url_username = g.current_user.username
+        url_hex_key = g.current_user.hex_api_key()
     else:
         url_username = "your_username"
         url_hex_key = "your_api_key"
@@ -377,7 +385,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
         "table_api.html",
         page_title=f"REST docs: {username}/{table_name}",
         username=username,
-        user=user,
+        owner=owner,
         table_name=table_name,
         table_url=table_url,
         table=table,
@@ -953,6 +961,9 @@ def set_current_user_for_session(user: User, session: Optional[Any] = None) -> N
 
 def set_current_user(user: User):
     g.current_user = user
+
+    # This is duplication but very convenient for jinja templates
+    g.current_username = user.username
 
 
 def json_or_400() -> Dict[str, Any]:
