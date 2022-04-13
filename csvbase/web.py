@@ -757,12 +757,15 @@ def upsert_table(username: str, table_name: str) -> Response:
 
 
 @bp.route("/<username>", methods=["GET"])
-def user(username):
+def user(username: str):
     sesh = get_sesh()
+    include_private = False
+    if "current_user" in g and g.current_user.username == username:
+        include_private = True
     tables = svc.tables_for_user(
         sesh,
         svc.user_by_name(sesh, username).user_uuid,
-        include_private=g.get("username") == username,
+        include_private=include_private,
     )
     return make_response(
         render_template(
