@@ -104,7 +104,7 @@
 
     <h4 id="rows-creating">Creating a new row</h4>
     <p>
-      <code>POST</code> to <code>{{ url_for('csvbase.create_row', username=username, table_name=table_name, _external=True) }}</code>
+      <code>POST</code> to <code>{{ url_for_with_auth('csvbase.create_row', username=username, table_name=table_name, _external=True) }}</code>
     </p>
 
     <h5>Example body</h5>
@@ -119,7 +119,11 @@
 
     <h4 id="rows-reading">Reading a row</h4>
     <p>
-      <code>GET</code> from <code>{{ url_for('csvbase.get_row', username=username, table_name=table_name, _external=True, row_id=1) }}</code>
+      {% if table.is_public %}
+        <code>GET</code> from <code>{{ url_for('csvbase.get_row', username=username, table_name=table_name, _external=True, row_id=1) }}</code>
+      {% else %}
+        <code>GET</code> from <code>{{ url_for_with_auth('csvbase.get_row', username=username, table_name=table_name, _external=True, row_id=1) }}</code>
+      {% endif %}
     </p>
 
     <p>No body is provided with this request.  Status code 200 upon success.</p>
@@ -129,7 +133,7 @@
 
     <h4 id="rows-updating">Updating an existing row</h4>
     <p>
-      <code>PUT</code> to <code>{{ url_for('csvbase.update_row', username=username, table_name=table_name, _external=True, row_id=1) }}</code>
+      <code>PUT</code> to <code>{{ url_for_with_auth('csvbase.update_row', username=username, table_name=table_name, _external=True, row_id=1) }}</code>
     </p>
 
     <h5>Example body</h5>
@@ -142,7 +146,7 @@
 
     <h4 id="rows-deleting">Deleting a row</h4>
     <p>
-      <code>DELETE</code> from <code>{{ url_for('csvbase.delete_row', username=username, table_name=table_name, _external=True, row_id=1) }}</code>
+      <code>DELETE</code> from <code>{{ url_for_with_auth('csvbase.delete_row', username=username, table_name=table_name, _external=True, row_id=1) }}</code>
     </p>
 
     <p>No body is required.  Status code 204 upon success.</p>

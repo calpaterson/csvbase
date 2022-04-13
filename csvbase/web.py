@@ -5,9 +5,9 @@ import io
 import shutil
 import codecs
 from logging import basicConfig, INFO, getLogger
-from typing import Optional, Any, Dict, List, Tuple, Sequence, Union, Type, Mapping
+from typing import Optional, Any, Dict, List, Tuple, Sequence, Union, Mapping
 from os import environ
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 
 from typing_extensions import Literal
 from cchardet import UniversalDetector
@@ -362,22 +362,6 @@ def get_table_apidocs(username: str, table_name: str) -> str:
     table.is_public or am_user_or_400(username)
     owner = svc.user_by_name(sesh, username)
 
-    table_url = url_for(
-        "csvbase.table_view", username=username, table_name=table_name, _external=True
-    )
-    scheme, public_netloc, path, _, _ = urlsplit(table_url)
-    if am_user(username):
-        url_username = g.current_user.username
-        url_hex_key = g.current_user.hex_api_key()
-    else:
-        url_username = "your_username"
-        url_hex_key = "your_api_key"
-    private_table_url = f"{scheme}://{url_username}:{url_hex_key}@{public_netloc}{path}"
-
-    # if the table is not public the user will need basic auth to get it
-    if not table.is_public:
-        table_url = private_table_url
-
     made_up_row = svc.get_a_made_up_row(sesh, username, table_name)
     sample_row = svc.get_a_sample_row(sesh, username, table_name)
 
@@ -387,12 +371,11 @@ def get_table_apidocs(username: str, table_name: str) -> str:
         username=username,
         owner=owner,
         table_name=table_name,
-        table_url=table_url,
         table=table,
-        private_table_url=private_table_url,
         sample_row=sample_row,
         made_up_row=made_up_row,
         row_to_json_dict=row_to_json_dict,
+        url_for_with_auth=url_for_with_auth,
     )
 
 
@@ -998,3 +981,18 @@ def row_to_json_dict(row_id: int, row: Row, omit_row_id=False) -> Dict:
         json_dict["row_id"] = row_id
 
     return json_dict
+
+
+def url_for_with_auth(endpoint: str, **values) -> str:
+    """Build a url, but add basic auth (if the users is logged in"""
+    flask_url = url_for(endpoint, **values)
+    if "current_user" in g:
+        username = g.current_user.username
+        password = g.current_user.hex_api_key()
+    else:
+        username = "<some_user>"
+        password = "<some_api_key>"
+    s, n, p, q, f = urlsplit(flask_url)
+    authed_netloc = f"{username}:{password}@{n}"
+    final_url = urlunsplit((s, authed_netloc, p, q, f))
+    return final_url
