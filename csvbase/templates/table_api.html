@@ -53,8 +53,10 @@
     </p>
 
     <p>
-      Your API key is <code>{{ user.hex_api_key() }}</code> and this has been
-      inserted where required in all the below examples.
+      {% if 'current_user' in g and username == g.current_user.username %}
+        Your API key is <code>{{ user.hex_api_key() }}</code> and this has been
+        inserted where required in all the below examples.
+      {% endif %}
     </p>
 
     <h3 id="content-negotiation">Content negotiation</h3>

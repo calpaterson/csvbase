@@ -131,7 +131,7 @@ def put_user_in_g() -> None:
                 app_logger.warning("cleared a corrupt user_uuid cookie: %s", user_uuid)
             else:
                 set_current_user(user)
-                app_logger.debug("currently signed in as: %s", g.username)
+                app_logger.debug("currently signed in as: %s", g.current_user.username)
 
     elif auth is not None:
         sesh = get_sesh()
@@ -200,14 +200,14 @@ def new_table_form_submission():
     data_licence = DataLicence(request.form.get("data-licence", type=int))
     dialect, columns = svc.types_for_csv(csv_buf)
     csv_buf.seek(0)
-    svc.create_table(sesh, g.username, table_name, columns)
+    svc.create_table(sesh, g.current_user.username, table_name, columns)
     svc.upsert_table_metadata(
-        sesh, g.user_uuid, table_name, is_public, "", data_licence
+        sesh, g.current_user.user_uuid, table_name, is_public, "", data_licence
     )
     svc.upsert_table_data(
         sesh,
-        g.user_uuid,
-        g.username,
+        g.current_user.user_uuid,
+        g.current_user.username,
         table_name,
         csv_buf,
         dialect,
@@ -216,7 +216,7 @@ def new_table_form_submission():
     )
     sesh.commit()
     return redirect(
-        url_for("csvbase.table_view", username=g.username, table_name=table_name)
+        url_for("csvbase.table_view", username=g.current_user.username, table_name=table_name)
     )
 
 
@@ -278,10 +278,10 @@ def blank_table_form_post() -> Response:
     else:
         is_public = True
 
-    svc.create_table(sesh, g.username, table_name, cols)
+    svc.create_table(sesh, g.current_user.username, table_name, cols)
     svc.upsert_table_metadata(
         sesh,
-        g.user_uuid,
+        g.current_user.user_uuid,
         table_name,
         is_public,
         "",
@@ -289,7 +289,7 @@ def blank_table_form_post() -> Response:
     )
     sesh.commit()
     return redirect(
-        url_for("csvbase.table_view", username=g.username, table_name=table_name)
+        url_for("csvbase.table_view", username=g.current_user.username, table_name=table_name)
     )
 
 
@@ -465,7 +465,7 @@ def post_table_settings(username: str, table_name: str) -> Response:
     data_licence = DataLicence(request.form.get("data-licence", type=int))
 
     svc.upsert_table_metadata(
-        sesh, g.user_uuid, table_name, is_public, caption, data_licence
+        sesh, g.current_user.user_uuid, table_name, is_public, caption, data_licence
     )
     sesh.commit()
 
@@ -823,11 +823,15 @@ def sign_out():
 
 def am_user(username: str) -> bool:
     """Return true if the current user has the given username."""
-    return g.get("username", None) == username
+    current_user = g.get("current_user", None)
+    if current_user is None or current_user.username != username:
+        return False
+    else:
+        return True
 
 
 def am_a_user() -> bool:
-    return "username" in g
+    return "current_user" in g
 
 
 def am_user_or_400(username: str) -> bool:
@@ -938,8 +942,7 @@ def byte_buf_to_str_buf(byte_buf: UserSubmittedBytes) -> codecs.StreamReader:
 
 def set_current_user_for_session(user: User, session: Optional[Any] = None) -> None:
     """Sets the current user and creates a web session."""
-    g.user_uuid = user.user_uuid
-    g.username = user.username
+    set_current_user(user)
 
     if session is None:
         session = flask_session
@@ -949,8 +952,7 @@ def set_current_user_for_session(user: User, session: Optional[Any] = None) -> N
 
 
 def set_current_user(user: User):
-    g.username = user.username
-    g.user_uuid = user.user_uuid
+    g.current_user = user
 
 
 def json_or_400() -> Dict[str, Any]:
