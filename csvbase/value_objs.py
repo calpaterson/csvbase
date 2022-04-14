@@ -1,4 +1,17 @@
-from typing import Optional, Sequence, Tuple, Union, Type, Iterable, Any, Dict
+import io
+import codecs
+from typing import (
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    Type,
+    Iterable,
+    Any,
+    Dict,
+    Union,
+    Mapping,
+)
 from typing_extensions import Literal
 from uuid import UUID
 from datetime import datetime, date
@@ -7,6 +20,13 @@ import enum
 import binascii
 
 from sqlalchemy import types as satypes
+import werkzeug.datastructures
+
+UserSubmittedCSVData = Union[codecs.StreamReader, io.StringIO]
+
+UserSubmittedBytes = Union[werkzeug.datastructures.FileStorage, io.BytesIO]
+
+Row = Mapping["Column", Optional["PythonType"]]
 
 
 @dataclass
@@ -40,7 +60,7 @@ class Page:
 
     has_less: bool
     has_more: bool
-    rows: Sequence[Tuple]
+    rows: Sequence[Row]
 
 
 @dataclass

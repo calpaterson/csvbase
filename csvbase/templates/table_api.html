@@ -125,7 +125,7 @@
       Rows from {{username}}/{{table_name}} look like this is JSON:
     </p>
 
-    <pre>{{ row_to_json_dict(sample_row_id, sample_row)|ppjson }}</pre>
+    <pre>{{ row_to_json_dict(sample_row)|ppjson }}</pre>
 
     <h4 id="rows-creating">Creating a new row</h4>
     <p>
@@ -133,10 +133,10 @@
     </p>
 
     <h5>Example body</h5>
-    <pre>{{ row_to_json_dict(sample_row_id, sample_row, omit_row_id=True)|ppjson }}</pre>
+    <pre>{{ row_to_json_dict(sample_row, omit_row_id=True)|ppjson }}</pre>
 
     <h5>Example response</h5>
-    <pre>{{ row_to_json_dict(sample_row_id, sample_row, omit_row_id=False)|ppjson }}</pre>
+    <pre>{{ row_to_json_dict(sample_row, omit_row_id=False)|ppjson }}</pre>
 
     <p>
       Status code 201 upon success.
@@ -154,7 +154,7 @@
     <p>No body is provided with this request.  Status code 200 upon success.</p>
 
     <h5>Example response</h5>
-    <pre>{{ row_to_json_dict(sample_row_id, sample_row, omit_row_id=False)|ppjson }}</pre>
+    <pre>{{ row_to_json_dict(sample_row, omit_row_id=False)|ppjson }}</pre>
 
     <h4 id="rows-updating">Updating an existing row</h4>
     <p>
@@ -162,7 +162,7 @@
     </p>
 
     <h5>Example body</h5>
-    <pre>{{ row_to_json_dict(sample_row_id, sample_row)|ppjson }}</pre>
+    <pre>{{ row_to_json_dict(sample_row)|ppjson }}</pre>
 
     <h5>Response</h5>
     <p>

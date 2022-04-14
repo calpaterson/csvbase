@@ -5,7 +5,7 @@ import io
 import shutil
 import codecs
 from logging import basicConfig, INFO, getLogger
-from typing import Optional, Any, Dict, List, Tuple, Sequence, Union, Mapping
+from typing import Optional, Any, Dict, List, Tuple, Sequence, Union, Mapping, cast
 from os import environ
 from urllib.parse import urlsplit, urlunsplit
 
@@ -35,6 +35,8 @@ from flask_sqlalchemy_session import flask_scoped_session
 import werkzeug.http
 
 from .value_objs import (
+    Page,
+    Table,
     KeySet,
     ColumnType,
     Column,
@@ -42,11 +44,13 @@ from .value_objs import (
     DataLicence,
     ContentType,
     PythonType,
+    UserSubmittedCSVData,
+    UserSubmittedBytes,
+    Row,
 )
 from . import svc
 from . import db
 from . import exc
-from .types import UserSubmittedCSVData, UserSubmittedBytes, Row
 
 
 logger = getLogger(__name__)
@@ -315,16 +319,8 @@ def table_view(username: str, table_name: str) -> Response:
 
     table = svc.get_table(sesh, username, table_name)
     if content_type is ContentType.HTML:
-        # passing a default and type here means the default is used if what they
-        # provide can't be parsed
-        n: int = request.args.get("n", default=0, type=int)
-        op: Literal["greater_than", "less_than"] = (
-            "greater_than"
-            if request.args.get("op", default="gt") == "gt"
-            else "less_than"
-        )
-        keyset = KeySet(n=n, op=op)
-        page = svc.table_page(sesh, user.user_uuid, username, table_name, keyset)
+        keyset = keyset_from_request_args()
+        page = svc.table_page(sesh, username, table, keyset)
         return make_response(
             render_template(
                 "table_view.html",
@@ -337,18 +333,9 @@ def table_view(username: str, table_name: str) -> Response:
             )
         )
     elif content_type is ContentType.JSON:
-        return jsonify(
-            {
-                "name": table.table_name,
-                "is_public": table.is_public,
-                "caption": table.caption,
-                "data_licence": table.data_licence.short_render(),
-                "columns": [
-                    {"name": column.name, "type": column.type_.pretty_type()}
-                    for column in table.columns
-                ],
-            }
-        )
+        keyset = keyset_from_request_args()
+        page = svc.table_page(sesh, username, table, keyset)
+        return jsonify(table_to_json_dict(table, page))
     else:
         return make_csv_response(
             svc.table_as_csv(sesh, user.user_uuid, username, table_name)
@@ -363,7 +350,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
     owner = svc.user_by_name(sesh, username)
 
     made_up_row = svc.get_a_made_up_row(sesh, username, table_name)
-    sample_row_id, sample_row = svc.get_a_sample_row(sesh, username, table_name)
+    sample_row = svc.get_a_sample_row(sesh, username, table_name)
 
     return render_template(
         "table_api.html",
@@ -372,8 +359,8 @@ def get_table_apidocs(username: str, table_name: str) -> str:
         owner=owner,
         table_name=table_name,
         table=table,
-        sample_row_id=sample_row_id,
         sample_row=sample_row,
+        sample_row_id=row_id_from_row(sample_row),
         made_up_row=made_up_row,
         row_to_json_dict=row_to_json_dict,
         url_for_with_auth=url_for_with_auth,
@@ -576,11 +563,13 @@ def create_row(username: str, table_name: str) -> Response:
     row_id = svc.insert_row(sesh, username, table_name, row)
     sesh.commit()
 
+    row[Column("csvbase_row_id", type_=ColumnType.INTEGER)] = row_id
+
     content_type = negotiate_content_type(
         [ContentType.HTML, ContentType.JSON], ContentType.JSON
     )
     if content_type is ContentType.JSON:
-        json_body = row_to_json_dict(row_id, row)
+        json_body = row_to_json_dict(row)
         response = jsonify(json_body)
         response.status_code = 201
         return response
@@ -616,7 +605,7 @@ def get_row(username: str, table_name: str, row_id: int) -> Response:
             )
         )
     else:
-        return jsonify(row_to_json_dict(row_id, row))
+        return jsonify(row_to_json_dict(row))
 
 
 @bp.route(
@@ -978,7 +967,16 @@ def ppjson(inp: Union[Mapping, Sequence]) -> str:
     return json.dumps(inp, indent=4)
 
 
-def row_to_json_dict(row_id: int, row: Row, omit_row_id=False) -> Dict:
+def keyset_from_request_args() -> KeySet:
+    n: int = request.args.get("n", default=0, type=int)
+    op: Literal["greater_than", "less_than"] = (
+        "greater_than" if request.args.get("op", default="gt") == "gt" else "less_than"
+    )
+    keyset = KeySet(n=n, op=op)
+    return keyset
+
+
+def row_to_json_dict(row: Row, omit_row_id=False) -> Dict:
     row_without_row_id = (c for c in row.items() if c[0].name != "csvbase_row_id")
     json_dict: Dict = {
         "row": {
@@ -987,9 +985,28 @@ def row_to_json_dict(row_id: int, row: Row, omit_row_id=False) -> Dict:
         },
     }
     if not omit_row_id:
-        json_dict["row_id"] = row_id
+        json_dict["row_id"] = row_id_from_row(row)
 
     return json_dict
+
+
+def row_id_from_row(row: Row) -> int:
+    return cast(int, row[Column("csvbase_row_id", type_=ColumnType.INTEGER)])
+
+
+def table_to_json_dict(table: Table, page: Page) -> Dict:
+    rv = {
+        "name": table.table_name,
+        "is_public": table.is_public,
+        "caption": table.caption,
+        "data_licence": table.data_licence.short_render(),
+        "columns": [
+            {"name": column.name, "type": column.type_.pretty_type()}
+            for column in table.columns
+        ],
+        "rows": {"page": {"rows": [row_to_json_dict(row) for row in page.rows]}},
+    }
+    return rv
 
 
 def url_for_with_auth(endpoint: str, **values) -> str:

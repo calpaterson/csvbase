@@ -3,7 +3,7 @@ import io
 import csv
 
 from csvbase import svc
-from csvbase.value_objs import KeySet, Column, ColumnType, Page, DataLicence
+from csvbase.value_objs import KeySet, Column, ColumnType, Page, DataLicence, PythonType
 from .utils import random_string
 
 import pytest
@@ -42,89 +42,87 @@ def letters_table(test_user, module_sesh):
         truncate_first=False,
     )
     module_sesh.commit()
-    return table_name
+    return svc.get_table(module_sesh, test_user.user_uuid, table_name)
+
+
+def rows_to_alist(rows):
+    return [tuple(row.values()) for row in rows]
 
 
 def test_first_page(sesh, test_user, letters_table):
     page = svc.table_page(
         sesh,
-        test_user.user_uuid,
         test_user.username,
         letters_table,
         keyset=KeySet(n=0, op="greater_than", size=3),
     )
 
     assert page.has_less == False
-    assert page.rows == [(1, "a"), (2, "b"), (3, "c")]
+    assert rows_to_alist(page.rows) == [(1, "a"), (2, "b"), (3, "c")]
     assert page.has_more == True
 
 
 def test_second_page(sesh, test_user, letters_table):
     page = svc.table_page(
         sesh,
-        test_user.user_uuid,
         test_user.username,
         letters_table,
         keyset=KeySet(n=3, op="greater_than", size=3),
     )
 
     assert page.has_less == True
-    assert page.rows == [(4, "d"), (5, "e"), (6, "f")]
+    assert rows_to_alist(page.rows) == [(4, "d"), (5, "e"), (6, "f")]
     assert page.has_more == True
 
 
 def test_back_to_first_page(sesh, test_user, letters_table):
     page = svc.table_page(
         sesh,
-        test_user.user_uuid,
         test_user.username,
         letters_table,
         keyset=KeySet(n=4, op="less_than", size=3),
     )
 
     assert not page.has_less
-    assert page.rows == [(1, "a"), (2, "b"), (3, "c")]
+    assert rows_to_alist(page.rows) == [(1, "a"), (2, "b"), (3, "c")]
     assert page.has_more
 
 
 def test_last_page(sesh, test_user, letters_table):
     page = svc.table_page(
         sesh,
-        test_user.user_uuid,
         test_user.username,
         letters_table,
         keyset=KeySet(n=23, op="greater_than", size=10),
     )
 
     assert page.has_less == True
-    assert page.rows == [(24, "x"), (25, "y"), (26, "z")]
+    assert rows_to_alist(page.rows) == [(24, "x"), (25, "y"), (26, "z")]
     assert page.has_more == False
 
 
 def test_backward_paging(sesh, test_user, letters_table):
     page = svc.table_page(
         sesh,
-        test_user.user_uuid,
         test_user.username,
         letters_table,
         keyset=KeySet(n=23, op="less_than", size=3),
     )
 
     assert page.has_less == True
-    assert page.rows == [(20, "t"), (21, "u"), (22, "v")]
+    assert rows_to_alist(page.rows) == [(20, "t"), (21, "u"), (22, "v")]
     assert page.has_more == True
 
 
 def test_pagination_over_the_top(sesh, test_user, letters_table):
     page = svc.table_page(
         sesh,
-        test_user.user_uuid,
         test_user.username,
         letters_table,
         keyset=KeySet(n=50, op="greater_than", size=3),
     )
     assert page.has_less
-    assert page.rows == []
+    assert rows_to_alist(page.rows) == []
     assert not page.has_more
 
 
@@ -132,6 +130,9 @@ def test_pagination_under_the_bottom(sesh, test_user):
     table_name = random_string()
     x_column = Column("x", ColumnType.INTEGER)
     svc.create_table(sesh, test_user.username, table_name, columns=[x_column])
+    svc.upsert_table_metadata(
+        sesh, test_user.user_uuid, table_name, False, "", DataLicence.OGL
+    )
 
     row_ids = [
         svc.insert_row(sesh, test_user.username, table_name, {x_column: 1})
@@ -141,15 +142,16 @@ def test_pagination_under_the_bottom(sesh, test_user):
     for row_id in row_ids[:3]:
         svc.delete_row(sesh, test_user.username, table_name, row_id)
 
+    table = svc.get_table(sesh, test_user.username, table_name)
+
     page = svc.table_page(
         sesh,
-        test_user.user_uuid,
         test_user.username,
-        table_name,
+        table,
         keyset=KeySet(n=3, op="less_than", size=3),
     )
     assert page.has_more
-    assert page.rows == []
+    assert rows_to_alist(page.rows) == []
     assert not page.has_less
 
 
@@ -159,12 +161,15 @@ def test_paging_on_empty_table(sesh, test_user):
     svc.create_table(
         sesh, test_user.username, table_name, columns=[Column("x", ColumnType.INTEGER)]
     )
+    svc.upsert_table_metadata(
+        sesh, test_user.user_uuid, table_name, False, "", DataLicence.OGL
+    )
+    table = svc.get_table(sesh, test_user.username, table_name)
 
     page = svc.table_page(
         sesh,
-        test_user.user_uuid,
         test_user.username,
-        table_name,
+        table,
         keyset=KeySet(n=0, op="greater_than"),
     )
 

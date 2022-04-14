@@ -20,13 +20,13 @@
         <tbody>
         {% for row in page.rows %}
           <tr>
-            {% for col in row %}
+            {% for col in table.columns %}
               {% if loop.index == 1 %}
                 <td><a
-                      href="{{ url_for('csvbase.get_row', username=username, table_name=table_name, row_id=col) }}"
-                      >{{col}}</a></td>
+                      href="{{ url_for('csvbase.get_row', username=username, table_name=table_name, row_id=row[col]) }}"
+                      >{{row[col]}}</a></td>
                     {% else %}
-                      <td>{{col}}</td>
+                      <td>{{row[col]}}</td>
                     {% endif %}
                   {% endfor %}
           </tr>

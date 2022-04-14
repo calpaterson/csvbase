@@ -1,3 +1,5 @@
+from unittest.mock import ANY
+
 import pytest
 
 from csvbase.value_objs import ContentType
@@ -28,6 +30,8 @@ def test_read__happy(client, ten_rows, test_user, content_type):
                     "type": "string",
                 },
             ],
+            # FIXME: this needs to be a proper assertion
+            "rows": ANY,
         }
 
 

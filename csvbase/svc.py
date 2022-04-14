@@ -1,7 +1,18 @@
 import re
 from uuid import UUID
 import io
-from typing import Optional, List, Iterable, Tuple, Dict, Any, Union, Sequence, Type
+from typing import (
+    Optional,
+    List,
+    Iterable,
+    Tuple,
+    Dict,
+    Any,
+    Union,
+    Sequence,
+    Type,
+    TYPE_CHECKING,
+)
 from datetime import datetime, timezone
 import csv
 from logging import getLogger
@@ -37,11 +48,15 @@ from .value_objs import (
     User,
     Table,
     DataLicence,
+    UserSubmittedCSVData,
+    Row,
 )
 from . import models
 from .db import engine
 from . import exc
-from .types import UserSubmittedCSVData, Row
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import RowProxy
 
 logger = getLogger(__name__)
 
@@ -361,49 +376,50 @@ def table_as_rows(
     yield from sesh.execute(q)
 
 
-def table_page(
-    sesh: Session, user_uuid: UUID, username: str, table_name: str, keyset: KeySet
-) -> Page:
+def table_page(sesh: Session, username: str, table: Table, keyset: KeySet) -> Page:
     """Get a page from a table based on the provided KeySet"""
     # FIXME: this doesn't handle empty tables
-    table = get_userdata_tableclause(sesh, username, table_name)
+    table_clause = get_userdata_tableclause(sesh, username, table.table_name)
     if keyset.op == "greater_than":
-        where_cond = table.c.csvbase_row_id > keyset.n
+        where_cond = table_clause.c.csvbase_row_id > keyset.n
     else:
-        where_cond = table.c.csvbase_row_id < keyset.n
+        where_cond = table_clause.c.csvbase_row_id < keyset.n
 
-    keyset_page = table.select().where(where_cond).limit(keyset.size)
+    keyset_page = table_clause.select().where(where_cond).limit(keyset.size)
 
     if keyset.op == "greater_than":
-        keyset_page = keyset_page.order_by(table.c.csvbase_row_id)
+        keyset_page = keyset_page.order_by(table_clause.c.csvbase_row_id)
     else:
         # if we're going backwards we need to reverse the order via a subquery
-        keyset_page = keyset_page.order_by(table.c.csvbase_row_id.desc())
+        keyset_page = keyset_page.order_by(table_clause.c.csvbase_row_id.desc())
         keyset_sub = select(keyset_page.alias())  # type: ignore
         keyset_page = keyset_sub.order_by("csvbase_row_id")
 
-    rows = list(sesh.execute(keyset_page))
+    row_tuples: List[RowProxy] = list(sesh.execute(keyset_page))
 
-    if len(rows) > 1:
+    if len(row_tuples) > 1:
         has_more_q = (
-            table.select().where(table.c.csvbase_row_id > rows[-1].csvbase_row_id).exists()  # type: ignore
+            table_clause.select().where(table_clause.c.csvbase_row_id > row_tuples[-1].csvbase_row_id).exists()  # type: ignore
         )
         has_more = sesh.query(has_more_q).scalar()
         has_less_q = (
-            table.select().where(table.c.csvbase_row_id < rows[0].csvbase_row_id).exists()  # type: ignore
+            table_clause.select().where(table_clause.c.csvbase_row_id < row_tuples[0].csvbase_row_id).exists()  # type: ignore
         )
         has_less = sesh.query(has_less_q).scalar()
     else:
         if keyset.op == "greater_than":
             has_more = False
             has_less = sesh.query(
-                table.select().where(table.c.csvbase_row_id < keyset.n).exists()  # type: ignore
+                table_clause.select().where(table_clause.c.csvbase_row_id < keyset.n).exists()  # type: ignore
             ).scalar()
         else:
             has_more = sesh.query(
-                table.select().where(table.c.csvbase_row_id > keyset.n).exists()  # type: ignore
+                table_clause.select().where(table_clause.c.csvbase_row_id > keyset.n).exists()  # type: ignore
             ).scalar()
             has_less = False
+
+    rows = [{c: row_tup[c.name] for c in table.columns} for row_tup in row_tuples]
+
     return Page(
         has_less=has_less,
         has_more=has_more,
@@ -424,7 +440,7 @@ def get_row(sesh: Session, username: str, table_name: str, row_id: int) -> Row:
         return {c: row[c.name] for c in columns}
 
 
-def get_a_sample_row(sesh: Session, username: str, table_name: str) -> Tuple[int, Row]:
+def get_a_sample_row(sesh: Session, username: str, table_name: str) -> Row:
     """Returns a sample row from the table (the lowest row id).
 
     If none exist, a made-up row is returned.  This function is for
@@ -435,9 +451,9 @@ def get_a_sample_row(sesh: Session, username: str, table_name: str) -> Tuple[int
     row = cursor.fetchone()
     if row is None:
         # return something made-up
-        return 1, {c: c.type_.example() for c in columns}
+        return {c: c.type_.example() for c in columns}
     else:
-        return row[0], {c: row[c.name] for c in columns}
+        return {c: row[c.name] for c in columns}
 
 
 def get_a_made_up_row(sesh: Session, username, table_name: str) -> Row:
