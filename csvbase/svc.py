@@ -424,7 +424,7 @@ def get_row(sesh: Session, username: str, table_name: str, row_id: int) -> Row:
         return {c: row[c.name] for c in columns}
 
 
-def get_a_sample_row(sesh: Session, username: str, table_name: str) -> Row:
+def get_a_sample_row(sesh: Session, username: str, table_name: str) -> Tuple[int, Row]:
     """Returns a sample row from the table (the lowest row id).
 
     If none exist, a made-up row is returned.  This function is for
@@ -435,9 +435,9 @@ def get_a_sample_row(sesh: Session, username: str, table_name: str) -> Row:
     row = cursor.fetchone()
     if row is None:
         # return something made-up
-        return {c: c.type_.example() for c in columns}
+        return 1, {c: c.type_.example() for c in columns}
     else:
-        return {c: row[c.name] for c in columns}
+        return row[0], {c: row[c.name] for c in columns}
 
 
 def get_a_made_up_row(sesh: Session, username, table_name: str) -> Row:

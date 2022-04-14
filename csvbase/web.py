@@ -363,7 +363,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
     owner = svc.user_by_name(sesh, username)
 
     made_up_row = svc.get_a_made_up_row(sesh, username, table_name)
-    sample_row = svc.get_a_sample_row(sesh, username, table_name)
+    sample_row_id, sample_row = svc.get_a_sample_row(sesh, username, table_name)
 
     return render_template(
         "table_api.html",
@@ -372,6 +372,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
         owner=owner,
         table_name=table_name,
         table=table,
+        sample_row_id=sample_row_id,
         sample_row=sample_row,
         made_up_row=made_up_row,
         row_to_json_dict=row_to_json_dict,
@@ -480,6 +481,11 @@ def get_table_csv(username: str, table_name: str) -> Response:
     return make_csv_response(
         svc.table_as_csv(sesh, user.user_uuid, username, table_name)
     )
+
+
+@bp.route("/<username>/<table_name:table_name>.json", methods=["GET"])
+def table_view_json(username: str, table_name: str) -> Response:
+    abort(501)
 
 
 @bp.route("/<username>/<table_name:table_name>.xlsx", methods=["GET"])

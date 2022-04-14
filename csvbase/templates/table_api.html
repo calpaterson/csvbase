@@ -38,17 +38,32 @@
     <h2 id="the-basics">The basics: auth and content negotiation</h2>
     <h3 id="authentication">Authentication</h3>
     <p>
-      On CSVBase, you authenticate using by putting your username and API key
-      in the url itself (known
+      With CSVBase, you authenticate using by <mark>putting your username and API key
+      straight in the url</mark> (known
       as <a href="https://en.wikipedia.org/wiki/Basic_access_authentication">&quot;HTTP
-      basic auth&quot;</a>).
+      "basic" auth&quot;</a>).
+    </p>
+
+    <p>
+      Here&apos;s an example{% if g.current_user %}, using your API
+      credentials, which will be used throughout this page{% endif %}:
+    </p>
+
+    <p>
+      <code>{{ url_for_with_auth('csvbase.table_view', username=username, table_name=table_name, _external=True) }}</code>
+    </p>
+
+    <p>
+      Basic auth is widely supported and is usually accepted anywhere that accepts urls.
     </p>
 
     <p>
       {% if table.is_public %}
-        {{username}}/{{table_name}} is public so auth is needed only for <em>writes</em>.
+        However, {{username}}/{{table_name}} is public so <mark>auth is needed only
+        for <em>writes</em></mark>.
       {% else %}
-        {{username}}/{{table_name}} is private so auth is needed for all access.
+        {{username}}/{{table_name}} is private, so you&apos;ll need to provide
+        auth for all API requests.
       {% endif %}
     </p>
 
@@ -61,22 +76,32 @@
 
     <h3 id="content-negotiation">Content negotiation</h3>
     <p>
-      CSVBase APIs use <em>content negotiation</em> to decide what formats are in use.
+      CSVBase APIs use <em>content negotiation</em> to decide what formats are
+      in use.  This means it consults HTTP headers to decide what format to
+      send back in response to a request.
     </p>
 
     <p>
-      This means it is important that you set the <code>Content-Type</code>
-      and <code>Accept</code> headers to be the mimetype you want: typically
-      that is <code>application/json</code> for both.  If you fail to include
-      these headers in your requests CSVBase will pick a (hopefully) sensible
-      default where possible.
+      It important that you <mark>set the <code>Content-Type</code>
+      and <code>Accept</code> headers</mark> to be the mimetype you want:
+      typically that is <code>application/json</code> for both.  If you fail to
+      include these headers in your requests, the API will still work but
+      CSVBase will pick a sensible default: CSV for tables, JSON for rows.
     </p>
 
     <p>
       You can bypass content negotiation for read-only requests by appending a
-      file extension to the url, eg <code>.json</code>.  This is useful when
-      dealing with software where you aren&apos;t able to set headers at
-      all <em>but should be a last resort.</em>
+      file extension to the url, eg <code>.json</code>.  Here&apos;s an example
+      of that (same resource as above):
+    </p>
+
+    <p>
+      <code>{{ url_for_with_auth('csvbase.table_view_json', username=username, table_name=table_name, _external=True) }}</code>
+    </p>
+
+    <p>
+      This is useful when dealing with software where you aren&apos;t able to
+      set headers.
     </p>
 
     <h2 id="the-api">The API: endpoint-by-endpoint</h2>
@@ -100,7 +125,7 @@
       Rows from {{username}}/{{table_name}} look like this is JSON:
     </p>
 
-    <pre>{{ row_to_json_dict(1, sample_row)|ppjson }}</pre>
+    <pre>{{ row_to_json_dict(sample_row_id, sample_row)|ppjson }}</pre>
 
     <h4 id="rows-creating">Creating a new row</h4>
     <p>
@@ -108,10 +133,10 @@
     </p>
 
     <h5>Example body</h5>
-    <pre>{{ row_to_json_dict(1, sample_row, omit_row_id=True)|ppjson }}</pre>
+    <pre>{{ row_to_json_dict(sample_row_id, sample_row, omit_row_id=True)|ppjson }}</pre>
 
     <h5>Example response</h5>
-    <pre>{{ row_to_json_dict(1, sample_row, omit_row_id=False)|ppjson }}</pre>
+    <pre>{{ row_to_json_dict(sample_row_id, sample_row, omit_row_id=False)|ppjson }}</pre>
 
     <p>
       Status code 201 upon success.
@@ -120,24 +145,24 @@
     <h4 id="rows-reading">Reading a row</h4>
     <p>
       {% if table.is_public %}
-        <code>GET</code> from <code>{{ url_for('csvbase.get_row', username=username, table_name=table_name, _external=True, row_id=1) }}</code>
+        <code>GET</code> from <code>{{ url_for('csvbase.get_row', username=username, table_name=table_name, _external=True, row_id=sample_row_id) }}</code>
       {% else %}
-        <code>GET</code> from <code>{{ url_for_with_auth('csvbase.get_row', username=username, table_name=table_name, _external=True, row_id=1) }}</code>
+        <code>GET</code> from <code>{{ url_for_with_auth('csvbase.get_row', username=username, table_name=table_name, _external=True, row_id=sample_row_id) }}</code>
       {% endif %}
     </p>
 
     <p>No body is provided with this request.  Status code 200 upon success.</p>
 
     <h5>Example response</h5>
-    <pre>{{ row_to_json_dict(1, sample_row, omit_row_id=False)|ppjson }}</pre>
+    <pre>{{ row_to_json_dict(sample_row_id, sample_row, omit_row_id=False)|ppjson }}</pre>
 
     <h4 id="rows-updating">Updating an existing row</h4>
     <p>
-      <code>PUT</code> to <code>{{ url_for_with_auth('csvbase.update_row', username=username, table_name=table_name, _external=True, row_id=1) }}</code>
+      <code>PUT</code> to <code>{{ url_for_with_auth('csvbase.update_row', username=username, table_name=table_name, _external=True, row_id=sample_row_id) }}</code>
     </p>
 
     <h5>Example body</h5>
-    <pre>{{ row_to_json_dict(1, sample_row)|ppjson }}</pre>
+    <pre>{{ row_to_json_dict(sample_row_id, sample_row)|ppjson }}</pre>
 
     <h5>Response</h5>
     <p>
@@ -146,26 +171,10 @@
 
     <h4 id="rows-deleting">Deleting a row</h4>
     <p>
-      <code>DELETE</code> from <code>{{ url_for_with_auth('csvbase.delete_row', username=username, table_name=table_name, _external=True, row_id=1) }}</code>
+      <code>DELETE</code> from <code>{{ url_for_with_auth('csvbase.delete_row', username=username, table_name=table_name, _external=True, row_id=sample_row_id) }}</code>
     </p>
 
     <p>No body is required.  Status code 204 upon success.</p>
-
-    {# <h3>Table metadata</h3> #}
-    {# <h4>Getting the table metadata</h4> #}
-    {# <h4>Updating the table metadata</h4> #}
-
-
-
-    {# <h3>Getting the dataset</h3> #}
-    {# <p>To download the dataset, just use it&apos;s url - the same as on the website</p> #}
-    {# <pre>curl {{table_url}}</pre> #}
-    {# <p>Or to save it to a file with curl, do:</p> #}
-    {# <pre>curl {{table_url}} -o {{table_name|snake_case}}.csv</pre> #}
-    {# <h3>Updating the dataset</h3> #}
-    {# <p>After changing the dataset, send it back with the <code>PUT</code> HTTP Verb (as CSV)</p> #}
-    {# <pre>{%if g.current_username == username %}# your api key has been filled in here #}
-{# {% endif %}curl -XPUT {{private_table_url}} --data-binary @{{table_name|snake_case}}.csv</pre> #}
   </div>
 {% endblock %}
 
