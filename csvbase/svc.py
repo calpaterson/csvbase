@@ -176,15 +176,18 @@ def get_table(sesh, username_or_uuid: Union[UUID, str], table_name) -> Table:
 
 def get_columns(sesh, username, table_name) -> List["Column"]:
     # lifted from https://dba.stackexchange.com/a/22420/28877
-    stmt = f"""
+    attrelid = f"userdata.{username}__{table_name}"
+    stmt = text(
+        """
     SELECT attname AS column_name, atttypid::regtype AS sql_type
     FROM   pg_attribute
-    WHERE  attrelid = 'userdata.{username}__{table_name}'::regclass
+    WHERE  attrelid = :attrelid ::regclass
     AND    attnum > 0
     AND    NOT attisdropped
-    ORDER  BY attnum;
+    ORDER  BY attnum
     """
-    rs = sesh.execute(stmt)
+    )
+    rs = sesh.execute(stmt, {"attrelid": attrelid})
     rv = []
     for name, sql_type in rs:
         rv.append(Column(name=name, type_=ColumnType.from_sql_type(sql_type)))
