@@ -337,7 +337,7 @@ def table_view(username: str, table_name: str) -> Response:
     elif content_type is ContentType.JSON:
         keyset = keyset_from_request_args()
         page = svc.table_page(sesh, username, table, keyset)
-        return jsonify(table_to_json_dict(table, page))
+        return jsonify(table_to_json_dict(username, table, page))
     else:
         return make_csv_response(
             svc.table_as_csv(sesh, user.user_uuid, username, table_name)
@@ -565,7 +565,7 @@ def create_row(username: str, table_name: str) -> Response:
     row_id = svc.insert_row(sesh, username, table_name, row)
     sesh.commit()
 
-    row[Column("csvbase_row_id", type_=ColumnType.INTEGER)] = row_id
+    row[ROW_ID_COLUMN] = row_id
 
     content_type = negotiate_content_type(
         [ContentType.HTML, ContentType.JSON], ContentType.JSON
@@ -996,7 +996,37 @@ def row_id_from_row(row: Row) -> int:
     return cast(int, row[Column("csvbase_row_id", type_=ColumnType.INTEGER)])
 
 
-def table_to_json_dict(table: Table, page: Page) -> Dict:
+def page_to_json_dict(username: str, table: Table, page: Page) -> Dict[str, Any]:
+    rv: Dict[str, Any] = {}
+    rv["rows"] = [row_to_json_dict(row) for row in page.rows]
+    if page.has_less:
+        # FIXME: these url_fors should be shared with the table_view template
+        rv["previous_page_url"] = url_for(
+            "csvbase.table_view",
+            username=username,
+            table_name=table.table_name,
+            op="lt",
+            n=page.rows[-1][ROW_ID_COLUMN],
+            _external=True,
+        )
+    else:
+        rv["previous_page_url"] = None
+
+    if page.has_more:
+        rv["next_page_url"] = url_for(
+            "csvbase.table_view",
+            username=username,
+            table_name=table.table_name,
+            op="gt",
+            n=page.rows[-1][ROW_ID_COLUMN],
+            _external=True,
+        )
+    else:
+        rv["next_page_url"] = None
+    return rv
+
+
+def table_to_json_dict(username: str, table: Table, page: Page) -> Dict[str, Any]:
     rv = {
         "name": table.table_name,
         "is_public": table.is_public,
@@ -1006,7 +1036,7 @@ def table_to_json_dict(table: Table, page: Page) -> Dict:
             {"name": column.name, "type": column.type_.pretty_type()}
             for column in table.columns
         ],
-        "rows": {"page": {"rows": [row_to_json_dict(row) for row in page.rows]}},
+        "rows": {"page": page_to_json_dict(username, table, page)},
     }
     return rv
 
