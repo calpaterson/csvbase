@@ -45,7 +45,7 @@
       {% if page.has_less %}
         <li class="page-item">
           <a class="page-link"
-             href="{{ url_for('csvbase.table_view', username=username, table_name=table_name, op='lt', n=page.rows[0].csvbase_row_id) }}">Previous page</a>
+             href="{{ url_for('csvbase.table_view', username=username, table_name=table_name, op='lt', n=page.rows[0][ROW_ID_COLUMN]) }}">Previous page</a>
         </li>
       {% else %}
         <li class="page-item disabled">
@@ -55,7 +55,7 @@
 
       <li class="page-item active">
         {% if page.rows %}
-          <a class="page-link" href="#">Rows {{ page.rows[0].csvbase_row_id }} to {{ page.rows[-1].csvbase_row_id }}</a>
+          <a class="page-link" href="#">Rows {{ page.rows[0][ROW_ID_COLUMN] }} to {{ page.rows[-1][ROW_ID_COLUMN] }}</a>
         {% else %}
           <a class="page-link" href="#">Row {{keyset.n + 1}} onwards</a>
         {% endif %}
@@ -64,7 +64,7 @@
       {% if page.has_more %}
         <li class="page-item">
           <a class="page-link"
-             href="{{ url_for('csvbase.table_view', username=username, table_name=table_name, op='gt', n=page.rows[-1].csvbase_row_id) }}">Next page</a>
+             href="{{ url_for('csvbase.table_view', username=username, table_name=table_name, op='gt', n=page.rows[-1][ROW_ID_COLUMN]) }}">Next page</a>
         </li>
       {% else %}
         <li class="page-item disabled">

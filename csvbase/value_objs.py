@@ -259,6 +259,9 @@ class Column:
     type_: ColumnType
 
 
+ROW_ID_COLUMN = Column("csvbase_row_id", type_=ColumnType.INTEGER)
+
+
 @enum.unique
 class ContentType(enum.Enum):
     HTML = "text/html"

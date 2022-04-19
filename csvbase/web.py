@@ -47,6 +47,7 @@ from .value_objs import (
     UserSubmittedCSVData,
     UserSubmittedBytes,
     Row,
+    ROW_ID_COLUMN,
 )
 from . import svc
 from . import db
@@ -330,6 +331,7 @@ def table_view(username: str, table_name: str) -> Response:
                 keyset=keyset,
                 username=username,
                 table_name=table_name,
+                ROW_ID_COLUMN=ROW_ID_COLUMN,
             )
         )
     elif content_type is ContentType.JSON:
