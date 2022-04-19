@@ -116,13 +116,38 @@
     <p>While there&apos;s no API for users so far, there is for tables and rows.</p>
 
     <h3 id="tables">Tables</h3>
-    <p>(incomplete)</p>
+    <p>
+      This table looks like this in JSON:
+    </p>
+
+    <pre>{{ table_to_json_dict(username, table, sample_page)|ppjson }}</pre>
+
+    <p>
+      Note that there is the top-level metadata, plus a "page" of rows.  Tables
+      are often (usually) too big to be put into a single JSON object so they
+      are "paginated".  To follow the table, page by page, you can use
+      the <code>next_page_url</code> and <code>previous_page_url</code>
+      dictionary keys.  They will be <code>null</code> if you&apos;ve reached
+      the end or are at the beginning, respectively.
+    </p>
+
     <h4 id="table-reading">Reading a table</h4>
-    <p>(incomplete)</p>
+    <p>
+      {% if table.is_public %}
+        <code>GET</code> from <code>{{ url_for('csvbase.table_view', username=username, table_name=table_name, _external=True) }}</code>
+      {% else %}
+        <code>GET</code> from <code>{{ url_for_with_auth('csvbase.get_row', username=username, table_name=table_name, _external=True) }}</code>
+      {% endif %}
+    </p>
+
+    <p>
+      You&apos;ll need to follow the <code>next_page_url</code> urls (described
+      above) to get to the end of the table.
+    </p>
 
     <h3 id="rows">Rows</h3>
     <p>
-      Rows from {{username}}/{{table_name}} look like this is JSON:
+      Rows from {{username}}/{{table_name}} look like this in JSON:
     </p>
 
     <pre>{{ row_to_json_dict(sample_row)|ppjson }}</pre>

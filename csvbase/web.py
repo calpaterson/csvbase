@@ -353,6 +353,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
 
     made_up_row = svc.get_a_made_up_row(sesh, username, table_name)
     sample_row = svc.get_a_sample_row(sesh, username, table_name)
+    sample_page = Page(has_less=False, has_more=True, rows=[sample_row])
 
     return render_template(
         "table_api.html",
@@ -363,8 +364,10 @@ def get_table_apidocs(username: str, table_name: str) -> str:
         table=table,
         sample_row=sample_row,
         sample_row_id=row_id_from_row(sample_row),
+        sample_page=sample_page,
         made_up_row=made_up_row,
         row_to_json_dict=row_to_json_dict,
+        table_to_json_dict=table_to_json_dict,
         url_for_with_auth=url_for_with_auth,
     )
 
@@ -993,7 +996,7 @@ def row_to_json_dict(row: Row, omit_row_id=False) -> Dict:
 
 
 def row_id_from_row(row: Row) -> int:
-    return cast(int, row[Column("csvbase_row_id", type_=ColumnType.INTEGER)])
+    return cast(int, row[ROW_ID_COLUMN])
 
 
 def page_to_json_dict(username: str, table: Table, page: Page) -> Dict[str, Any]:
