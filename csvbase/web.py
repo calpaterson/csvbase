@@ -1036,7 +1036,7 @@ def table_to_json_dict(username: str, table: Table, page: Page) -> Dict[str, Any
             {"name": column.name, "type": column.type_.pretty_type()}
             for column in table.columns
         ],
-        "rows": {"page": page_to_json_dict(username, table, page)},
+        "page": page_to_json_dict(username, table, page),
     }
     return rv
 
