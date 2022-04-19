@@ -4,6 +4,8 @@ import pytest
 
 from csvbase.value_objs import ContentType
 
+from .conftest import ROMAN_NUMERALS
+
 
 @pytest.fixture(scope="module", params=[ContentType.JSON, ContentType.HTML])
 def content_type(request):
@@ -17,6 +19,15 @@ def test_read__happy(client, ten_rows, test_user, content_type):
     assert resp.status_code == 200, resp.data
     assert content_type.value in resp.headers["Content-Type"]
     if content_type is ContentType.JSON:
+        expected_page_dict = {
+            "rows": [
+                {"row": {"roman_numeral": rn}, "row_id": index}
+                for index, rn in enumerate(ROMAN_NUMERALS[:11], start=1)
+            ],
+            "next_page_url": None,
+            "previous_page_url": None,
+        }
+
         assert resp.json == {
             "name": ten_rows,
             "is_public": True,
@@ -31,7 +42,7 @@ def test_read__happy(client, ten_rows, test_user, content_type):
                 },
             ],
             # FIXME: this needs to be a proper assertion
-            "rows": ANY,
+            "page": expected_page_dict,
         }
 
 
