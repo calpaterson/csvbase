@@ -9,7 +9,7 @@
     {% else %}
       <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css' ) }}">
     {% endif %}
-    <title>{{page_title or "csvbase (pre-alpha)"}}</title>
+    <title>{{page_title or "csvbase (alpha)"}}</title>
     <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='logo/192x192.png') }}">
   </head>
   <body>
@@ -19,7 +19,7 @@
         <div class="container">
           <a class="navbar-brand" href="{{ url_for('csvbase.landing') }}">
             <img src="/static/logo/192x192.png" alt=" " width="32" height="32" class="d-inline-block align-text">
-            csvbase <small class="text-muted">(pre-alpha)</small>
+            csvbase <small class="text-muted">(alpha)</small>
           </a>
 
           <ul class="navbar-nav">
