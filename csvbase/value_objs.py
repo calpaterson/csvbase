@@ -89,11 +89,12 @@ class Table:
 
 @enum.unique
 class DataLicence(enum.Enum):
-    ALL_RIGHTS_RESERVED = 0
-    PDDL = 1
-    ODC_BY = 2
-    ODBL = 3
-    OGL = 4
+    UNKNOWN = 0
+    ALL_RIGHTS_RESERVED = 1
+    PDDL = 2
+    ODC_BY = 3
+    ODBL = 4
+    OGL = 5
 
     def render(self) -> str:
         return _DATA_LICENCE_PP_MAP[self]
@@ -103,6 +104,7 @@ class DataLicence(enum.Enum):
 
 
 _DATA_LICENCE_PP_MAP = {
+    DataLicence.UNKNOWN: "Unknown",
     DataLicence.ALL_RIGHTS_RESERVED: "All rights reserved",
     DataLicence.PDDL: "PDDL (public domain)",
     DataLicence.ODC_BY: "ODB-By (attribution required)",
@@ -111,6 +113,7 @@ _DATA_LICENCE_PP_MAP = {
 }
 
 _DATA_LICENCE_SHORT_MAP = {
+    DataLicence.UNKNOWN: "Unknown",
     DataLicence.ALL_RIGHTS_RESERVED: "All rights reserved",
     DataLicence.PDDL: "Public domain",
     DataLicence.ODC_BY: "ODB-By",

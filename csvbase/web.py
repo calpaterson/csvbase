@@ -92,8 +92,6 @@ def init_app():
 
     app.register_blueprint(bp)
 
-    db.make_tables()
-
     @app.context_processor
     def inject_heroku():
         return dict(HEROKU="HEROKU" in environ)
