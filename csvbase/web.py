@@ -672,7 +672,6 @@ def update_row(username: str, table_name: str, row_id: int) -> Response:
     body = json_or_400()
     if body["row_id"] != row_id:
         raise exc.InvalidRequest("can't change row ids via an update")
-    assert body["row_id"] == row_id, "row ids cannot be changed"
     row = {
         c: c.type_.from_json_to_python(body["row"][c.name])
         for c in table.user_columns()
@@ -1056,8 +1055,9 @@ def url_for_with_auth(endpoint: str, **values) -> str:
         username = g.current_user.username
         password = g.current_user.hex_api_key()
     else:
+        # if they aren't signed in, just use placeholder strings
         username = "<some_user>"
-        password = "<some_api_key>"
+        password = "<some_api_key>"  # nosec B105
     s, n, p, q, f = urlsplit(flask_url)
     authed_netloc = f"{username}:{password}@{n}"
     final_url = urlunsplit((s, authed_netloc, p, q, f))
