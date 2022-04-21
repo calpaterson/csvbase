@@ -8,6 +8,7 @@ jobs:
 
     env:
       CSVBASE_DB_URL: postgresql+psycopg2://csvbase:csvbase@localhost/csvbase
+      CSVBASE_SECRET_KEY: 'snakeoil'
 
     services:
       postgres:

@@ -8,6 +8,7 @@ from logging import basicConfig, INFO, getLogger
 from typing import Optional, Any, Dict, List, Tuple, Sequence, Union, Mapping, cast
 from os import environ
 from urllib.parse import urlsplit, urlunsplit
+import secrets
 
 from typing_extensions import Literal
 from cchardet import UniversalDetector
@@ -81,7 +82,11 @@ def init_app():
     app.config["CRYPT_CONTEXT"] = CryptContext(["argon2"])
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_NAME"] = "csvbase_websesh"
-    app.config["SECRET_KEY"] = "no peeking"
+    if "CSVBASE_SECRET_KEY" in environ:
+        app.config["SECRET_KEY"] = environ["CSVBASE_SECRET_KEY"]
+    else:
+        app.logger.warning("CSVBASE_SECERT_KEY not set, using a random secret")
+        app.config["SECRET_KEY"] = secrets.token_hex()
 
     app.url_map.converters["table_name"] = TableNameConverter
 
