@@ -43,5 +43,7 @@ jobs:
         key: ${{ runner.os }}-tox
         restore-keys: |
           ${{ runner.os }}-pip-
+    - name: Make tables
+      run: ./make_tables.py
     - name: Tox
       run: tox
