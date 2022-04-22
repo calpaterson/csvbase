@@ -36,7 +36,7 @@ data_licences = [
 def upgrade():
     op.bulk_insert(
         data_licence_table,
-        [{"licence_id": id, "licence_name": name} for id, name in data_licences]
+        [{"licence_id": id, "licence_name": name} for id, name in data_licences],
     )
 
 

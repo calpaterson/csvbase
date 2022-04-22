@@ -35,3 +35,22 @@ def make_tables():
             dl_insert,
             [{"licence_id": e.value, "licence_name": e.name} for e in DataLicence],
         )
+
+    alembic_version_ddl = """
+    CREATE TABLE IF NOT EXISTS metadata.alembic_version (
+        version_num varchar(32) NOT NULL);
+    ALTER TABLE metadata.alembic_version DROP CONSTRAINT IF EXISTS alembic_version_pkc;
+    ALTER TABLE ONLY metadata.alembic_version
+        ADD CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num);
+    """
+
+    with engine.begin() as conn:
+        conn.execute(alembic_version_ddl)
+        conn.execute(
+            """
+    INSERT INTO alembic_version (version_num)
+        VALUES ('created by make_tables')
+    ON CONFLICT
+       DO NOTHING;
+    """
+        )

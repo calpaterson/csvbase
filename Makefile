@@ -26,3 +26,6 @@ csvbase/static/bootstrap.min.css: bootstrap-5.1.3-dist.zip
 
 deploy:
 	git push heroku main
+
+dump-schema:
+	pg_dump -d csvbase --schema-only --schema=metadata
