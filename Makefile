@@ -1,15 +1,17 @@
 export FLASK_APP = csvbase.web:init_app()
 export FLASK_ENV = development
 
-.PHONY: tox serve
+version :=$(file < csvbase/VERSION)
+
+.PHONY: tox serve release default
 
 default: tox
 
 .venv: .venv/touchfile
 
-.venv/touchfile: requirements.txt
+.venv/touchfile: setup.py
 	test -d .venv || virtualenv .venv --python=python3
-	. .venv/bin/activate; pip install -r requirements.txt
+	. .venv/bin/activate; python -m pip install .
 	touch $@
 
 serve: .venv csvbase/static/bootstrap.min.css
@@ -29,3 +31,9 @@ deploy:
 
 dump-schema:
 	pg_dump -d csvbase --schema-only --schema=metadata
+
+release: dist/csvbase-$VERSION-py3-none-any.whl
+
+dist/csvbase-$VERSION-py3-none-any.whl:
+	. .venv/bin/activate; python -m pip install build==0.7.0
+	. .venv/bin/activate; python -m build

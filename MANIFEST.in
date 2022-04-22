@@ -1,0 +1,4 @@
+graft csvbase/templates
+graft csvbase/static
+include csvbase/VERSION
+global-exclude *.pyc
