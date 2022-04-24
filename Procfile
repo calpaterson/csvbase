@@ -1,1 +1,0 @@
-web: gunicorn 'csvbase.web:init_app()' -b :$PORT
