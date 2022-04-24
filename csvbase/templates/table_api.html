@@ -136,7 +136,7 @@
       {% if table.is_public %}
         <code>GET</code> from <code>{{ url_for('csvbase.table_view', username=username, table_name=table_name, _external=True) }}</code>
       {% else %}
-        <code>GET</code> from <code>{{ url_for_with_auth('csvbase.get_row', username=username, table_name=table_name, _external=True) }}</code>
+        <code>GET</code> from <code>{{ url_for_with_auth('csvbase.table_view', username=username, table_name=table_name, _external=True) }}</code>
       {% endif %}
     </p>
 
