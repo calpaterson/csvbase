@@ -29,7 +29,7 @@ jobs:
       with:
         python-version: 3.7
     - name: Install required ubuntu packages
-      run: sudo apt-get update && sudo apt-get install -y libsystemd-dev postgresql-13-client
+      run: sudo apt-get update && sudo apt-get install -y libsystemd-dev postgresql-client-13
     - name: Create schemas
       run: psql $CSVBASE_DB_URL -c 'CREATE SCHEMA metadata; CREATE SCHEMA userdata;'
     - name: Use cache of pip downloads
