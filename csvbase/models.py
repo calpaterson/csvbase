@@ -1,4 +1,5 @@
 from uuid import UUID, uuid4
+from typing import List
 from typing import TYPE_CHECKING
 
 from sqlalchemy.dialects.postgresql import UUID as _PGUUID, BYTEA
@@ -56,6 +57,10 @@ class User(Base):
 
     api_key: "RelationshipProperty[APIKey]" = relationship(
         "APIKey", uselist=False, backref="user"
+    )
+
+    table_objs: "RelationshipProperty[List[Table]]" = relationship(
+        "Table", uselist=True, backref="user"
     )
 
 

@@ -582,3 +582,12 @@ def tables_for_user(
         rs = rs.filter(models.Table.public)
     for (table_name,) in rs:
         yield table_name
+
+
+def get_public_table_names(sesh: Session) -> Iterable[Tuple[str, str]]:
+    rs = (
+        sesh.query(models.User.username, models.Table.table_name)
+        .join(models.Table, models.User.user_uuid == models.Table.user_uuid)
+        .filter(models.Table.public)
+    )
+    yield from rs

@@ -789,6 +789,35 @@ def user(username: str):
     )
 
 
+@bp.route("/robots.txt", methods=["GET"])
+def robots() -> Response:
+    sitemap_url = url_for("csvbase.sitemap", _external=True)
+    robots_doc = f"Sitemap: {sitemap_url}"
+    resp = make_response(robots_doc)
+    resp.cache_control.public = True
+    resp.cache_control.max_age = int(timedelta(days=7).total_seconds())
+    return resp
+
+
+@bp.route("/sitemap.xml", methods=["GET"])
+def sitemap() -> Response:
+    sesh = get_sesh()
+    table_names = svc.get_public_table_names(sesh)
+    table_urls = (
+        url_for(
+            "csvbase.table_view",
+            username=username,
+            table_name=table_name,
+            _external=True,
+        )
+        for username, table_name in table_names
+    )
+    resp = make_response(render_template("sitemap.xml", urls=table_urls))
+    resp.cache_control.public = True
+    resp.cache_control.max_age = int(timedelta(days=7).total_seconds())
+    return resp
+
+
 @bp.route("/sign-in", methods=["GET", "POST"])
 def sign_in() -> Response:
     sesh = get_sesh()
