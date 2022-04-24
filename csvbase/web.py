@@ -53,7 +53,7 @@ from .value_objs import (
 from . import svc
 from . import db
 from . import exc
-
+from .logging import configure_logging
 
 logger = getLogger(__name__)
 
@@ -77,7 +77,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
 
 
 def init_app():
-    basicConfig(level=INFO)
+    configure_logging()
     app = Flask(__name__)
     app.config["CRYPT_CONTEXT"] = CryptContext(["argon2"])
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"

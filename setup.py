@@ -21,6 +21,7 @@ setup(
         "pgcopy==1.5.0",
         "psycopg2==2.9.2",
         "sqlalchemy==1.4.27",
+        "systemd-python==234",
         "typing-extensions==4.0.1",
         # werkzeug 2.1.0 broke flask-sqlalchemy-session:
         # https://github.com/dtheodor/flask-sqlalchemy-session/issues/14
