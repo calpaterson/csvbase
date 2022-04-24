@@ -39,12 +39,12 @@ jobs:
           ${{ runner.os }}-pip-
     - name: Install tox
       run: pip install tox
-    - name: Use cache of tox
-      uses: actions/cache@v2
-      with:
-        path: .tox
-        key: ${{ runner.os }}-tox
-        restore-keys: |
-          ${{ runner.os }}-pip-
+    # - name: Use cache of tox
+    #   uses: actions/cache@v2
+    #   with:
+    #     path: .tox
+    #     key: ${{ runner.os }}-tox
+    #     restore-keys: |
+    #       ${{ runner.os }}-pip-
     - name: Tox
       run: tox
