@@ -9,8 +9,9 @@
     {% else %}
       <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css' ) }}">
     {% endif %}
-    <title>{{page_title or "csvbase (alpha)"}}</title>
     <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='logo/192x192.png') }}">
+    <link rel="canonical" href="{{ canonical_url or request.base_url }}">
+    <title>{{page_title or "csvbase (alpha)"}}</title>
   </head>
   <body>
     {% block body %}
