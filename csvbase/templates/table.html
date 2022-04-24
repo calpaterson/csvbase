@@ -4,7 +4,7 @@
 {% macro data_licence_badge(data_licence) %}
   <span
     style="font-size: 0.75rem"
-    class="badge {% if data_licence.value == 0 %}bg-danger{% else %}bg-success{% endif %}"
+    class="badge {% if data_licence.is_free() %}bg-success{% else %}bg-danger{% endif %}"
     >{{ data_licence.short_render() }}</span>
 {% endmacro %}
 

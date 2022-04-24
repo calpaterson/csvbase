@@ -102,6 +102,9 @@ class DataLicence(enum.Enum):
     def short_render(self) -> str:
         return _DATA_LICENCE_SHORT_MAP[self]
 
+    def is_free(self) -> bool:
+        return self.value > 1
+
 
 _DATA_LICENCE_PP_MAP = {
     DataLicence.UNKNOWN: "Unknown",
