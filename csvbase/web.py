@@ -14,6 +14,7 @@ from typing_extensions import Literal
 from cchardet import UniversalDetector
 from werkzeug.wrappers.response import Response
 from werkzeug.routing import BaseConverter
+from flask.wrappers import Response as FlaskResponse
 from flask import (
     g,
     session as flask_session,
@@ -151,6 +152,15 @@ def put_user_in_g() -> None:
             raise exc.WrongAuthException()
     else:
         app_logger.debug("not signed in")
+
+
+@bp.after_request
+def set_default_cache_control(response: FlaskResponse) -> FlaskResponse:
+    cc = response.cache_control
+    if len(cc.values()) == 0:
+        # nothing specific has been set, so set the default
+        cc.no_store = True
+    return response
 
 
 @bp.route("/")
