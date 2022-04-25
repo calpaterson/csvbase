@@ -10,13 +10,14 @@
 2. ???
 3. Profit
 
-## See an example
+## For example
 
-My current demo is
+The current demo is
 [meripaterson/stock-exchanges](https://csvbase.com/meripaterson/stock-exchanges),
-which is a list of the world's stock exchanges.
+which is an up-to-date list of the world's stock exchanges.
 
-If you want to load this dataset into pandas, for example, you would run:
+If you wanted to load that dataset into
+[pandas](https://github.com/pandas-dev/pandas), for example, you would run:
 
 ```python
 >>> import pandas
@@ -39,14 +40,24 @@ If you want to load this dataset into pandas, for example, you would run:
 [251 rows x 6 columns]
 ```
 
-## In a little more details
+It's just as easy to:
+
+1. [Export to XLSX (MS Excel)](https://csvbase.com/meripaterson/stock-exchanges/export)
+2. [Export to R](https://csvbase.com/meripaterson/stock-exchanges/export)
+3. Execute create/read/update/delete operations via a [simple REST API](https://csvbase.com/meripaterson/stock-exchanges/docs)
+4. [And get the CSV back as well, of course](https://csvbase.com/meripaterson/stock-exchanges/export)
+
+## A few more details
 
 This repo has the full sourcecode for the website.
 
-The website is free to use, to the limit of my cheapo VM.
+The website is free to use, to the limit of my cheapo hosting.
 
-At the moment it's is alpha-quality: "if you break it you get to keep both
-pieces".  APIs may be tweaked but what is there now probably won't change
-hugely.
+At the moment it's all 'alpha-quality', ie: "if you break it you get to keep
+both pieces".  APIs might be tweaked a little but what is there now probably
+won't change hugely.
 
-Csvbase is licensed under the AGPLv3 or later.
+Csvbase is licensed under the AGPLv3 or later.  You're free to reuse it as you
+like under that licence but please bear in mind the one-man-and-his-dog nature
+of this operation: I can't support you and there is NO warranty; not even for
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
