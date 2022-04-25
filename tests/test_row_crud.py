@@ -4,7 +4,11 @@ from .utils import make_user
 
 
 def test_create__happy(client, ten_rows, test_user):
-    expected_resource = {"row_id": 11, "row": {"roman_numeral": "XI"}}
+    expected_resource = {
+        "row_id": 11,
+        "row": {"roman_numeral": "XI"},
+        "url": f"http://localhost/{test_user.username}/{ten_rows}/rows/11",
+    }
 
     post_resp = client.post(
         f"/{test_user.username}/{ten_rows}/rows/",
@@ -73,7 +77,11 @@ def test_create__wrong_user(client, ten_rows, test_user, app, sesh):
 def test_read__happy(client, ten_rows, test_user):
     resp = client.get(f"/{test_user.username}/{ten_rows}/rows/1")
     assert resp.status_code == 200, resp.data
-    assert resp.json == {"row_id": 1, "row": {"roman_numeral": "I"}}
+    assert resp.json == {
+        "row_id": 1,
+        "row": {"roman_numeral": "I"},
+        "url": f"http://localhost/{test_user.username}/{ten_rows}/rows/1",
+    }
 
 
 def test_read__row_does_not_exist(client, ten_rows, test_user):
@@ -106,12 +114,20 @@ def test_read__is_private_am_authed(client, private_table, test_user):
         headers={"Authorization": test_user.basic_auth()},
     )
     assert resp.status_code == 200, resp.data
-    assert resp.json == {"row_id": 1, "row": {"x": 1}}
+    assert resp.json == {
+        "row_id": 1,
+        "row": {"x": 1},
+        "url": f"http://localhost/{test_user.username}/{private_table}/rows/1",
+    }
 
 
 def test_update__happy(client, ten_rows, test_user):
     url = f"/{test_user.username}/{ten_rows}/rows/1"
-    new = {"row_id": 1, "row": {"roman_numeral": "i"}}
+    new = {
+        "row_id": 1,
+        "row": {"roman_numeral": "i"},
+        "url": f"http://localhost/{test_user.username}/{ten_rows}/rows/1",
+    }
     resp = client.put(url, json=new)
     assert resp.status_code == 200, resp.data
     assert resp.json == new

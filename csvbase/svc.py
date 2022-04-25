@@ -165,6 +165,7 @@ def get_table(sesh, username_or_uuid: Union[UUID, str], table_name) -> Table:
         raise exc.TableDoesNotExistException(user.username, table_name)
     columns = get_columns(sesh, user.username, table_name)
     table = Table(
+        username=user.username,
         table_name=table_name,
         is_public=table_model.public,
         caption=table_model.caption,

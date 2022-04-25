@@ -587,7 +587,7 @@ def create_row(username: str, table_name: str) -> Response:
         [ContentType.HTML, ContentType.JSON], ContentType.JSON
     )
     if content_type is ContentType.JSON:
-        json_body = row_to_json_dict(row)
+        json_body = row_to_json_dict(table, row)
         response = jsonify(json_body)
         response.status_code = 201
         return response
@@ -623,7 +623,8 @@ def get_row(username: str, table_name: str, row_id: int) -> Response:
             )
         )
     else:
-        return jsonify(row_to_json_dict(row))
+        table = svc.get_table(sesh, username, table_name)
+        return jsonify(row_to_json_dict(table, row))
 
 
 @bp.route(
@@ -1022,7 +1023,8 @@ def keyset_from_request_args() -> KeySet:
     return keyset
 
 
-def row_to_json_dict(row: Row, omit_row_id=False) -> Dict:
+def row_to_json_dict(table: Table, row: Row, omit_row_id=False) -> Dict[str, Any]:
+    # FIXME: rename "omit_row_id" to "as_though_unsubmitted" or something
     row_without_row_id = (c for c in row.items() if c[0].name != "csvbase_row_id")
     json_dict: Dict = {
         "row": {
@@ -1031,7 +1033,15 @@ def row_to_json_dict(row: Row, omit_row_id=False) -> Dict:
         },
     }
     if not omit_row_id:
-        json_dict["row_id"] = row_id_from_row(row)
+        row_id = row_id_from_row(row)
+        json_dict["row_id"] = row_id
+        json_dict["url"] = url_for(
+            "csvbase.get_row",
+            username=table.username,
+            table_name=table.table_name,
+            row_id=row_id,
+            _external=True,
+        )
 
     return json_dict
 
@@ -1042,7 +1052,7 @@ def row_id_from_row(row: Row) -> int:
 
 def page_to_json_dict(username: str, table: Table, page: Page) -> Dict[str, Any]:
     rv: Dict[str, Any] = {}
-    rv["rows"] = [row_to_json_dict(row) for row in page.rows]
+    rv["rows"] = [row_to_json_dict(table, row) for row in page.rows]
     if page.has_less:
         # FIXME: these url_fors should be shared with the table_view template
         rv["previous_page_url"] = url_for(

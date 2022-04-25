@@ -65,7 +65,7 @@ class Page:
 
 @dataclass
 class Table:
-    # FIXME: this should have at least username attached, if not a User
+    username: str
     table_name: str
     is_public: bool
     caption: str

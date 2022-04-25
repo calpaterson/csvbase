@@ -21,7 +21,11 @@ def test_read__happy(client, ten_rows, test_user, content_type):
     if content_type is ContentType.JSON:
         expected_page_dict = {
             "rows": [
-                {"row": {"roman_numeral": rn}, "row_id": index}
+                {
+                    "row": {"roman_numeral": rn},
+                    "row_id": index,
+                    "url": f"http://localhost/{test_user.username}/{ten_rows}/rows/{index}",
+                }
                 for index, rn in enumerate(ROMAN_NUMERALS[:11], start=1)
             ],
             "next_page_url": None,
