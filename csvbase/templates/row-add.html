@@ -13,7 +13,7 @@
     <form
       action="{{ url_for('csvbase.create_row', username=username, table_name=table_name) }}"
       method="POST">
-      {% for col in table.columns_except_row_id() %}
+      {% for col in table.user_columns() %}
         <div class="mb-3 row g-3">
           <div class="col-2">
             <label class="col-form-label" for="{{col.name}}-input">{{ col.name }}</label>

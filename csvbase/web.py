@@ -572,7 +572,7 @@ def create_row(username: str, table_name: str) -> Response:
     elif request.mimetype == ContentType.HTML_FORM.value:
         row = {
             c: c.type_.from_html_form_to_python(request.form.get(c.name))
-            for c in table.columns
+            for c in table.user_columns()
         }
     else:
         raise exc.WrongContentType(
