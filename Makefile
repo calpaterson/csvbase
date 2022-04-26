@@ -34,6 +34,6 @@ dump-schema:
 
 release: dist/csvbase-$VERSION-py3-none-any.whl
 
-dist/csvbase-$VERSION-py3-none-any.whl:
+dist/csvbase-$VERSION-py3-none-any.whl: csvbase/static/bootstrap.min.css
 	. .venv/bin/activate; python -m pip install build==0.7.0
 	. .venv/bin/activate; python -m build
