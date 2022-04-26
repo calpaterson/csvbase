@@ -34,6 +34,7 @@ from flask_cors import cross_origin
 from passlib.context import CryptContext
 from sqlalchemy.orm import sessionmaker, Session
 from flask_sqlalchemy_session import flask_scoped_session
+import marko
 import werkzeug.http
 
 from .value_objs import (
@@ -358,6 +359,32 @@ def table_view(username: str, table_name: str) -> Response:
         )
 
 
+@bp.route("/<username>/<table_name:table_name>/readme", methods=["GET"])
+def table_readme(username: str, table_name: str) -> Response:
+    sesh = get_sesh()
+    user = svc.user_by_name(sesh, username)
+    if not svc.is_public(sesh, username, table_name) and not am_user(username):
+        raise exc.TableDoesNotExistException(username, table_name)
+
+    readme_markdown = svc.get_readme_markdown(sesh, user.user_uuid, table_name)
+    if readme_markdown is not None:
+        readme_html = marko.convert(readme_markdown)
+    else:
+        readme_html = "(no readme set)"
+
+    table = svc.get_table(sesh, username, table_name)
+    return make_response(
+        render_template(
+            "table_readme.html",
+            page_title=f"Readme for {username}/{table_name}",
+            username=username,
+            table_name=table_name,
+            table=table,
+            table_readme=readme_html,
+        )
+    )
+
+
 @bp.route("/<username>/<table_name:table_name>/docs", methods=["GET"])
 def get_table_apidocs(username: str, table_name: str) -> str:
     sesh = get_sesh()
@@ -438,13 +465,17 @@ def table_details(username: str, table_name: str) -> str:
 @bp.route("/<username>/<table_name:table_name>/settings", methods=["GET"])
 def table_settings(username: str, table_name: str) -> str:
     sesh = get_sesh()
+    user = svc.user_by_name(sesh, username)
     table = svc.get_table(sesh, username, table_name)
     table.is_public or am_user_or_400(username)
+
+    table_readme_markdown = svc.get_readme_markdown(sesh, user.user_uuid, table_name)
 
     return render_template(
         "table_settings.html",
         username=username,
         page_title=f"Settings: {username}/{table_name}",
+        table_readme=table_readme_markdown or "",
         DataLicence=DataLicence,
         table=table,
     )
@@ -461,6 +492,9 @@ def post_table_settings(username: str, table_name: str) -> Response:
     else:
         is_public = True
     data_licence = DataLicence(request.form.get("data-licence", type=int))
+
+    readme_markdown = request.form.get("table-readme-markdown", "")
+    svc.set_readme_markdown(sesh, g.current_user.user_uuid, table_name, readme_markdown)
 
     svc.upsert_table_metadata(
         sesh, g.current_user.user_uuid, table_name, is_public, caption, data_licence

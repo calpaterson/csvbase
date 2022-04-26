@@ -36,8 +36,8 @@
              href="{{ url_for('csvbase.table_view', username=username, table_name=table.table_name) }}">View</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link disabled"
-             href="">Readme</a>
+          <a class="nav-link {% if request.endpoint == 'csvbase.table_readme' %}active{%endif%}"
+             href="{{ url_for('csvbase.table_readme', username=username, table_name=table.table_name) }}">Readme</a>
         </li>
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.table_details' %}active{%endif%}"

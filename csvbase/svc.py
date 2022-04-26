@@ -20,11 +20,13 @@ from uuid import uuid4
 import secrets
 import binascii
 
+import bleach
 import xlsxwriter
 from pgcopy import CopyManager
 from sqlalchemy import column as sacolumn, types as satypes
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import (
+    delete,
     TableClause,
     select,
     TextClause,
@@ -254,6 +256,52 @@ def upsert_table_metadata(
     table_obj.public = is_public
     table_obj.caption = caption
     table_obj.licence_id = licence.value
+
+
+def get_readme_markdown(sesh, user_uuid: UUID, table_name: str) -> Optional[str]:
+    readme = (
+        sesh.query(models.TableReadme.readme_markdown)
+        .join(models.Table)
+        .filter(
+            models.Table.user_uuid == user_uuid, models.Table.table_name == table_name
+        )
+        .scalar()
+    )
+    if readme is None:
+        return readme
+    else:
+        return bleach.clean(readme)
+
+
+def set_readme_markdown(
+    sesh, user_uuid: UUID, table_name: str, readme_markdown: str
+) -> None:
+    # if it's empty or ws-only, don't store it
+    if readme_markdown.strip() == "":
+        DELETE_STMT = """
+        DELETE FROM metadata.table_readmes as tr
+        USING metadata.tables as t
+        WHERE tr.table_uuid = t.table_uuid
+        AND t.table_name = :table_name
+        AND t.user_uuid = :user_uuid
+        """
+        sesh.execute(DELETE_STMT, dict(table_name=table_name, user_uuid=user_uuid))
+        logger.info("deleted readme for %s/%s", user_uuid, table_name)
+    else:
+        table = (
+            sesh.query(models.Table)
+            .filter(
+                models.Table.table_name == table_name,
+                models.Table.user_uuid == user_uuid,
+            )
+            .one()
+        )
+        if table.readme_obj is None:
+            table.readme_obj = models.TableReadme()
+
+        bleached = bleach.clean(readme_markdown)
+
+        table.readme_obj.readme_markdown = bleached
 
 
 def make_drop_table_ddl(sesh: Session, username: str, table_name: str) -> DropTable:
