@@ -4,7 +4,7 @@
 {% macro data_licence_badge(data_licence) %}
   <span
     style="font-size: 0.75rem"
-    class="badge {% if data_licence.is_free() %}bg-success{% else %}bg-danger{% endif %}"
+    class="badge {% if data_licence.is_free() %}bg-success{% else %}bg-danger{% endif %} rounded-pill"
     >{{ data_licence.short_render() }}</span>
 {% endmacro %}
 
@@ -12,7 +12,7 @@
   {% if not table.is_public %}
     <span
       style="font-size: 0.75rem"
-      class="badge bg-secondary"
+      class="badge bg-secondary rounded-pill"
       >Private</span>
   {% endif %}
 {% endmacro %}
@@ -25,9 +25,27 @@
       href="{{ url_for('csvbase.table_view', username=username, table_name=table.table_name) }}"
       >{{ table.table_name }}</a> {{ data_licence_badge(table.data_licence) }} {{ privacy_badge(table) }}</h1>
 
-    {% if table.has_caption() %}
-      <blockquote class="blockquote">{{table.caption}}</blockquote>
-    {% endif %}
+    <div class="row">
+      {% if table.has_caption() %}
+        <div class="col-auto">
+          <blockquote class="blockquote">{{table.caption}}</blockquote>
+        </div>
+      {% endif %}
+      <div class="col-auto">
+        <form
+          method="POST"
+          action="{{ url_for('csvbase.praise_table', username=username, table_name=table.table_name)}}">
+          <input type="hidden" name="whence" value="{{ request.url }}">
+          {% if praise_id %}
+            <input hidden type="number" name="praise-id" value="{{ praise_id }}">
+            <input type='submit' class="btn btn-warning btn-sm" value="Praised!">
+          {% else %}
+            <input type='submit' class="btn btn-secondary btn-sm" value="Praise">
+          {% endif %}
+        </form>
+      </div>
+    </div>
+
 
     <div class="mb-3">
       <ul class="nav nav-tabs">

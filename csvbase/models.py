@@ -11,7 +11,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.schema import CheckConstraint, MetaData
+from sqlalchemy.schema import CheckConstraint, MetaData, Identity  # type: ignore
 from sqlalchemy.orm import RelationshipProperty, relationship
 
 naming_convention = {
@@ -63,6 +63,10 @@ class User(Base):
         "Table", uselist=True, backref="user"
     )
 
+    praise_objs: "RelationshipProperty[List[Praise]]" = relationship(
+        "Praise", uselist=True, backref="user_objs"
+    )
+
 
 class UserEmail(Base):
     __tablename__ = "user_emails"
@@ -111,6 +115,10 @@ class Table(Base):
         "TableReadme", uselist=False, backref="table"
     )
 
+    praise_objs: "RelationshipProperty[List[Praise]]" = relationship(
+        "Praise", uselist=True, backref="table_objs"
+    )
+
 
 class TableReadme(Base):
     __tablename__ = "table_readmes"
@@ -128,3 +136,25 @@ class DataLicence(Base):
 
     licence_id = Column(satypes.SmallInteger, primary_key=True, autoincrement=False)
     licence_name = Column(satypes.String)
+
+
+class Praise(Base):
+    __tablename__ = "praise"
+    __table_args__ = (
+        UniqueConstraint("user_uuid", "table_uuid"),
+        METADATA_SCHEMA_TABLE_ARG,
+    )
+
+    praise_id = Column(satypes.BigInteger, Identity(), primary_key=True)
+    table_uuid = Column(
+        PGUUID, ForeignKey("metadata.tables.table_uuid"), nullable=False, index=True
+    )
+    user_uuid = Column(
+        PGUUID, ForeignKey("metadata.users.user_uuid"), nullable=False, index=True
+    )
+    praised = Column(
+        satypes.TIMESTAMP(timezone=True),
+        nullable=False,
+        index=True,
+        server_default=func.current_timestamp(),
+    )

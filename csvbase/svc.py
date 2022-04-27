@@ -167,6 +167,7 @@ def get_table(sesh, username_or_uuid: Union[UUID, str], table_name) -> Table:
         raise exc.TableDoesNotExistException(user.username, table_name)
     columns = get_columns(sesh, user.username, table_name)
     table = Table(
+        table_uuid=table_model.table_uuid,
         username=user.username,
         table_name=table_name,
         is_public=table_model.public,
@@ -640,3 +641,46 @@ def get_public_table_names(sesh: Session) -> Iterable[Tuple[str, str]]:
         .filter(models.Table.public)
     )
     yield from rs
+
+
+def praise(
+    sesh: Session, owner_username: str, table_name: str, praiser_uuid: UUID
+) -> int:
+    stmt = """
+    INSERT INTO metadata.praise (table_uuid, user_uuid)
+    SELECT table_uuid, :praiser_uuid
+    FROM metadata.tables
+    JOIN metadata.users USING (user_uuid)
+    WHERE table_name = :table_name
+    AND username = :owner_username
+    RETURNING praise_id
+    """
+    rp = sesh.execute(
+        stmt,
+        dict(
+            owner_username=owner_username,
+            table_name=table_name,
+            praiser_uuid=praiser_uuid,
+        ),
+    )
+    return rp.scalar()
+
+
+def is_praised(sesh: Session, user_uuid: UUID, table_uuid: UUID) -> Optional[int]:
+    stmt = """
+    SELECT praise_id
+    FROM praise
+    WHERE user_uuid = :user_uuid
+    AND table_uuid = :table_uuid
+    """
+    rp = sesh.execute(stmt, dict(user_uuid=user_uuid, table_uuid=table_uuid))
+    return rp.scalar()
+
+
+def unpraise(sesh: Session, praise_id: int) -> None:
+    rp = sesh.execute(
+        "DELETE FROM praise where praise_id = :praise_id", dict(praise_id=praise_id)
+    )
+    if rp.rowcount != 1:
+        logger.error("praise could not be removed: %s", praise_id)
+        raise RuntimeError("could not unpraise")

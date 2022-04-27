@@ -65,6 +65,7 @@ class Page:
 
 @dataclass
 class Table:
+    table_uuid: UUID
     username: str
     table_name: str
     is_public: bool

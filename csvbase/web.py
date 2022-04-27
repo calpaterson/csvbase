@@ -347,6 +347,7 @@ def table_view(username: str, table_name: str) -> Response:
                 username=username,
                 table_name=table_name,
                 ROW_ID_COLUMN=ROW_ID_COLUMN,
+                praise_id=get_praise_id_if_exists(table),
             )
         )
     elif content_type is ContentType.JSON:
@@ -381,6 +382,7 @@ def table_readme(username: str, table_name: str) -> Response:
             table_name=table_name,
             table=table,
             table_readme=readme_html,
+            praise_id=get_praise_id_if_exists(table),
         )
     )
 
@@ -410,6 +412,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
         row_to_json_dict=row_to_json_dict,
         table_to_json_dict=table_to_json_dict,
         url_for_with_auth=url_for_with_auth,
+        praise_id=get_praise_id_if_exists(table),
     )
 
 
@@ -444,6 +447,7 @@ def table_export(username: str, table_name: str) -> str:
         table_name=table_name,
         table_url=table_url,
         private_table_url=private_table_url,
+        praise_id=get_praise_id_if_exists(table),
     )
 
 
@@ -459,6 +463,7 @@ def table_details(username: str, table_name: str) -> str:
         page_title=f"Schema & Details: {username}/{table_name}",
         DataLicence=DataLicence,
         table=table,
+        praise_id=get_praise_id_if_exists(table),
     )
 
 
@@ -478,6 +483,7 @@ def table_settings(username: str, table_name: str) -> str:
         table_readme=table_readme_markdown or "",
         DataLicence=DataLicence,
         table=table,
+        praise_id=get_praise_id_if_exists(table),
     )
 
 
@@ -510,6 +516,23 @@ def post_table_settings(username: str, table_name: str) -> Response:
             table_name=table_name,
         )
     )
+
+
+@bp.route("/<username>/<table_name:table_name>/praise", methods=["POST"])
+def praise_table(username: str, table_name: str) -> Response:
+    whence = request.form["whence"]
+    am_a_user_or_400()
+    sesh = get_sesh()
+    praise_id = request.form.get("praise-id", type=int, default=None)
+    if praise_id:
+        svc.unpraise(sesh, praise_id)
+        flash(f"Unpraised {username}/{table_name}")
+    else:
+        svc.praise(sesh, username, table_name, g.current_user.user_uuid)
+        flash(f"Praised {username}/{table_name}")
+    sesh.commit()
+
+    return redirect(whence)
 
 
 @bp.route("/<username>/<table_name:table_name>.csv", methods=["GET"])
@@ -1144,3 +1167,11 @@ def url_for_with_auth(endpoint: str, **values) -> str:
     authed_netloc = f"{username}:{password}@{n}"
     final_url = urlunsplit((s, authed_netloc, p, q, f))
     return final_url
+
+
+def get_praise_id_if_exists(table: Table) -> Optional[int]:
+    sesh = get_sesh()
+    if "current_user" in g:
+        return svc.is_praised(sesh, g.current_user.user_uuid, table.table_uuid)
+    else:
+        return None
