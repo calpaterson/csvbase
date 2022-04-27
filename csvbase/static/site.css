@@ -1,0 +1,38 @@
+/* Stuff to do with praising */
+#praise-button:hover {
+    background-color: var(--bs-warning);
+    border-color: var(--bs-warning);
+    color: var(--bs-body-color);
+}
+
+.icon {
+    display: inline-block;
+    overflow: hidden;
+    height: 1.5em;
+    width: 1.5em;
+    margin-right: 0.1em;
+}
+
+.icon-invert {
+    filter: invert(0.8);
+}
+
+.icon-hidden {
+    display: none;
+}
+
+#praise-button:hover .icon {
+    display: none;
+}
+
+#praise-button:hover .icon-hidden {
+    display: inline-block;
+}
+
+#praise-button:hover #praise-span {
+    display: none;
+}
+
+#praise-button:hover:after {
+    content: "Praise!";
+}

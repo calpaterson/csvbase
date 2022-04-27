@@ -529,10 +529,8 @@ def praise_table(username: str, table_name: str) -> Response:
     praise_id = request.form.get("praise-id", type=int, default=None)
     if praise_id:
         svc.unpraise(sesh, praise_id)
-        flash(f"Unpraised {username}/{table_name}")
     else:
         svc.praise(sesh, username, table_name, g.current_user.user_uuid)
-        flash(f"Praised {username}/{table_name}")
     sesh.commit()
 
     return redirect(whence)

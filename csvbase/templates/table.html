@@ -38,9 +38,11 @@
           <input type="hidden" name="whence" value="{{ request.url }}">
           {% if praise_id %}
             <input hidden type="number" name="praise-id" value="{{ praise_id }}">
-            <input type='submit' class="btn btn-warning btn-sm" value="Praised!">
+            <button type='submit' class="btn btn-warning btn-sm"
+                   ><img class="icon" src="{{ url_for('static', filename='praised.svg') }}"> Praised</button>
           {% else %}
-            <input type='submit' class="btn btn-secondary btn-sm" value="Praise">
+            <button id="praise-button" type='submit' class="btn btn-secondary btn-sm"
+                    ><img class="icon icon-hidden" src="{{ url_for('static', filename='praised.svg') }}"><img class="icon icon-invert" src="{{ url_for('static', filename='praise.svg') }}"> <span id="praise-span">Praise</span></button>
           {% endif %}
         </form>
       </div>
