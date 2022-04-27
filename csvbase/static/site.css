@@ -36,3 +36,12 @@
 #praise-button:hover:after {
     content: "Praise!";
 }
+
+/* reducing bottom margin off the explain alert */
+#explain-alert {
+    margin-bottom: 0;
+}
+
+#explain-alert p:last-child {
+    margin-bottom: 0;
+}
