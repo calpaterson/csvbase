@@ -4,14 +4,19 @@
 {% block main %}
   <div class="container">
     <h1><a href="{{ url_for('csvbase.user', username=username) }}">{{ username }}</a></h1>
-    <h2>Your tables</h2>
-    <ul>
-      {% for table_name in table_names %}
-        <li><a href="{{ url_for('csvbase.table_view', username=username, table_name=table_name) }}">{{table_name}}</a></li>
-      {% endfor %}
-    </ul>
-    <p>Or <a href="{{ url_for('csvbase.paste')}}"> paste a new table</a></p>
+
+    <p>Registered {{ user.registered|dateformat }}</p>
+
+    <h2>Tables</h2>
+    {% for table in tables %}
+      <p><a href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">{{table.table_name}}</a>, <em>{{ table.caption }}</em>
+    {% endfor %}
     {% if g.current_username == username %}
+      <p>Or <a href="{{ url_for('csvbase.paste')}}"> paste a new table</a></p>
+
+      <h2>Your API Key</h2>
+      <code>{{ g.current_user.hex_api_key() }}</code>
+
       <h2>Account controls</h2>
       <a href="{{ url_for('csvbase.sign_out') }}" class="btn btn-danger">Sign out</a>
     {% endif %}

@@ -11,6 +11,7 @@ from urllib.parse import urlsplit, urlunsplit
 import secrets
 
 from typing_extensions import Literal
+from flask_babel import Babel
 from cchardet import UniversalDetector
 from werkzeug.wrappers.response import Response
 from werkzeug.routing import BaseConverter
@@ -90,6 +91,8 @@ def init_app():
     else:
         app.logger.warning("CSVBASE_SECERT_KEY not set, using a random secret")
         app.config["SECRET_KEY"] = secrets.token_hex()
+
+    babel = Babel(app, default_locale="en_GB", default_timezone="Europe/London")
 
     app.url_map.converters["table_name"] = TableNameConverter
 
@@ -833,17 +836,19 @@ def user(username: str):
     include_private = False
     if "current_user" in g and g.current_user.username == username:
         include_private = True
+    user = svc.user_by_name(sesh, username)
     tables = svc.tables_for_user(
         sesh,
-        svc.user_by_name(sesh, username).user_uuid,
+        username,
         include_private=include_private,
     )
     return make_response(
         render_template(
             "user.html",
+            user=user,
             page_title=f"{username}",
             username=username,
-            table_names=tables,
+            tables=list(tables),
         )
     )
 

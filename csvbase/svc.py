@@ -621,18 +621,27 @@ def is_valid_api_key(sesh: Session, username: str, hex_api_key: str) -> bool:
 
 
 def tables_for_user(
-    sesh: Session, user_uuid: UUID, include_private: bool = False
-) -> Iterable[str]:
-    rs = (
-        sesh.query(models.Table.table_name)
-        .filter(models.Table.user_uuid == user_uuid)
+    sesh: Session, username: str, include_private: bool = False
+) -> Iterable[Table]:
+    rp = (
+        sesh.query(models.Table, models.User.username)
+        .join(models.User)
+        .filter(models.User.username == username)
         .order_by(models.Table.created.desc())
     )
     if not include_private:
-        rs = rs.filter(models.Table.public)
-    for (table_name,) in rs:
-        yield table_name
-
+        rp = rp.filter(models.Table.public)
+    for table_model, username in rp:
+        columns = get_columns(sesh, username, table_model.table_name)
+        yield Table(
+            table_uuid=table_model.table_uuid,
+            username=username,
+            table_name=table_model.table_name,
+            is_public=table_model.public,
+            caption=table_model.caption,
+            data_licence=DataLicence(table_model.licence_id),
+            columns=columns,
+        )
 
 def get_public_table_names(sesh: Session) -> Iterable[Tuple[str, str]]:
     rs = (

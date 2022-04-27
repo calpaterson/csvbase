@@ -15,6 +15,7 @@ setup(
         "cchardet==2.1.7",
         "flask-cors==3.0.10",
         "flask-sqlalchemy-session==1.1",
+        "flask-babel==2.0",
         "flask==2.0.2",
         "gunicorn==20.1.0",
         "marko==1.2.0",
