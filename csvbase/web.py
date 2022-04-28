@@ -169,8 +169,14 @@ def set_default_cache_control(response: FlaskResponse) -> FlaskResponse:
 
 
 @bp.route("/")
-def landing() -> str:
-    return render_template("landing.html")
+def index() -> str:
+    sesh = get_sesh()
+    return render_template("index.html", top_ten=svc.get_top_n(sesh))
+
+
+@bp.route("/about")
+def about() -> str:
+    return render_template("about.html")
 
 
 @bp.route("/new-table/paste")

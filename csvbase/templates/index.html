@@ -1,0 +1,16 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "base.html" %}
+
+{% block explainer %}{% endblock %}
+
+{% block main %}
+  <div class="container">
+    <h1>Praised tables</h1>
+    <ol>
+      {% for table in top_ten %}
+        <li><a href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">{{table.username}}/{{table.table_name}}</a>, <em>{{ table.caption }}</em></li>
+      {% endfor %}
+    </ol>
+  </div>
+
+{% endblock %}

@@ -633,15 +633,35 @@ def tables_for_user(
         rp = rp.filter(models.Table.public)
     for table_model, username in rp:
         columns = get_columns(sesh, username, table_model.table_name)
-        yield Table(
-            table_uuid=table_model.table_uuid,
-            username=username,
-            table_name=table_model.table_name,
-            is_public=table_model.public,
-            caption=table_model.caption,
-            data_licence=DataLicence(table_model.licence_id),
-            columns=columns,
-        )
+        yield _table_model_and_columns_to_table(username, table_model, columns)
+
+
+def _table_model_and_columns_to_table(
+    username: str, table_model: models.Table, columns: Sequence[Column]
+) -> Table:
+    return Table(
+        table_uuid=table_model.table_uuid,
+        username=username,
+        table_name=table_model.table_name,
+        is_public=table_model.public,
+        caption=table_model.caption,
+        data_licence=DataLicence(table_model.licence_id),
+        columns=columns,
+    )
+
+
+def get_top_n(sesh: Session, n: int = 10) -> Iterable[Table]:
+    rp = (
+        sesh.query(models.Table, models.User.username)
+        .join(models.User)
+        .filter(models.Table.public)
+        .order_by(models.Table.created.desc())
+        .limit(n)
+    )
+    for table_model, username in rp:
+        columns = get_columns(sesh, username, table_model.table_name)
+        yield _table_model_and_columns_to_table(username, table_model, columns)
+
 
 def get_public_table_names(sesh: Session) -> Iterable[Tuple[str, str]]:
     rs = (

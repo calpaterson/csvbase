@@ -13,29 +13,53 @@
   <body>
     {% block body %}
 
-      <nav class="navbar navbar-light bg-light">
+      <nav id="csvbase-nav" class="navbar navbar-expand navbar-light">
         <div class="container">
-          <a class="navbar-brand" href="{{ url_for('csvbase.landing') }}">
+          <a class="navbar-brand" href="{{ url_for('csvbase.index') }}">
             <img src="/static/logo/192x192.png" alt=" " width="32" height="32" class="d-inline-block align-text">
             csvbase <em><small class="text-muted">(alpha)</small></em>
           </a>
 
-          <ul class="navbar-nav">
-            {% if g.current_user %}
+          <button class="navbar-toggler"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#navbar-collapse"
+                  aria-controls="navbar-collapse"
+                  aria-expanded="false"
+                  aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon"></span>
+          </button>
+
+          <div class="collapse navbar-collapse" id="navbar-collapse">
+            <ul class="navbar-nav me-auto">
+              {% if g.current_user %}
+                <li class="nav-item">
+                  <a class="nav-link {% if request.endpoint == 'csvbase.paste' %}active{% endif %}"
+                     href="{{ url_for('csvbase.paste') }}">Paste</a>
+                </li>
+              {% endif %}
+
+
               <li class="nav-item">
-                <a
-                  class="nav-link {% if request.path == url_for('csvbase.user', username=g.current_username) %}active{% endif %}"
-                  href="{{ url_for('csvbase.user', username=g.current_username) }}">{{g.current_username}}
-                </a>
+                <a class="nav-link {% if request.endpoint == 'csvbase.about' %}active{% endif %}"
+                   href="{{ url_for('csvbase.about') }}">About</a>
               </li>
-            {% else %}
+            </ul>
+
+            <ul class="navbar-nav ms-auto">
               <li class="nav-item">
-                <a class="nav-link"
-                   href="{{ url_for('csvbase.sign_in') }}"
-                   >Sign in</a>
-              </li>
-            {% endif %}
-          </ul>
+                {% if g.current_user %}
+                  <a
+                    class="nav-link {% if request.path == url_for('csvbase.user', username=g.current_username) %}active{% endif %}"
+                    href="{{ url_for('csvbase.user', username=g.current_username) }}">{{g.current_username}}
+                  </a>
+                {% else %}
+                  <a class="nav-link"
+                     href="{{ url_for('csvbase.sign_in') }}"
+                     >Sign in</a>
+                   {% endif %}
+            </ul>
+          </div>
         </div>
       </nav>
 
@@ -51,19 +75,19 @@
         {% endif %}
       {% endwith %}
 
-      {% if "current_user" not in g %}
-        <div class="container">
-          <div id='explain-alert' class="alert alert-light" role="alert">
-            <p>csvbase is a website for sharing data tables.{% if table %}  Exporting <code>{{table.table_name}}</code> to pandas is dead easy, run:</p>
+      {% block explainer %}
+        {% if "current_user" not in g %}
+          <div class="container">
+            <div id='explain-alert' class="alert alert-light" role="alert">
+              <p>csvbase is a website for sharing data tables.{% if table %}  Exporting <code>{{table.table_name}}</code> to pandas is dead easy, run:</p>
 
-            <pre>import pandas; {{table_name|snake_case}} = pandas.read_csv("{{url_for('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True)}}")</pre>
+              <pre>import pandas; {{table_name|snake_case}} = pandas.read_csv("{{url_for('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True)}}")</pre>
             {% endif %}
-            <p>For more details, see the <a href="#">about page</a> - or even <a href="#">register</a>?</p>
-
-
+            <p>For more details, see the <a href="{{ url_for('csvbase.about') }}">about page</a> - or even <a href="#">register</a>?</p>
+            </div>
           </div>
-        </div>
-      {% endif %}
+        {% endif %}
+      {% endblock %}
 
       {% block main %}
       {% endblock %}
