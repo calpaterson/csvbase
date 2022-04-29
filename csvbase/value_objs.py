@@ -12,7 +12,7 @@ from typing import (
 )
 from typing_extensions import Literal
 from uuid import UUID
-from datetime import datetime, date
+from datetime import datetime, date, timedelta, timezone
 from dataclasses import dataclass
 import enum
 import binascii
@@ -70,20 +70,22 @@ class Table:
     caption: str
     data_licence: "DataLicence"
     columns: Sequence["Column"]
+    created: datetime
 
     def has_caption(self) -> bool:
-        return not self.caption.isspace()
+        return len(self.caption.strip()) > 0
 
-    def user_columns(self) -> Iterable["Column"]:
+    def user_columns(self) -> Sequence["Column"]:
         """Returns 'user_columns' - ie those not owned by csvbase."""
-        for column in self.columns:
-            if column.name.startswith("csvbase_"):
-                continue
-            else:
-                yield column
+        return [
+            column for column in self.columns if not column.name.startswith("csvbase_")
+        ]
 
     def row_id_column(self) -> "Column":
         return self.columns[0]
+
+    def age(self) -> timedelta:
+        return self.created - datetime.now(timezone.utc)
 
 
 @enum.unique

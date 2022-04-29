@@ -1,6 +1,8 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "base.html" %}
 
+{% import 'table_macros.html' as table_macros %}
+
 {% block main %}
   <div class="container">
     <h1><a href="{{ url_for('csvbase.user', username=username) }}">{{ username }}</a></h1>
@@ -9,7 +11,7 @@
 
     <h2>Tables</h2>
     {% for table in tables %}
-      <p><a href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">{{table.table_name}}</a>, <em>{{ table.caption }}</em></p>
+      {{ table_macros.table_desc(table) }}
     {% endfor %}
     {% if g.current_username == username %}
       <p>Or <a href="{{ url_for('csvbase.paste')}}"> paste a new table</a></p>

@@ -1,6 +1,8 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "base.html" %}
 
+{% import 'table_macros.html' as table_macros %}
+
 {% block explainer %}{% endblock %}
 
 {% block main %}
@@ -8,7 +10,7 @@
     <h1>Praised tables</h1>
     <ol>
       {% for table in top_ten %}
-        <li><a href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">{{table.username}}/{{table.table_name}}</a>, <em>{{ table.caption }}</em></li>
+        <li>{{ table_macros.table_desc(table) }}</li>
       {% endfor %}
     </ol>
   </div>

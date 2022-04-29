@@ -166,16 +166,7 @@ def get_table(sesh, username_or_uuid: Union[UUID, str], table_name) -> Table:
     if table_model is None:
         raise exc.TableDoesNotExistException(user.username, table_name)
     columns = get_columns(sesh, table_model.table_uuid)
-    table = Table(
-        table_uuid=table_model.table_uuid,
-        username=user.username,
-        table_name=table_name,
-        is_public=table_model.public,
-        caption=table_model.caption,
-        data_licence=DataLicence(table_model.licence_id),
-        columns=columns,
-    )
-    return table
+    return _table_model_and_columns_to_table(user.username, table_model, columns)
 
 
 def get_columns(sesh, table_uuid) -> List["Column"]:
@@ -664,6 +655,7 @@ def _table_model_and_columns_to_table(
         caption=table_model.caption,
         data_licence=DataLicence(table_model.licence_id),
         columns=columns,
+        created=table_model.created,
     )
 
 
