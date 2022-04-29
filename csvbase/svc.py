@@ -26,7 +26,6 @@ from pgcopy import CopyManager
 from sqlalchemy import column as sacolumn, types as satypes
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import (
-    delete,
     TableClause,
     select,
     TextClause,
@@ -202,7 +201,7 @@ def get_columns(sesh, username, table_name) -> List["Column"]:
 def get_userdata_tableclause(sesh, username, table_name) -> TableClause:
     columns = get_columns(sesh, username, table_name)
     return satable(  # type: ignore
-        f"{username}__{table_name}",
+        make_userdata_table_name(username, table_name),
         *[sacolumn(c.name, type_=c.type_.sqla_type()) for c in columns],
         schema="userdata",
     )
@@ -232,7 +231,10 @@ def create_table(
     for col in columns:
         cols.append(SAColumn(col.name, type_=col.type_.sqla_type()))
     table = SATable(
-        f"{username}__{table_name}", MetaData(bind=engine), *cols, schema="userdata"
+        make_userdata_table_name(username, table_name),
+        MetaData(bind=engine),
+        *cols,
+        schema="userdata",
     )
     sesh.execute(CreateTable(table))
 
@@ -315,7 +317,17 @@ def make_drop_table_ddl(sesh: Session, username: str, table_name: str) -> DropTa
 def make_truncate_table_ddl(
     sesh: Session, username: str, table_name: str
 ) -> TextClause:
-    return text(f'TRUNCATE "{username}__{table_name}"')
+    return text(f"TRUNCATE {make_userdata_table_name(username, table_name, with_schema=True)}")
+
+
+def make_userdata_table_name(username: str, table_name: str, with_schema=False):
+    # FIXME: This needs to be changed, as we allow usernames and table names up
+    # to 200 chars but PG has a limit of 64 chars on table names.  Should
+    # probably just be "table_{table_uuid}".  This will also make renaming easier.
+    if with_schema:
+        return f"userdata.{username}__{table_name}"
+    else:
+        return f"{username}__{table_name}"
 
 
 def upsert_table_data(
@@ -343,7 +355,9 @@ def upsert_table_data(
     table = get_table(sesh, username, table_name)
     raw_conn = sesh.connection().connection
     cols = [c.name for c in table.user_columns()]
-    copy_manager = CopyManager(raw_conn, f"userdata.{username}__{table_name}", cols)
+    copy_manager = CopyManager(
+        raw_conn, make_userdata_table_name(username, table_name, with_schema=True), cols
+    )
     copy_manager.copy(row_gen)
 
 
