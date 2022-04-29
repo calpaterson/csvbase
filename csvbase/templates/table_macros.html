@@ -1,0 +1,40 @@
+{# -*- mode: jinja2 -*- #}
+
+{% macro praise_button(table, praise_id) %}
+  <form
+    method="POST"
+    action="{{ url_for('csvbase.praise_table', username=table.username, table_name=table.table_name)}}">
+    <input type="hidden" name="whence" value="{{ request.url }}">
+    {% if praise_id %}
+      <input hidden type="number" name="praise-id" value="{{ praise_id }}">
+      <button type='submit' class="btn btn-warning btn-sm"
+              ><img class="icon" src="{{ url_for('static', filename='praised.svg') }}"> Praised</button>
+      {% else %}
+        <button id="praise-button" type='submit' class="btn btn-secondary btn-sm"
+                ><img class="icon icon-hidden" src="{{ url_for('static', filename='praised.svg') }}"><img class="icon icon-invert" src="{{ url_for('static', filename='praise.svg') }}"> <span id="praise-span">Praise</span></button>
+      {% endif %}
+  </form>
+{% endmacro %}
+
+{% macro table_card(table) %}
+  <div class="card table-card">
+    <div class="card-body">
+      <h5 class="card-title"><a href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">{{table.username}}/{{table.table_name}}</a></h5>
+
+      {% if table.has_caption() %}<h6 class="card-subtitle mb-2 text-muted">&quot;{{ table.caption }}&quot;</h6>{% endif %}
+      <p>Created {{ table.age()|timedeltaformat }} ago</p>
+
+      <p>{{ table.user_columns()|length }} column{% if table.user_columns()|length > 1 %}s{% endif %}:
+        <ul>
+          {% for column in table.user_columns() %}
+            <li>{{ column.name}} ({{column.type_.pretty_name().lower()}})</li>
+          {% endfor %}
+        </ul>
+      </p>
+      {# <p>{{ praise_button(table, None) }}</p> #}
+      <a class="card-link" href="#">View</a>
+      <a class="card-link" href="#">API</a>
+      <a class="card-link" href="#">Export to CSV</a>
+    </div>
+  </div>
+{% endmacro %}

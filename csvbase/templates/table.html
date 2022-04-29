@@ -1,6 +1,8 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "base.html" %}
 
+{% import 'table_macros.html' as table_macros %}
+
 {% macro data_licence_badge(data_licence) %}
   <span
     style="font-size: 0.75rem"
@@ -32,19 +34,7 @@
         </div>
       {% endif %}
       <div class="col-auto">
-        <form
-          method="POST"
-          action="{{ url_for('csvbase.praise_table', username=username, table_name=table.table_name)}}">
-          <input type="hidden" name="whence" value="{{ request.url }}">
-          {% if praise_id %}
-            <input hidden type="number" name="praise-id" value="{{ praise_id }}">
-            <button type='submit' class="btn btn-warning btn-sm"
-                   ><img class="icon" src="{{ url_for('static', filename='praised.svg') }}"> Praised</button>
-          {% else %}
-            <button id="praise-button" type='submit' class="btn btn-secondary btn-sm"
-                    ><img class="icon icon-hidden" src="{{ url_for('static', filename='praised.svg') }}"><img class="icon icon-invert" src="{{ url_for('static', filename='praise.svg') }}"> <span id="praise-span">Praise</span></button>
-          {% endif %}
-        </form>
+        {{ table_macros.praise_button(table, praise_id) }}
       </div>
     </div>
 

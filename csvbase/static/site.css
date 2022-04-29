@@ -3,6 +3,10 @@
     background-color: #ffffff;
 }
 
+.table-card {
+    margin-bottom: 1em;
+}
+
 /* Stuff to do with praising */
 #praise-button:hover {
     background-color: var(--bs-warning);
