@@ -58,23 +58,24 @@ ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
 @pytest.fixture(scope="function")
 def ten_rows(test_user, sesh):
     table_name = random_string()
-    svc.upsert_table_metadata(
+    table_uuid = svc.create_table(
         sesh,
+        test_user.username,
+        table_name,
+        [Column("roman_numeral", type_=ColumnType.TEXT)],
+    )
+    svc.create_table_metadata(
+        sesh,
+        table_uuid,
         test_user.user_uuid,
         table_name,
         is_public=True,
         caption="Roman numerals",
         licence=DataLicence.ALL_RIGHTS_RESERVED,
     )
-    svc.create_table(
-        sesh,
-        test_user.username,
-        table_name,
-        [Column("roman_numeral", type_=ColumnType.TEXT)],
-    )
     column = Column(name="roman_numeral", type_=ColumnType.TEXT)
     for roman_numeral in ROMAN_NUMERALS:
-        svc.insert_row(sesh, test_user.username, table_name, {column: roman_numeral})
+        svc.insert_row(sesh, table_uuid, {column: roman_numeral})
     sesh.commit()
     return table_name
 
@@ -82,21 +83,22 @@ def ten_rows(test_user, sesh):
 @pytest.fixture(scope="module")
 def private_table(test_user, module_sesh):
     table_name = random_string()
-    svc.upsert_table_metadata(
+    x_column = Column("x", type_=ColumnType.INTEGER)
+    table_uuid = svc.create_table(
         module_sesh,
+        test_user.username,
+        table_name,
+        [x_column],
+    )
+    svc.create_table_metadata(
+        module_sesh,
+        table_uuid,
         test_user.user_uuid,
         table_name,
         is_public=False,
         caption="",
         licence=DataLicence.ALL_RIGHTS_RESERVED,
     )
-    x_column = Column("x", type_=ColumnType.INTEGER)
-    svc.create_table(
-        module_sesh,
-        test_user.username,
-        table_name,
-        [x_column],
-    )
-    svc.insert_row(module_sesh, test_user.username, table_name, {x_column: 1})
+    svc.insert_row(module_sesh, table_uuid, {x_column: 1})
     module_sesh.commit()
     return table_name

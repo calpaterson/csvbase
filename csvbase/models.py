@@ -94,7 +94,7 @@ class Table(Base):
         METADATA_SCHEMA_TABLE_ARG,
     )
 
-    table_uuid = Column(PGUUID, primary_key=True, default=uuid4)
+    table_uuid = Column(PGUUID, primary_key=True)
     user_uuid = Column(PGUUID, ForeignKey("metadata.users.user_uuid"), nullable=False)
     public = Column(satypes.Boolean, nullable=False)
     created = Column(

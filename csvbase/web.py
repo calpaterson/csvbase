@@ -4,7 +4,7 @@ from datetime import date, timedelta
 import io
 import shutil
 import codecs
-from logging import basicConfig, INFO, getLogger
+from logging import getLogger
 from typing import Optional, Any, Dict, List, Tuple, Sequence, Union, Mapping, cast
 from os import environ
 from urllib.parse import urlsplit, urlunsplit
@@ -47,7 +47,6 @@ from .value_objs import (
     User,
     DataLicence,
     ContentType,
-    PythonType,
     UserSubmittedCSVData,
     UserSubmittedBytes,
     Row,
@@ -92,7 +91,7 @@ def init_app():
         app.logger.warning("CSVBASE_SECERT_KEY not set, using a random secret")
         app.config["SECRET_KEY"] = secrets.token_hex()
 
-    babel = Babel(app, default_locale="en_GB", default_timezone="Europe/London")
+    Babel(app, default_locale="en_GB", default_timezone="Europe/London")
 
     app.url_map.converters["table_name"] = TableNameConverter
 
@@ -229,15 +228,16 @@ def new_table_form_submission():
     data_licence = DataLicence(request.form.get("data-licence", type=int))
     dialect, columns = svc.types_for_csv(csv_buf)
     csv_buf.seek(0)
-    svc.create_table(sesh, g.current_user.username, table_name, columns)
-    svc.upsert_table_metadata(
-        sesh, g.current_user.user_uuid, table_name, is_public, "", data_licence
+    table_uuid = svc.create_table(sesh, g.current_user.username, table_name, columns)
+    svc.create_table_metadata(
+        sesh, table_uuid, user.user_uuid, table_name, is_public, "", data_licence
     )
     svc.upsert_table_data(
         sesh,
         g.current_user.user_uuid,
         g.current_user.username,
         table_name,
+        table_uuid,
         csv_buf,
         dialect,
         columns,
@@ -311,9 +311,10 @@ def blank_table_form_post() -> Response:
     else:
         is_public = True
 
-    svc.create_table(sesh, g.current_user.username, table_name, cols)
-    svc.upsert_table_metadata(
+    table_uuid = svc.create_table(sesh, g.current_user.username, table_name, cols)
+    svc.create_table_metadata(
         sesh,
+        table_uuid,
         g.current_user.user_uuid,
         table_name,
         is_public,
@@ -335,7 +336,7 @@ def blank_table_form_post() -> Response:
 def table_view(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     user = svc.user_by_name(sesh, username)
-    if not svc.is_public(sesh, username, table_name) and not am_user(username):
+    if not svc.is_public(sesh, username, table_name) and not am_user(user.username):
         raise exc.TableDoesNotExistException(username, table_name)
 
     content_type = negotiate_content_type(
@@ -364,9 +365,7 @@ def table_view(username: str, table_name: str) -> Response:
         page = svc.table_page(sesh, username, table, keyset)
         return jsonify(table_to_json_dict(username, table, page))
     else:
-        return make_csv_response(
-            svc.table_as_csv(sesh, user.user_uuid, username, table_name)
-        )
+        return make_csv_response(svc.table_as_csv(sesh, table.table_uuid))
 
 
 @bp.route("/<username>/<table_name:table_name>/readme", methods=["GET"])
@@ -403,8 +402,8 @@ def get_table_apidocs(username: str, table_name: str) -> str:
     table.is_public or am_user_or_400(username)
     owner = svc.user_by_name(sesh, username)
 
-    made_up_row = svc.get_a_made_up_row(sesh, username, table_name)
-    sample_row = svc.get_a_sample_row(sesh, username, table_name)
+    made_up_row = svc.get_a_made_up_row(sesh, table.table_uuid)
+    sample_row = svc.get_a_sample_row(sesh, table.table_uuid)
     sample_page = Page(has_less=False, has_more=True, rows=[sample_row])
 
     return render_template(
@@ -500,6 +499,7 @@ def table_settings(username: str, table_name: str) -> str:
 def post_table_settings(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     am_user_or_400(username)
+    table = svc.get_table(sesh, username, table_name)
 
     caption = request.form["caption"]
     if "private" in request.form:
@@ -511,9 +511,7 @@ def post_table_settings(username: str, table_name: str) -> Response:
     readme_markdown = request.form.get("table-readme-markdown", "")
     svc.set_readme_markdown(sesh, g.current_user.user_uuid, table_name, readme_markdown)
 
-    svc.upsert_table_metadata(
-        sesh, g.current_user.user_uuid, table_name, is_public, caption, data_licence
-    )
+    svc.update_table_metadata(sesh, table.table_uuid, is_public, caption, data_licence)
     sesh.commit()
 
     flash(f"Saved settings for {username}/{table_name}")
@@ -546,11 +544,9 @@ def praise_table(username: str, table_name: str) -> Response:
 def get_table_csv(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    user = svc.user_by_name(sesh, username)
+    table = svc.get_table(sesh, username, table_name)
 
-    return make_csv_response(
-        svc.table_as_csv(sesh, user.user_uuid, username, table_name)
-    )
+    return make_csv_response(svc.table_as_csv(sesh, table.table_uuid))
 
 
 @bp.route("/<username>/<table_name:table_name>.json", methods=["GET"])
@@ -562,24 +558,20 @@ def table_view_json(username: str, table_name: str) -> Response:
 def get_table_xlsx(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    user = svc.user_by_name(sesh, username)
+    table = svc.get_table(sesh, username, table_name)
 
-    return make_xlsx_response(
-        svc.table_as_xlsx(sesh, user.user_uuid, username, table_name)
-    )
+    return make_xlsx_response(svc.table_as_xlsx(sesh, table.table_uuid))
 
 
 @bp.route("/<username>/<table_name:table_name>/export/xlsx", methods=["GET"])
 def export_table_xlsx(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    user = svc.user_by_name(sesh, username)
+    table = svc.get_table(sesh, username, table_name)
 
     excel_table = "excel-table" in request.args
 
-    xlsx_buf = svc.table_as_xlsx(
-        sesh, user.user_uuid, username, table_name, excel_table=excel_table
-    )
+    xlsx_buf = svc.table_as_xlsx(sesh, table.table_uuid, excel_table=excel_table)
 
     return make_xlsx_response(
         xlsx_buf,
@@ -594,7 +586,7 @@ CSV_SEPARATOR_MAP: Dict[str, str] = {"comma": ",", "tab": "\t", "vertical-bar": 
 def export_table_csv(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    user = svc.user_by_name(sesh, username)
+    table = svc.get_table(sesh, username, table_name)
 
     separator = request.args.get("separator", "comma")
     try:
@@ -604,9 +596,7 @@ def export_table_csv(username: str, table_name: str) -> Response:
 
     csv_buf = svc.table_as_csv(
         sesh,
-        user.user_uuid,
-        username,
-        table_name,
+        table.table_uuid,
         delimiter=delimiter,
     )
 
@@ -643,7 +633,7 @@ def create_row(username: str, table_name: str) -> Response:
             [ContentType.JSON, ContentType.HTML_FORM], request.mimetype
         )
 
-    row_id = svc.insert_row(sesh, username, table_name, row)
+    row_id = svc.insert_row(sesh, table.table_uuid, row)
     sesh.commit()
 
     row[ROW_ID_COLUMN] = row_id
@@ -675,7 +665,10 @@ def get_row(username: str, table_name: str, row_id: int) -> Response:
     svc.user_exists(sesh, username)
     if not svc.is_public(sesh, username, table_name) and not am_user(username):
         raise exc.TableDoesNotExistException(username, table_name)
-    row = svc.get_row(sesh, username, table_name, row_id)
+    table = svc.get_table(sesh, username, table_name)
+    row = svc.get_row(sesh, table.table_uuid, row_id)
+    if row is None:
+        raise exc.RowDoesNotExistException(username, table_name, row_id)
     if is_browser():
         return make_response(
             render_template(
@@ -722,7 +715,10 @@ def row_delete_check(username: str, table_name: str, row_id: int) -> Response:
     svc.user_exists(sesh, username)
     if not svc.is_public(sesh, username, table_name) and not am_user(username):
         raise exc.TableDoesNotExistException(username, table_name)
-    row = svc.get_row(sesh, username, table_name, row_id)
+    table = svc.get_table(sesh, username, table_name)
+    row = svc.get_row(sesh, table.table_uuid, row_id)
+    if row is None:
+        raise exc.RowDoesNotExistException(username, table_name, row_id)
 
     return make_response(
         render_template(
@@ -752,7 +748,7 @@ def update_row(username: str, table_name: str, row_id: int) -> Response:
     }
     row[table.row_id_column()] = row_id
 
-    if not svc.update_row(sesh, username, table_name, row_id, row):
+    if not svc.update_row(sesh, table.table_uuid, row_id, row):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
     sesh.commit()
     return jsonify(body)
@@ -763,7 +759,8 @@ def update_row(username: str, table_name: str, row_id: int) -> Response:
 def delete_row(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    if not svc.delete_row(sesh, username, table_name, row_id):
+    table = svc.get_table(sesh, username, table_name)
+    if not svc.delete_row(sesh, table.table_uuid, row_id):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
     sesh.commit()
     response = make_response()
@@ -780,7 +777,8 @@ def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Resp
     # don't support the DELETE verb
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    if not svc.delete_row(sesh, username, table_name, row_id):
+    table = svc.get_table(sesh, username, table_name)
+    if not svc.delete_row(sesh, table.table_uuid, row_id):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
     sesh.commit()
     flash(f"Deleted row {row_id}")
@@ -794,11 +792,12 @@ def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Resp
 )
 def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
-    columns = svc.get_columns(sesh, username, table_name)
+    table = svc.get_table(sesh, username, table_name)
     row: Row = {
-        c: c.type_.from_html_form_to_python(request.form.get(c.name)) for c in columns
+        c: c.type_.from_html_form_to_python(request.form.get(c.name))
+        for c in table.columns
     }
-    svc.update_row(sesh, username, table_name, row_id, row)
+    svc.update_row(sesh, table.table_uuid, row_id, row)
     sesh.commit()
     flash(f"Updated row {row_id}")
     return redirect(
@@ -820,11 +819,13 @@ def upsert_table(username: str, table_name: str) -> Response:
     str_buf = byte_buf_to_str_buf(byte_buf)
     dialect, columns = svc.types_for_csv(str_buf)
     str_buf.seek(0)
+    table = svc.get_table(sesh, username, table_name)
     svc.upsert_table_data(
         sesh,
         svc.user_by_name(sesh, username).user_uuid,
         username,
         table_name,
+        table.table_uuid,
         str_buf,
         dialect,
         columns,

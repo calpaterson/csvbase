@@ -3,8 +3,6 @@ import codecs
 from typing import (
     Optional,
     Sequence,
-    Tuple,
-    Union,
     Type,
     Iterable,
     Any,

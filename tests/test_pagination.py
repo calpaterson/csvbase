@@ -22,9 +22,10 @@ def letters_table(test_user, module_sesh):
 
     dialect, columns = svc.types_for_csv(csv_buf)
     csv_buf.seek(0)
-    svc.create_table(module_sesh, test_user.username, table_name, columns)
-    svc.upsert_table_metadata(
+    table_uuid = svc.create_table(module_sesh, test_user.username, table_name, columns)
+    svc.create_table_metadata(
         module_sesh,
+        table_uuid,
         test_user.user_uuid,
         table_name,
         True,
@@ -36,6 +37,7 @@ def letters_table(test_user, module_sesh):
         test_user.user_uuid,
         test_user.username,
         table_name,
+        table_uuid,
         csv_buf,
         dialect,
         columns,
@@ -129,18 +131,17 @@ def test_pagination_over_the_top(sesh, test_user, letters_table):
 def test_pagination_under_the_bottom(sesh, test_user):
     table_name = random_string()
     x_column = Column("x", ColumnType.INTEGER)
-    svc.create_table(sesh, test_user.username, table_name, columns=[x_column])
-    svc.upsert_table_metadata(
-        sesh, test_user.user_uuid, table_name, False, "", DataLicence.OGL
+    table_uuid = svc.create_table(
+        sesh, test_user.username, table_name, columns=[x_column]
+    )
+    svc.create_table_metadata(
+        sesh, table_uuid, test_user.user_uuid, table_name, False, "", DataLicence.OGL
     )
 
-    row_ids = [
-        svc.insert_row(sesh, test_user.username, table_name, {x_column: 1})
-        for _ in range(5)
-    ]
+    row_ids = [svc.insert_row(sesh, table_uuid, {x_column: 1}) for _ in range(5)]
 
     for row_id in row_ids[:3]:
-        svc.delete_row(sesh, test_user.username, table_name, row_id)
+        svc.delete_row(sesh, table_uuid, row_id)
 
     table = svc.get_table(sesh, test_user.username, table_name)
 
@@ -158,11 +159,11 @@ def test_pagination_under_the_bottom(sesh, test_user):
 def test_paging_on_empty_table(sesh, test_user):
     table_name = random_string()
 
-    svc.create_table(
+    table_uuid = svc.create_table(
         sesh, test_user.username, table_name, columns=[Column("x", ColumnType.INTEGER)]
     )
-    svc.upsert_table_metadata(
-        sesh, test_user.user_uuid, table_name, False, "", DataLicence.OGL
+    svc.create_table_metadata(
+        sesh, table_uuid, test_user.user_uuid, table_name, False, "", DataLicence.OGL
     )
     table = svc.get_table(sesh, test_user.username, table_name)
 

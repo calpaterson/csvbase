@@ -32,7 +32,7 @@ from sqlalchemy.sql.expression import (
     text,
     table as satable,
 )
-from sqlalchemy.schema import (
+from sqlalchemy.schema import (  # type: ignore
     CreateTable,
     Table as SATable,
     Column as SAColumn,
@@ -165,7 +165,7 @@ def get_table(sesh, username_or_uuid: Union[UUID, str], table_name) -> Table:
     )
     if table_model is None:
         raise exc.TableDoesNotExistException(user.username, table_name)
-    columns = get_columns(sesh, user.username, table_name)
+    columns = get_columns(sesh, table_model.table_uuid)
     table = Table(
         table_uuid=table_model.table_uuid,
         username=user.username,
@@ -178,30 +178,30 @@ def get_table(sesh, username_or_uuid: Union[UUID, str], table_name) -> Table:
     return table
 
 
-def get_columns(sesh, username, table_name) -> List["Column"]:
+def get_columns(sesh, table_uuid) -> List["Column"]:
     # lifted from https://dba.stackexchange.com/a/22420/28877
-    attrelid = f"userdata.{username}__{table_name}"
+    attrelid = make_userdata_table_name(table_uuid, with_schema=True)
     stmt = text(
         """
     SELECT attname AS column_name, atttypid::regtype AS sql_type
     FROM   pg_attribute
-    WHERE  attrelid = :attrelid ::regclass
+    WHERE  attrelid = :table_name ::regclass
     AND    attnum > 0
     AND    NOT attisdropped
     ORDER  BY attnum
     """
     )
-    rs = sesh.execute(stmt, {"attrelid": attrelid})
+    rs = sesh.execute(stmt, {"table_name": attrelid})
     rv = []
     for name, sql_type in rs:
         rv.append(Column(name=name, type_=ColumnType.from_sql_type(sql_type)))
     return rv
 
 
-def get_userdata_tableclause(sesh, username, table_name) -> TableClause:
-    columns = get_columns(sesh, username, table_name)
+def get_userdata_tableclause(sesh, table_uuid) -> TableClause:
+    columns = get_columns(sesh, table_uuid)
     return satable(  # type: ignore
-        make_userdata_table_name(username, table_name),
+        make_userdata_table_name(table_uuid),
         *[sacolumn(c.name, type_=c.type_.sqla_type()) for c in columns],
         schema="userdata",
     )
@@ -209,7 +209,8 @@ def get_userdata_tableclause(sesh, username, table_name) -> TableClause:
 
 def create_table(
     sesh: Session, username: str, table_name: str, columns: Iterable[Column]
-) -> None:
+) -> UUID:
+    table_uuid = uuid4()
     cols: List[SAColumn] = [
         SAColumn("csvbase_row_id", satypes.BigInteger, Identity(), primary_key=True),
         # FIXME: would be good to have these two columns plus
@@ -231,32 +232,41 @@ def create_table(
     for col in columns:
         cols.append(SAColumn(col.name, type_=col.type_.sqla_type()))
     table = SATable(
-        make_userdata_table_name(username, table_name),
+        make_userdata_table_name(table_uuid),
         MetaData(bind=engine),
         *cols,
         schema="userdata",
     )
     sesh.execute(CreateTable(table))
+    return table_uuid
 
 
-def upsert_table_metadata(
+def create_table_metadata(
     sesh: Session,
+    table_uuid: UUID,
     user_uuid: UUID,
     table_name: str,
     is_public: bool,
     caption: str,
     licence: DataLicence,
 ) -> None:
-    table_obj: Optional[models.Table] = (
-        sesh.query(models.Table)
-        .filter(
-            models.Table.user_uuid == user_uuid, models.Table.table_name == table_name
-        )
-        .first()
+    table_obj = models.Table(
+        table_uuid=table_uuid, table_name=table_name, user_uuid=user_uuid
     )
-    if table_obj is None:
-        table_obj = models.Table(user_uuid=user_uuid, table_name=table_name)
-        sesh.add(table_obj)
+    sesh.add(table_obj)
+    table_obj.public = is_public
+    table_obj.caption = caption
+    table_obj.licence_id = licence.value
+
+
+def update_table_metadata(
+    sesh: Session,
+    table_uuid: UUID,
+    is_public: bool,
+    caption: str,
+    licence: DataLicence,
+) -> None:
+    table_obj = sesh.get(models.Table, table_uuid)  # type: ignore
     table_obj.public = is_public
     table_obj.caption = caption
     table_obj.licence_id = licence.value
@@ -308,26 +318,24 @@ def set_readme_markdown(
         table.readme_obj.readme_markdown = bleached
 
 
-def make_drop_table_ddl(sesh: Session, username: str, table_name: str) -> DropTable:
-    sqla_table = get_userdata_tableclause(sesh, username, table_name)
+def make_drop_table_ddl(sesh: Session, table_uuid: UUID) -> DropTable:
+    sqla_table = get_userdata_tableclause(sesh, table_uuid)
     # sqlalchemy-stubs doesn't match sqla 1.4
     return DropTable(sqla_table)  # type: ignore
 
 
-def make_truncate_table_ddl(
-    sesh: Session, username: str, table_name: str
-) -> TextClause:
-    return text(f"TRUNCATE {make_userdata_table_name(username, table_name, with_schema=True)}")
+def make_truncate_table_ddl(sesh: Session, table_uuid: UUID) -> TextClause:
+    return text(f"TRUNCATE {make_userdata_table_name(table_uuid, with_schema=True)}")
 
 
-def make_userdata_table_name(username: str, table_name: str, with_schema=False):
+def make_userdata_table_name(table_uuid: UUID, with_schema=False):
     # FIXME: This needs to be changed, as we allow usernames and table names up
     # to 200 chars but PG has a limit of 64 chars on table names.  Should
     # probably just be "table_{table_uuid}".  This will also make renaming easier.
     if with_schema:
-        return f"userdata.{username}__{table_name}"
+        return f"userdata.table_{table_uuid.hex}"
     else:
-        return f"{username}__{table_name}"
+        return f"table_{table_uuid.hex}"
 
 
 def upsert_table_data(
@@ -335,13 +343,14 @@ def upsert_table_data(
     user_uuid: UUID,
     username: str,
     table_name: str,
+    table_uuid: UUID,
     csv_buf: UserSubmittedCSVData,
     dialect: Type[csv.Dialect],
     columns: Sequence[Column],
     truncate_first=True,
 ) -> None:
     if truncate_first:
-        sesh.execute(make_truncate_table_ddl(sesh, username, table_name))
+        sesh.execute(make_truncate_table_ddl(sesh, table_uuid))
         logger.info("truncated %s/%s", username, table_name)
 
     # Copy in with binary copy
@@ -356,28 +365,26 @@ def upsert_table_data(
     raw_conn = sesh.connection().connection
     cols = [c.name for c in table.user_columns()]
     copy_manager = CopyManager(
-        raw_conn, make_userdata_table_name(username, table_name, with_schema=True), cols
+        raw_conn, make_userdata_table_name(table_uuid, with_schema=True), cols
     )
     copy_manager.copy(row_gen)
 
 
 def table_as_csv(
     sesh: Session,
-    user_uuid: UUID,
-    username: str,
-    table_name: str,
+    table_uuid: UUID,
     delimiter: str = ",",
 ) -> io.StringIO:
     csv_buf = io.StringIO()
 
-    columns = [c.name for c in get_columns(sesh, username, table_name)]
+    columns = [c.name for c in get_columns(sesh, table_uuid)]
 
     # this allows for putting the columns in with proper csv escaping
     writer = csv.writer(csv_buf, delimiter=delimiter)
     writer.writerow(columns)
 
     # FIXME: This is probably too slow
-    for row in table_as_rows(sesh, user_uuid, username, table_name):
+    for row in table_as_rows(sesh, table_uuid):
         writer.writerow(row)
 
     csv_buf.seek(0)
@@ -386,16 +393,14 @@ def table_as_csv(
 
 def table_as_xlsx(
     sesh: Session,
-    user_uuid: UUID,
-    username: str,
-    table_name: str,
+    table_uuid: UUID,
     excel_table: bool = False,
 ) -> io.BytesIO:
     xlsx_buf = io.BytesIO()
 
-    column_names = [c.name for c in get_columns(sesh, username, table_name)]
+    column_names = [c.name for c in get_columns(sesh, table_uuid)]
 
-    rows = table_as_rows(sesh, user_uuid, username, table_name)
+    rows = table_as_rows(sesh, table_uuid)
 
     workbook_args = {}
     if not excel_table:
@@ -432,12 +437,10 @@ def table_as_xlsx(
 
 def table_as_rows(
     sesh: Session,
-    user_uuid: UUID,
-    username: str,
-    table_name: str,
+    table_uuid: UUID,
 ) -> Iterable[Tuple[PythonType]]:
-    table_clause = get_userdata_tableclause(sesh, username, table_name)
-    columns = get_columns(sesh, username, table_name)
+    table_clause = get_userdata_tableclause(sesh, table_uuid)
+    columns = get_columns(sesh, table_uuid)
     q = select([getattr(table_clause.c, c.name) for c in columns]).order_by(
         table_clause.c.csvbase_row_id
     )
@@ -447,7 +450,7 @@ def table_as_rows(
 def table_page(sesh: Session, username: str, table: Table, keyset: KeySet) -> Page:
     """Get a page from a table based on the provided KeySet"""
     # FIXME: this doesn't handle empty tables
-    table_clause = get_userdata_tableclause(sesh, username, table.table_name)
+    table_clause = get_userdata_tableclause(sesh, table.table_uuid)
     if keyset.op == "greater_than":
         where_cond = table_clause.c.csvbase_row_id > keyset.n
     else:
@@ -495,26 +498,26 @@ def table_page(sesh: Session, username: str, table: Table, keyset: KeySet) -> Pa
     )
 
 
-def get_row(sesh: Session, username: str, table_name: str, row_id: int) -> Row:
-    columns = get_columns(sesh, username, table_name)
-    table_clause = get_userdata_tableclause(sesh, username, table_name)
+def get_row(sesh: Session, table_uuid: UUID, row_id: int) -> Optional[Row]:
+    columns = get_columns(sesh, table_uuid)
+    table_clause = get_userdata_tableclause(sesh, table_uuid)
     cursor = sesh.execute(
         table_clause.select().where(table_clause.c.csvbase_row_id == row_id)
     )
     row = cursor.fetchone()
     if row is None:
-        raise exc.RowDoesNotExistException(username, table_name, row_id)
+        return None
     else:
         return {c: row[c.name] for c in columns}
 
 
-def get_a_sample_row(sesh: Session, username: str, table_name: str) -> Row:
+def get_a_sample_row(sesh: Session, table_uuid: UUID) -> Row:
     """Returns a sample row from the table (the lowest row id).
 
     If none exist, a made-up row is returned.  This function is for
     example/documentation purposes only."""
-    columns = get_columns(sesh, username, table_name)
-    table_clause = get_userdata_tableclause(sesh, username, table_name)
+    columns = get_columns(sesh, table_uuid)
+    table_clause = get_userdata_tableclause(sesh, table_uuid)
     cursor = sesh.execute(table_clause.select().order_by("csvbase_row_id").limit(1))
     row = cursor.fetchone()
     if row is None:
@@ -524,20 +527,19 @@ def get_a_sample_row(sesh: Session, username: str, table_name: str) -> Row:
         return {c: row[c.name] for c in columns}
 
 
-def get_a_made_up_row(sesh: Session, username, table_name: str) -> Row:
-    columns = get_columns(sesh, username, table_name)
+def get_a_made_up_row(sesh: Session, table_uuid: UUID) -> Row:
+    columns = get_columns(sesh, table_uuid)
     return {c: c.type_.example() for c in columns}
 
 
 def update_row(
     sesh: Session,
-    username: str,
-    table_name: str,
+    table_uuid: UUID,
     row_id: int,
     row: Row,
 ) -> bool:
     """Update a given row, returning True if it existed (and was updated) and False otherwise."""
-    table = get_userdata_tableclause(sesh, username, table_name)
+    table = get_userdata_tableclause(sesh, table_uuid)
     values = {c.name: v for c, v in row.items()}
     result = sesh.execute(
         table.update().where(table.c.csvbase_row_id == row_id).values(values)
@@ -545,15 +547,15 @@ def update_row(
     return result.rowcount > 0
 
 
-def delete_row(sesh: Session, username: str, table_name: str, row_id: int) -> bool:
+def delete_row(sesh: Session, table_uuid: UUID, row_id: int) -> bool:
     """Update a given row, returning True if it existed (and was updated) and False otherwise."""
-    table = get_userdata_tableclause(sesh, username, table_name)
+    table = get_userdata_tableclause(sesh, table_uuid)
     result = sesh.execute(table.delete().where(table.c.csvbase_row_id == row_id))
     return result.rowcount > 0
 
 
-def insert_row(sesh: Session, username: str, table_name: str, row: Row) -> int:
-    table = get_userdata_tableclause(sesh, username, table_name)
+def insert_row(sesh: Session, table_uuid: UUID, row: Row) -> int:
+    table = get_userdata_tableclause(sesh, table_uuid)
     values = {c.name: v for c, v in row.items()}
     return sesh.execute(
         table.insert().values(values).returning(table.c.csvbase_row_id)
@@ -647,7 +649,7 @@ def tables_for_user(
     if not include_private:
         rp = rp.filter(models.Table.public)
     for table_model, username in rp:
-        columns = get_columns(sesh, username, table_model.table_name)
+        columns = get_columns(sesh, table_model.table_uuid)
         yield _table_model_and_columns_to_table(username, table_model, columns)
 
 
@@ -674,7 +676,7 @@ def get_top_n(sesh: Session, n: int = 10) -> Iterable[Table]:
         .limit(n)
     )
     for table_model, username in rp:
-        columns = get_columns(sesh, username, table_model.table_name)
+        columns = get_columns(sesh, table_model.table_uuid)
         yield _table_model_and_columns_to_table(username, table_model, columns)
 
 
