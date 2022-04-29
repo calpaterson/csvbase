@@ -39,6 +39,7 @@ from sqlalchemy.schema import (
     Column as SAColumn,
     DropTable,
     MetaData,
+    Identity,
 )
 
 from .value_objs import (
@@ -211,8 +212,8 @@ def create_table(
     sesh: Session, username: str, table_name: str, columns: Iterable[Column]
 ) -> None:
     cols: List[SAColumn] = [
-        SAColumn("csvbase_row_id", type_=satypes.BigInteger, primary_key=True),
-        # FIXME: would be good to have these two columns plus my
+        SAColumn("csvbase_row_id", satypes.BigInteger, Identity(), primary_key=True),
+        # FIXME: would be good to have these two columns plus
         # "csvbase_created_by" and csvbase_updated_by, but needs support for
         # datetimes as a type
         # SAColumn(
