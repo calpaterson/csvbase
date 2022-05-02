@@ -9,9 +9,9 @@
     <p>Are you sure you want to delete this row?  This cannot be undone.</p>
     <form
       method="POST"
-      action="{{ url_for('csvbase.delete_row_for_browsers', username=username, table_name=table_name, row_id=row_id) }}">
+      action="{{ url_for('csvbase.delete_row_for_browsers', username=table.username, table_name=table.table_name, row_id=row_id) }}">
       <div class="mb-3">
-        <a href="{{ url_for('csvbase.get_row', username=username, table_name=table_name, row_id=row_id) }}"
+        <a href="{{ url_for('csvbase.get_row', username=table.username, table_name=table.table_name, row_id=row_id) }}"
            class="btn btn-secondary">Cancel</a>
            <input class="btn btn-danger"
                   type="submit"

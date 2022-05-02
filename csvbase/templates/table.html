@@ -23,8 +23,8 @@
   <div class="container">
     <h1
       class="py-2"><a
-      href="{{ url_for('csvbase.user', username=username) }}">{{ username }}</a> / <a
-      href="{{ url_for('csvbase.table_view', username=username, table_name=table.table_name) }}"
+      href="{{ url_for('csvbase.user', username=table.username) }}">{{ table.username }}</a> / <a
+      href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}"
       >{{ table.table_name }}</a> {{ data_licence_badge(table.data_licence) }} {{ privacy_badge(table) }}</h1>
 
     <div class="row">
@@ -43,24 +43,24 @@
       <ul class="nav nav-tabs">
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.table_view' %}active{%endif%}"
-             href="{{ url_for('csvbase.table_view', username=username, table_name=table.table_name) }}">View</a>
+             href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">View</a>
         </li>
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.table_readme' %}active{%endif%}"
-             href="{{ url_for('csvbase.table_readme', username=username, table_name=table.table_name) }}">Readme</a>
+             href="{{ url_for('csvbase.table_readme', username=table.username, table_name=table.table_name) }}">Readme</a>
         </li>
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.table_details' %}active{%endif%}"
-             href="{{ url_for('csvbase.table_details', username=username, table_name=table.table_name) }}">Schema/details</a>
+             href="{{ url_for('csvbase.table_details', username=table.username, table_name=table.table_name) }}">Schema/details</a>
         </li>
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.table_export' %}active{%endif%}"
-             href="{{ url_for('csvbase.table_export', username=username, table_name=table.table_name) }}"
+             href="{{ url_for('csvbase.table_export', username=table.username, table_name=table.table_name) }}"
              >Export (Excel, Pandas, R, etc)</a>
         </li>
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.get_table_apidocs' %}active{%endif%}"
-             href="{{ url_for('csvbase.get_table_apidocs', username=username, table_name=table.table_name) }}"
+             href="{{ url_for('csvbase.get_table_apidocs', username=table.username, table_name=table.table_name) }}"
              >API (REST)</a>
         </li>
         <li class="nav-item">
@@ -68,10 +68,10 @@
              href=""
              >API (GraphQL)</a>
         </li>
-        {% if username == g.current_username %}
+        {% if table.username == g.current_username %}
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'csvbase.table_settings' %}active{%endif%}"
-               href="{{url_for('csvbase.table_settings', username=username, table_name=table.table_name)}}"
+               href="{{url_for('csvbase.table_settings', username=table.username, table_name=table.table_name)}}"
                >Settings</a>
           </li>
         {% endif %}

@@ -103,6 +103,7 @@ def types_for_csv(
 
 def user_by_name(sesh, username: str) -> User:
     sqla_user = sesh.query(models.User).filter(models.User.username == username).first()
+    # FIXME: This is quite a hot function, needs some caching (and a better query)
     if sqla_user is None:
         raise exc.UserDoesNotExistException(username)
     else:

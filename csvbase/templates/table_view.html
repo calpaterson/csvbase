@@ -23,7 +23,7 @@
             {% for col in table.columns %}
               {% if loop.index == 1 %}
                 <td><a
-                      href="{{ url_for('csvbase.get_row', username=username, table_name=table_name, row_id=row[col]) }}"
+                      href="{{ url_for('csvbase.get_row', username=table.username, table_name=table.table_name, row_id=row[col]) }}"
                       >{{row[col]}}</a></td>
                     {% else %}
                       <td>{{row[col]}}</td>
@@ -38,16 +38,16 @@
   <nav>
     <div class="row">
       <div class="col-auto">
-        {% if username == g.current_username %}
-          <a class="btn btn-success" href=" {{ url_for('csvbase.row_add_form', username=username, table_name=table_name) }}">Add row</a>
+        {% if table.username == g.current_username %}
+          <a class="btn btn-success" href=" {{ url_for('csvbase.row_add_form', username=table.username, table_name=table.table_name) }}">Add row</a>
         {% endif %}
       </div>
-      <div class="col-md-4 {% if username == g.current_username %}offset-md-3{% else %}offset-md-4{% endif %}">
+      <div class="col-md-4 {% if table.username == g.current_username %}offset-md-3{% else %}offset-md-4{% endif %}">
     <ul class="pagination justify-content-center">
       {% if page.has_less %}
         <li class="page-item">
           <a class="page-link"
-             href="{{ url_for('csvbase.table_view', username=username, table_name=table_name, op='lt', n=page.rows[0][ROW_ID_COLUMN]) }}">Previous page</a>
+             href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name, op='lt', n=page.rows[0][ROW_ID_COLUMN]) }}">Previous page</a>
         </li>
       {% else %}
         <li class="page-item disabled">
@@ -66,7 +66,7 @@
       {% if page.has_more %}
         <li class="page-item">
           <a class="page-link"
-             href="{{ url_for('csvbase.table_view', username=username, table_name=table_name, op='gt', n=page.rows[-1][ROW_ID_COLUMN]) }}">Next page</a>
+             href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name, op='gt', n=page.rows[-1][ROW_ID_COLUMN]) }}">Next page</a>
         </li>
       {% else %}
         <li class="page-item disabled">

@@ -354,8 +354,6 @@ def table_view(username: str, table_name: str) -> Response:
                 table=table,
                 page=page,
                 keyset=keyset,
-                username=username,
-                table_name=table_name,
                 ROW_ID_COLUMN=ROW_ID_COLUMN,
                 praise_id=get_praise_id_if_exists(table),
             )
@@ -363,7 +361,7 @@ def table_view(username: str, table_name: str) -> Response:
     elif content_type is ContentType.JSON:
         keyset = keyset_from_request_args()
         page = svc.table_page(sesh, username, table, keyset)
-        return jsonify(table_to_json_dict(username, table, page))
+        return jsonify(table_to_json_dict(table, page))
     else:
         return make_csv_response(svc.table_as_csv(sesh, table.table_uuid))
 
@@ -386,8 +384,6 @@ def table_readme(username: str, table_name: str) -> Response:
         render_template(
             "table_readme.html",
             page_title=f"Readme for {username}/{table_name}",
-            username=username,
-            table_name=table_name,
             table=table,
             table_readme=readme_html,
             praise_id=get_praise_id_if_exists(table),
@@ -409,9 +405,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
     return render_template(
         "table_api.html",
         page_title=f"REST docs: {username}/{table_name}",
-        username=username,
         owner=owner,
-        table_name=table_name,
         table=table,
         sample_row=sample_row,
         sample_row_id=row_id_from_row(sample_row),
@@ -450,9 +444,7 @@ def table_export(username: str, table_name: str) -> str:
     return render_template(
         "table_export.html",
         page_title=f"Export: {username}/{table_name}",
-        username=username,
         table=table,
-        table_name=table_name,
         table_url=table_url,
         private_table_url=private_table_url,
         praise_id=get_praise_id_if_exists(table),
@@ -676,8 +668,7 @@ def get_row(username: str, table_name: str, row_id: int) -> Response:
                 page_title=f"{username}/{table_name}/rows/{row_id}",
                 row=row,
                 row_id=row_id,
-                username=username,
-                table_name=table_name,
+                table=table,
             )
         )
     else:
@@ -699,8 +690,6 @@ def row_add_form(username: str, table_name: str) -> Response:
         render_template(
             "row-add.html",
             page_title=f"Add a row to {username}/{table_name}",
-            username=username,
-            table_name=table_name,
             table=table,
         )
     )
@@ -726,8 +715,7 @@ def row_delete_check(username: str, table_name: str, row_id: int) -> Response:
             page_title=f"Delete {username}/{table_name}/rows/{row_id}?",
             row=row,
             row_id=row_id,
-            username=username,
-            table_name=table_name,
+            table=table,
         )
     )
 
@@ -852,7 +840,6 @@ def user(username: str):
             "user.html",
             user=user,
             page_title=f"{username}",
-            username=username,
             tables=list(tables),
         )
     )
@@ -1118,14 +1105,14 @@ def row_id_from_row(row: Row) -> int:
     return cast(int, row[ROW_ID_COLUMN])
 
 
-def page_to_json_dict(username: str, table: Table, page: Page) -> Dict[str, Any]:
+def page_to_json_dict(table: Table, page: Page) -> Dict[str, Any]:
     rv: Dict[str, Any] = {}
     rv["rows"] = [row_to_json_dict(table, row) for row in page.rows]
     if page.has_less:
         # FIXME: these url_fors should be shared with the table_view template
         rv["previous_page_url"] = url_for(
             "csvbase.table_view",
-            username=username,
+            username=table.username,
             table_name=table.table_name,
             op="lt",
             n=page.rows[-1][ROW_ID_COLUMN],
@@ -1137,7 +1124,7 @@ def page_to_json_dict(username: str, table: Table, page: Page) -> Dict[str, Any]
     if page.has_more:
         rv["next_page_url"] = url_for(
             "csvbase.table_view",
-            username=username,
+            username=table.username,
             table_name=table.table_name,
             op="gt",
             n=page.rows[-1][ROW_ID_COLUMN],
@@ -1148,7 +1135,7 @@ def page_to_json_dict(username: str, table: Table, page: Page) -> Dict[str, Any]
     return rv
 
 
-def table_to_json_dict(username: str, table: Table, page: Page) -> Dict[str, Any]:
+def table_to_json_dict(table: Table, page: Page) -> Dict[str, Any]:
     rv = {
         "name": table.table_name,
         "is_public": table.is_public,
@@ -1158,7 +1145,7 @@ def table_to_json_dict(username: str, table: Table, page: Page) -> Dict[str, Any
             {"name": column.name, "type": column.type_.pretty_type()}
             for column in table.columns
         ],
-        "page": page_to_json_dict(username, table, page),
+        "page": page_to_json_dict(table, page),
     }
     return rv
 

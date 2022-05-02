@@ -50,7 +50,7 @@
     </p>
 
     <p>
-      <code>{{ url_for_with_auth('csvbase.table_view', username=username, table_name=table_name, _external=True) }}</code>
+      <code>{{ url_for_with_auth('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True) }}</code>
     </p>
 
     <p>
@@ -59,10 +59,10 @@
 
     <p>
       {% if table.is_public %}
-        However, {{username}}/{{table_name}} is public so <mark>auth is needed only
+        However, {{table.username}}/{{table.table_name}} is public so <mark>auth is needed only
         for <em>writes</em></mark>.
       {% else %}
-        {{username}}/{{table_name}} is private, so you&apos;ll need to provide
+        {{table.username}}/{{table.table_name}} is private, so you&apos;ll need to provide
         auth for all API requests.
       {% endif %}
     </p>
@@ -96,7 +96,7 @@
     </p>
 
     <p>
-      <code>{{ url_for_with_auth('csvbase.table_view_json', username=username, table_name=table_name, _external=True) }}</code>
+      <code>{{ url_for_with_auth('csvbase.table_view_json', username=table.username, table_name=table.table_name, _external=True) }}</code>
     </p>
 
     <p>
@@ -120,7 +120,7 @@
       This table looks like this in JSON:
     </p>
 
-    <pre>{{ table_to_json_dict(username, table, sample_page)|ppjson }}</pre>
+    <pre>{{ table_to_json_dict(table, sample_page)|ppjson }}</pre>
 
     <p>
       Note that there is the top-level metadata, plus a "page" of rows.  Tables
@@ -134,9 +134,9 @@
     <h4 id="table-reading">Reading a table</h4>
     <p>
       {% if table.is_public %}
-        <code>GET</code> from <code>{{ url_for('csvbase.table_view', username=username, table_name=table_name, _external=True) }}</code>
+        <code>GET</code> from <code>{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True) }}</code>
       {% else %}
-        <code>GET</code> from <code>{{ url_for_with_auth('csvbase.table_view', username=username, table_name=table_name, _external=True) }}</code>
+        <code>GET</code> from <code>{{ url_for_with_auth('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True) }}</code>
       {% endif %}
     </p>
 
@@ -147,14 +147,14 @@
 
     <h3 id="rows">Rows</h3>
     <p>
-      Rows from {{username}}/{{table_name}} look like this in JSON:
+      Rows from {{table.username}}/{{table.table_name}} look like this in JSON:
     </p>
 
     <pre>{{ row_to_json_dict(table, sample_row)|ppjson }}</pre>
 
     <h4 id="rows-creating">Creating a new row</h4>
     <p>
-      <code>POST</code> to <code>{{ url_for_with_auth('csvbase.create_row', username=username, table_name=table_name, _external=True) }}</code>
+      <code>POST</code> to <code>{{ url_for_with_auth('csvbase.create_row', username=table.username, table_name=table.table_name, _external=True) }}</code>
     </p>
 
     <h5>Example body</h5>
@@ -170,9 +170,9 @@
     <h4 id="rows-reading">Reading a row</h4>
     <p>
       {% if table.is_public %}
-        <code>GET</code> from <code>{{ url_for('csvbase.get_row', username=username, table_name=table_name, _external=True, row_id=sample_row_id) }}</code>
+        <code>GET</code> from <code>{{ url_for('csvbase.get_row', username=table.username, table_name=table.table_name, _external=True, row_id=sample_row_id) }}</code>
       {% else %}
-        <code>GET</code> from <code>{{ url_for_with_auth('csvbase.get_row', username=username, table_name=table_name, _external=True, row_id=sample_row_id) }}</code>
+        <code>GET</code> from <code>{{ url_for_with_auth('csvbase.get_row', username=table.username, table_name=table.table_name, _external=True, row_id=sample_row_id) }}</code>
       {% endif %}
     </p>
 
@@ -183,7 +183,7 @@
 
     <h4 id="rows-updating">Updating an existing row</h4>
     <p>
-      <code>PUT</code> to <code>{{ url_for_with_auth('csvbase.update_row', username=username, table_name=table_name, _external=True, row_id=sample_row_id) }}</code>
+      <code>PUT</code> to <code>{{ url_for_with_auth('csvbase.update_row', username=table.username, table_name=table.table_name, _external=True, row_id=sample_row_id) }}</code>
     </p>
 
     <h5>Example body</h5>
@@ -196,7 +196,7 @@
 
     <h4 id="rows-deleting">Deleting a row</h4>
     <p>
-      <code>DELETE</code> from <code>{{ url_for_with_auth('csvbase.delete_row', username=username, table_name=table_name, _external=True, row_id=sample_row_id) }}</code>
+      <code>DELETE</code> from <code>{{ url_for_with_auth('csvbase.delete_row', username=table.username, table_name=table.table_name, _external=True, row_id=sample_row_id) }}</code>
     </p>
 
     <p>No body is required.  Status code 204 upon success.</p>

@@ -5,7 +5,7 @@
 
 {% block main %}
   <div class="container">
-    <h1><a href="{{ url_for('csvbase.user', username=username) }}">{{ username }}</a></h1>
+    <h1><a href="{{ url_for('csvbase.user', username=user.username) }}">{{ user.username }}</a></h1>
 
     <p>Registered {{ user.registered|dateformat }}</p>
 
@@ -17,7 +17,7 @@
         </div>
       </div>
     {% endfor %}
-    {% if g.current_username == username %}
+    {% if g.current_username == user.username %}
       <p>Or <a href="{{ url_for('csvbase.paste')}}"> paste a new table</a></p>
 
       <h2>Your API Key</h2>

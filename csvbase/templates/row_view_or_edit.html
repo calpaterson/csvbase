@@ -5,12 +5,12 @@
 
 {% block body_contents %}
   <div class="container">
-    {% if g.current_username != username %}
+    {% if g.current_username != table.username %}
       {{ row_macros.row_table(row) }}
     {% else %}
       <div class="py-3">
         <form
-          action="{{ url_for('csvbase.update_row_by_form_post', username=username, table_name=table_name, row_id=row_id) }}"
+          action="{{ url_for('csvbase.update_row_by_form_post', username=table.username, table_name=table.table_name, row_id=row_id) }}"
           method="POST">
           {% for col, v in row.items() %}
             <div class="mb-3 row g-3">
@@ -45,7 +45,7 @@
           {% endfor %}
           <div class="mb-3">
             <input class="btn btn-primary" type="submit" value="Save row">
-            <a href="{{ url_for('csvbase.row_delete_check', username=username, table_name=table_name, row_id=row_id) }}"
+            <a href="{{ url_for('csvbase.row_delete_check', username=table.username, table_name=table.table_name, row_id=row_id) }}"
                class="btn btn-danger">Delete row</a>
           </div>
         </form>
