@@ -562,18 +562,10 @@ def insert_row(sesh: Session, table_uuid: UUID, row: Row) -> int:
     ).scalar()
 
 
-def is_public(sesh, username, table_name) -> bool:
-    rv = (
-        sesh.query(models.Table.public)
-        .join(models.User)
-        .filter(models.User.username == username, models.Table.table_name == table_name)
-        .scalar()
-    )
-    if rv is None:
-        raise exc.TableDoesNotExistException(username, table_name)
-    else:
-        return rv
-
+def is_public(sesh: Session, username: str, table_name: str) -> bool:
+    # FIXME: This is in preparation for get_table to use memcache
+    table = get_table(sesh, username, table_name)
+    return table.is_public
 
 def user_exists(sesh: Session, username: str) -> None:
     exists = sesh.query(
