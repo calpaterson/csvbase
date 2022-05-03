@@ -158,12 +158,8 @@ def table_exists(sesh: Session, user_uuid: UUID, table_name: str) -> bool:
     ).scalar()
 
 
-def get_table(sesh, username_or_uuid: Union[UUID, str], table_name) -> Table:
-    if isinstance(username_or_uuid, str):
-        user = user_by_name(sesh, username_or_uuid)
-    else:
-        user = user_by_user_uuid(sesh, username_or_uuid)
-
+def get_table(sesh: Session, username: str, table_name: str) -> Table:
+    user = user_by_name(sesh, username)
     table_model: Optional[models.Table] = (
         sesh.query(models.Table)
         .filter(
@@ -567,12 +563,10 @@ def is_public(sesh: Session, username: str, table_name: str) -> bool:
     table = get_table(sesh, username, table_name)
     return table.is_public
 
+
 def user_exists(sesh: Session, username: str) -> None:
-    exists = sesh.query(
-        sesh.query(models.User).filter(models.User.username == username).exists()
-    ).scalar()
-    if not exists:
-        raise exc.UserDoesNotExistException(username)
+    # FIXME: This function should probably be removed
+    user_by_name(sesh, username)
 
 
 def create_user(

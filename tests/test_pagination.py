@@ -44,7 +44,7 @@ def letters_table(test_user, module_sesh):
         truncate_first=False,
     )
     module_sesh.commit()
-    return svc.get_table(module_sesh, test_user.user_uuid, table_name)
+    return svc.get_table(module_sesh, test_user.username, table_name)
 
 
 def rows_to_alist(rows):
