@@ -101,21 +101,29 @@ def types_for_csv(
     return dialect, rv
 
 
-def user_by_name(sesh, username: str) -> User:
-    sqla_user = sesh.query(models.User).filter(models.User.username == username).first()
-    # FIXME: This is quite a hot function, needs some caching (and a better query)
-    if sqla_user is None:
+def user_by_name(sesh: Session, username: str) -> User:
+    # FIXME: This is quite a hot function, needs some caching
+    rp = (
+        sesh.query(
+            models.User.user_uuid,
+            models.User.registered,
+            models.APIKey.api_key,
+            models.UserEmail.email_address,
+        )
+        .join(models.APIKey)
+        .outerjoin(models.UserEmail)
+        .filter(models.User.username == username)
+        .first()
+    )
+    if rp is None:
         raise exc.UserDoesNotExistException(username)
     else:
-        if sqla_user.email_obj is not None:
-            email = sqla_user.email_obj.email_address
-        else:
-            email = None
+        user_uuid, registered, api_key, email = rp
         return User(
-            user_uuid=sqla_user.user_uuid,
+            user_uuid=user_uuid,
             username=username,
-            registered=sqla_user.registered,
-            api_key=sqla_user.api_key.api_key,
+            registered=registered,
+            api_key=api_key,
             email=email,
         )
 
