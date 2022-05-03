@@ -709,7 +709,7 @@ def praise(
 def is_praised(sesh: Session, user_uuid: UUID, table_uuid: UUID) -> Optional[int]:
     stmt = """
     SELECT praise_id
-    FROM praise
+    FROM metadata.praise
     WHERE user_uuid = :user_uuid
     AND table_uuid = :table_uuid
     """
