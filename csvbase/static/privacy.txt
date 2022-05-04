@@ -1,0 +1,60 @@
+# csvbase privacy policy
+
+This policy was last updated on 2022-05-04
+
+## Contact details
+
+Cal Paterson
+
+cal@calpaterson.com
+
+## The type of personal information we collect
+
+We currently collect the following information from users who choose to
+register:
+
+- username (optionally) an email address
+
+## How we get the personal information and why we have it
+
+We only collect personal information directly, when you register.
+
+We use the information that you have given us to give your account a unique
+name.  In future we hope to use the email address to provide password reset and
+(opt-in) email notifications.
+
+We do not share this information with any other parties.
+
+Under the UK GDPR the lawful basis we rely on for processing this information
+is:
+
+- your consent.  You can withdraw your consent at any time by contacting us.
+
+## How we store your personal information
+
+Your information is securely stored and not accessible to anyone else.
+
+## Your data protection rights
+
+Under data protection law, you have certain rights, including:
+
+- your right of access your right to rectification your right to erasure your
+- right to restriction of processing your right to object to processing your
+- right to data portability
+
+You aren't required to pay in order to exercise your rights.  If you make a
+request we have one month to respond.
+
+## How to complain
+
+You can contact us to make a complaint.
+
+You can also contact the Information Commissioner's Office if you are unhappy
+with how we have used your data.  The contact details for the ICO are below:
+
+Information Commissioner’s Office Wycliffe House Water Lane Wilmslow Cheshire
+SK9 5AF
+
+0303 123 1113
+
+https://www.ico.org.uk
