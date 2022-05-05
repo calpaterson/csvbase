@@ -197,7 +197,7 @@ def upload_file() -> str:
 
 
 @bp.route("/new-table", methods=["POST"])
-def new_table_form_submission():
+def new_table_form_submission() -> Response:
     sesh = get_sesh()
     if "username" in request.form:
         user = svc.create_user(
