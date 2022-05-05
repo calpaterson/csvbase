@@ -21,7 +21,6 @@ from flask import (
     session as flask_session,
     Flask,
     request,
-    abort,
     make_response,
     render_template,
     redirect,
@@ -562,8 +561,8 @@ def get_table_csv(username: str, table_name: str) -> Response:
 
 
 @bp.route("/<username>/<table_name:table_name>.json", methods=["GET"])
-def table_view_json(username: str, table_name: str) -> Response:
-    abort(501)
+def table_view_json(username: str, table_name: str) -> Tuple[str, int]:
+    return "not implemented", 501
 
 
 @bp.route("/<username>/<table_name:table_name>.xlsx", methods=["GET"])
@@ -947,13 +946,13 @@ def am_a_user() -> bool:
 
 def am_user_or_400(username: str) -> bool:
     if not am_user(username):
-        abort(400)
+        raise exc.NotAuthenticatedException()
     return True
 
 
 def am_a_user_or_400():
     if not am_a_user():
-        abort(400)
+        raise exc.NotAuthenticatedException()
 
 
 def make_text_response(text: str, status=200):
@@ -1071,7 +1070,7 @@ def set_current_user(user: User):
 
 def json_or_400() -> Dict[str, Any]:
     if request.json is None:
-        abort(400)
+        raise exc.InvalidRequest()
     else:
         return request.json
 
