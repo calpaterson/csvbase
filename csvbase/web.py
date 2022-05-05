@@ -116,11 +116,10 @@ class TableNameConverter(BaseConverter):
 @bp.errorhandler(exc.CSVBaseException)
 def handle_csvbase_exceptions(e):
     message, http_code = EXCEPTION_MESSAGE_CODE_MAP[e.__class__]
-    if is_browser():
+    if is_browser() and http_code == 401:
+        # FIXME: this should go to a sign in page
         # web browsers handle 401 specially, use 400
-        if http_code == 401:
-            http_code = 400
-        return f"{http_code}: {message}", http_code
+        return f"{http_code}: {message}", 400
     else:
         return jsonify({"error": message}), http_code
 
