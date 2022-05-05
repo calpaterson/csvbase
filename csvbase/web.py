@@ -472,7 +472,7 @@ def table_settings(username: str, table_name: str) -> str:
     sesh = get_sesh()
     user = svc.user_by_name(sesh, username)
     table = svc.get_table(sesh, username, table_name)
-    table.is_public or am_user_or_400(username)
+    am_user_or_400(username)
 
     table_readme_markdown = svc.get_readme_markdown(sesh, user.user_uuid, table_name)
 
