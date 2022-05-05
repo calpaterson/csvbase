@@ -73,21 +73,21 @@
     {% if g.current_username == table.username %}
       <h2>Delete table</h2>
       <div class="alert alert-danger" role="alert">
-        Not yet implemented
+        Enter &lt;username&gt;/&lt;table_name&gt; here to show you really mean it.
       </div>
-      <form>
+      <form method="POST" action="{{ url_for('csvbase.delete_table_form_post', username=table.username, table_name=table.table_name) }}">
         <div class="row">
           <div class="col-auto">
             <input
               type="text"
               class="form-control"
-              pattern="^{{table.table_name}}$"
+              pattern="^{{table.username}}/{{table.table_name}}$"
               required
               title="<username>/<table_name>"
               >
           </div>
           <div class="col-auto">
-            <input type="submit" disabled class="btn btn-danger" value="Delete table forever">
+            <input type="submit" class="btn btn-danger" value="Delete table forever">
           </div>
         </div>
       </form>

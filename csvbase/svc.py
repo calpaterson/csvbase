@@ -244,6 +244,24 @@ def create_table(
     return table_uuid
 
 
+def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> None:
+    table_model = (
+        sesh.query(models.Table)
+        .join(models.User)
+        .filter(models.Table.table_name == table_name, models.User.username == username)
+        .first()
+    )
+    if table_model is None:
+        raise exc.TableDoesNotExistException(username, table_name)
+    sa_table = SATable(
+        make_userdata_table_name(table_model.table_uuid),
+        MetaData(bind=engine),
+        schema="userdata",
+    )
+    sesh.delete(table_model)
+    sesh.execute(DropTable(sa_table))  # type: ignore
+
+
 def create_table_metadata(
     sesh: Session,
     table_uuid: UUID,

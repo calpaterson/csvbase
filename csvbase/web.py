@@ -487,6 +487,18 @@ def table_settings(username: str, table_name: str) -> str:
     )
 
 
+@bp.route("/<username>/<table_name:table_name>/delete-table-form-post", methods=["POST"])
+def delete_table_form_post(username: str, table_name: str) -> Response:
+    sesh = get_sesh()
+    user = svc.user_by_name(sesh, username)
+    table = svc.get_table(sesh, username, table_name)
+    am_user_or_400(username)
+    svc.delete_table_and_metadata(sesh, username, table_name)
+    sesh.commit()
+    flash(f"Deleted {username}/{table_name}")
+    return redirect(url_for("csvbase.user", username=username))
+
+
 @bp.route("/<username>/<table_name:table_name>/settings", methods=["POST"])
 def post_table_settings(username: str, table_name: str) -> Response:
     sesh = get_sesh()
