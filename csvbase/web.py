@@ -64,15 +64,15 @@ CORS_EXPIRY = timedelta(hours=8)
 
 
 EXCEPTION_MESSAGE_CODE_MAP = {
-    exc.UserDoesNotExistException: ("user does not exist", 404),
-    exc.RowDoesNotExistException: ("row does not exist", 404),
-    exc.TableDoesNotExistException: ("table does not exist", 404),
-    exc.NotAuthenticatedException: ("not authenticated", 401),
-    exc.NotAllowedException: ("not allowed", 403),
-    exc.WrongAuthException: ("wrong auth", 400),
+    exc.UserDoesNotExistException: ("that user does not exist", 404),
+    exc.RowDoesNotExistException: ("that row does not exist", 404),
+    exc.TableDoesNotExistException: ("that table does not exist", 404),
+    exc.NotAuthenticatedException: ("you need to sign in to do that", 401),
+    exc.NotAllowedException: ("that's not allowed", 403),
+    exc.WrongAuthException: ("that's the wrong password or api key", 400),
     exc.InvalidAPIKeyException: ("invalid api key", 400),
     exc.InvalidRequest: ("invalid request", 400),
-    exc.CantNegotiateContentType: ("can't agree on a content type", 406),
+    exc.CantNegotiateContentType: ("can't agree with you on a content type", 406),
     exc.WrongContentType: ("you sent the wrong content type", 400),
 }
 
@@ -116,10 +116,12 @@ class TableNameConverter(BaseConverter):
 @bp.errorhandler(exc.CSVBaseException)
 def handle_csvbase_exceptions(e):
     message, http_code = EXCEPTION_MESSAGE_CODE_MAP[e.__class__]
-    if is_browser() and http_code == 401:
+    if is_browser():
         # FIXME: this should go to a sign in page
         # web browsers handle 401 specially, use 400
-        return f"{http_code}: {message}", 400
+        if http_code == 401:
+            http_code = 400
+        return f"http error code {http_code}: {message}", http_code
     else:
         return jsonify({"error": message}), http_code
 

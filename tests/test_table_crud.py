@@ -57,7 +57,7 @@ def test_read__table_does_not_exist(client, test_user, content_type):
     assert resp.status_code == 404, resp.data
     assert content_type.value in resp.headers["Content-Type"]
     if content_type is ContentType.JSON:
-        assert resp.json == {"error": "table does not exist"}
+        assert resp.json == {"error": "that table does not exist"}
 
 
 def test_read__user_does_not_exist(client, test_user, content_type):
@@ -65,7 +65,7 @@ def test_read__user_does_not_exist(client, test_user, content_type):
     assert resp.status_code == 404, resp.data
     assert content_type.value in resp.headers["Content-Type"]
     if content_type is ContentType.JSON:
-        assert resp.json == {"error": "user does not exist"}
+        assert resp.json == {"error": "that user does not exist"}
 
 
 def test_read__is_private_not_authed(client, private_table, test_user, content_type):
@@ -76,7 +76,7 @@ def test_read__is_private_not_authed(client, private_table, test_user, content_t
     assert resp.status_code == 404, resp.data
     assert content_type.value in resp.headers["Content-Type"]
     if content_type is ContentType.JSON:
-        assert resp.json == {"error": "table does not exist"}
+        assert resp.json == {"error": "that table does not exist"}
 
 
 @pytest.mark.xfail(reason="test not implemented", strict=True)

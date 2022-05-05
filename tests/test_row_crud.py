@@ -30,7 +30,7 @@ def test_create__table_does_not_exist(client, test_user):
         headers={"Authorization": test_user.basic_auth()},
     )
     assert post_resp.status_code == 404
-    assert post_resp.json == {"error": "table does not exist"}
+    assert post_resp.json == {"error": "that table does not exist"}
 
 
 def test_create__user_does_not_exist(client, test_user):
@@ -40,7 +40,7 @@ def test_create__user_does_not_exist(client, test_user):
         headers={"Authorization": test_user.basic_auth()},
     )
     assert post_resp.status_code == 404
-    assert post_resp.json == {"error": "user does not exist"}
+    assert post_resp.json == {"error": "that user does not exist"}
 
 
 def test_create__not_authed(client, ten_rows, test_user):
@@ -49,7 +49,7 @@ def test_create__not_authed(client, ten_rows, test_user):
         json={"row": {"roman_numeral": "XI"}},
     )
     assert post_resp.status_code == 401
-    assert post_resp.json == {"error": "not authenticated"}
+    assert post_resp.json == {"error": "you need to sign in to do that"}
 
 
 @pytest.mark.xfail(reason="test not implemented")
@@ -71,7 +71,7 @@ def test_create__wrong_user(client, ten_rows, test_user, app, sesh):
         headers={"Authorization": other_user.basic_auth()},
     )
     assert resp.status_code == 403, resp.data
-    assert resp.json == {"error": "not allowed"}
+    assert resp.json == {"error": "that's not allowed"}
 
 
 def test_read__happy(client, ten_rows, test_user):
@@ -87,25 +87,25 @@ def test_read__happy(client, ten_rows, test_user):
 def test_read__row_does_not_exist(client, ten_rows, test_user):
     resp = client.get(f"/{test_user.username}/{ten_rows}/rows/11")
     assert resp.status_code == 404, resp.data
-    assert resp.json == {"error": "row does not exist"}
+    assert resp.json == {"error": "that row does not exist"}
 
 
 def test_read__table_does_not_exist(client, test_user):
     resp = client.get(f"/{test_user.username}/something/rows/1")
     assert resp.status_code == 404, resp.data
-    assert resp.json == {"error": "table does not exist"}
+    assert resp.json == {"error": "that table does not exist"}
 
 
 def test_read__user_does_not_exist(client, test_user):
     resp = client.get("/someone/something/rows/1")
     assert resp.status_code == 404, resp.data
-    assert resp.json == {"error": "user does not exist"}
+    assert resp.json == {"error": "that user does not exist"}
 
 
 def test_read__is_private_not_authed(client, private_table, test_user):
     resp = client.get(f"/{test_user.username}/{private_table}/rows/1")
     assert resp.status_code == 404, resp.data
-    assert resp.json == {"error": "table does not exist"}
+    assert resp.json == {"error": "that table does not exist"}
 
 
 def test_read__is_private_am_authed(client, private_table, test_user):
@@ -141,7 +141,7 @@ def test_update__row_does_not_exist(client, ten_rows, test_user):
     new = {"row_id": 11, "row": {"roman_numeral": "XI"}}
     resp = client.put(url, json=new)
     assert resp.status_code == 404, resp.data
-    assert resp.json == {"error": "row does not exist"}
+    assert resp.json == {"error": "that row does not exist"}
 
 
 def test_update__row_id_does_not_match(client, ten_rows, test_user):
@@ -180,7 +180,7 @@ def test_delete__happy(client, ten_rows, test_user):
 
     resp = client.get(url)
     assert resp.status_code == 404, resp.data
-    assert resp.json == {"error": "row does not exist"}
+    assert resp.json == {"error": "that row does not exist"}
 
 
 @pytest.mark.xfail(reason="test not implemented")
