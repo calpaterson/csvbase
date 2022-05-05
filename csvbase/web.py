@@ -487,7 +487,9 @@ def table_settings(username: str, table_name: str) -> str:
     )
 
 
-@bp.route("/<username>/<table_name:table_name>/delete-table-form-post", methods=["POST"])
+@bp.route(
+    "/<username>/<table_name:table_name>/delete-table-form-post", methods=["POST"]
+)
 def delete_table_form_post(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     user = svc.user_by_name(sesh, username)
