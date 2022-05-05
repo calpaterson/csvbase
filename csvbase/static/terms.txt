@@ -1,0 +1,45 @@
+# csvbase terms of service
+
+These terms were last updated on 2022-05-05.
+
+## Contact details
+
+Cal Paterson
+
+cal@calpaterson.com
+
+## Outline
+
+csvbase is provided as a alpha quality service.  That means it's not of a
+professional standard.  Neither is the software.
+
+We don't provide any guarantees and you use the service at your own risk.
+
+## Data you post on csvbase
+
+All data you post on csvbase must be legal in both the UK and the EU.
+
+You must not post personally identifiable information of any kind.
+
+We do not take ownership or copyright of data you post on csvbase.
+
+If you select a licence ("PDDL", "ODB-By", etc) when uploading your data you
+agree to provide your data to us under that same licence.
+
+If you do not select a specific licence you, as the copyright holder (and you
+must be the copyright holder in this scenario), agree to allow us at least to
+redistribute your data to others according to whether you make it public or
+private.
+
+## Changing your mind
+
+You can change your mind at any time by deleting your data.
+
+You can also make your data private at any time.
+
+You can also change the licence you have selected at any time.
+
+## Removal of data
+
+Data may be removed for any reason or for no reason.  This is to allow for
+moderation and anti-spam.
