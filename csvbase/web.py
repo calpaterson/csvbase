@@ -230,7 +230,13 @@ def new_table_form_submission():
     csv_buf.seek(0)
     table_uuid = svc.create_table(sesh, g.current_user.username, table_name, columns)
     svc.create_table_metadata(
-        sesh, table_uuid, user.user_uuid, table_name, is_public, "", data_licence
+        sesh,
+        table_uuid,
+        g.current_user.user_uuid,
+        table_name,
+        is_public,
+        "",
+        data_licence,
     )
     svc.upsert_table_data(
         sesh,
