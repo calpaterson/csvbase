@@ -23,7 +23,7 @@ import binascii
 import bleach
 import xlsxwriter
 from pgcopy import CopyManager
-from sqlalchemy import column as sacolumn, types as satypes
+from sqlalchemy import column as sacolumn, types as satypes, func
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import (
     TableClause,
@@ -681,16 +681,32 @@ def _table_model_and_columns_to_table(
 
 
 def get_top_n(sesh: Session, n: int = 10) -> Iterable[Table]:
-    rp = (
-        sesh.query(models.Table, models.User.username)
-        .join(models.User)
-        .filter(models.Table.public)
-        .order_by(models.Table.created.desc())
-        .limit(n)
-    )
-    for table_model, username in rp:
-        columns = get_columns(sesh, table_model.table_uuid)
-        yield _table_model_and_columns_to_table(username, table_model, columns)
+    # FIXME: Put this in a materialized view and refresh every N minutes
+    stmt = """
+SELECT
+    table_uuid,
+    username,
+    table_name,
+    public,
+    caption,
+    licence_id,
+    created
+FROM
+    tables AS t
+    JOIN users AS u on t.user_uuid = u.user_uuid
+    LEFT JOIN praise USING (table_uuid)
+GROUP BY
+    table_uuid, username
+ORDER BY
+    count(praise_id) / extract(epoch FROM now() - created) DESC,
+    created DESC
+LIMIT :n;
+    """
+    rp = sesh.execute(stmt, dict(n=n))
+    for table_uuid, username, table_name, public, caption, licence_id, created in rp:
+        columns = get_columns(sesh, table_uuid)
+        table = Table(table_uuid, username, table_name, public, caption, DataLicence(licence_id), columns, created)
+        yield table
 
 
 def get_public_table_names(sesh: Session) -> Iterable[Tuple[str, str]]:
