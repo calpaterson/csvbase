@@ -689,7 +689,6 @@ SELECT
     table_uuid,
     username,
     table_name,
-    public,
     caption,
     licence_id,
     created
@@ -697,6 +696,7 @@ FROM
     tables AS t
     JOIN users AS u on t.user_uuid = u.user_uuid
     LEFT JOIN praise USING (table_uuid)
+WHERE public
 GROUP BY
     table_uuid, username
 ORDER BY
@@ -705,13 +705,13 @@ ORDER BY
 LIMIT :n;
     """
     rp = sesh.execute(stmt, dict(n=n))
-    for table_uuid, username, table_name, public, caption, licence_id, created in rp:
+    for table_uuid, username, table_name, caption, licence_id, created in rp:
         columns = get_columns(sesh, table_uuid)
         table = Table(
             table_uuid,
             username,
             table_name,
-            public,
+            True,
             caption,
             DataLicence(licence_id),
             columns,
