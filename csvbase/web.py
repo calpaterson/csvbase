@@ -113,17 +113,23 @@ class TableNameConverter(BaseConverter):
     regex = r"[A-z][-A-z0-9]+"
 
 
-@bp.errorhandler(exc.CSVBaseException)
-def handle_csvbase_exceptions(e):
+# typing for errorhandler is apparently tricky...
+# https://github.com/pallets/flask/blob/bd56d19b167822a9a23e2e9e2a07ccccc36baa8d/src/flask/typing.py#L49
+@bp.errorhandler(exc.CSVBaseException)  # type: ignore
+def handle_csvbase_exceptions(e: exc.CSVBaseException) -> Response:
     message, http_code = EXCEPTION_MESSAGE_CODE_MAP[e.__class__]
     if is_browser():
-        # FIXME: this should go to a sign in page
-        # web browsers handle 401 specially, use 400
         if http_code == 401:
-            http_code = 400
-        return f"http error code {http_code}: {message}", http_code
+            flash("You need to sign in to do that")
+            return redirect(url_for("csvbase.register"))
+        else:
+            resp = make_response(f"http error code {http_code}: {message}")
+            resp.status_code = http_code
+            return resp
     else:
-        return jsonify({"error": message}), http_code
+        resp = jsonify({"error": message})
+        resp.status_code = http_code
+        return resp
 
 
 @bp.before_request
@@ -210,7 +216,7 @@ def new_table_form_submission() -> Response:
             request.form.get("email"),
         )
         set_current_user_for_session(user)
-        flash("Account created")
+        flash("Account registered")
     else:
         am_a_user_or_400()
 
@@ -894,12 +900,34 @@ def sitemap() -> Response:
     return resp
 
 
+@bp.route("/register", methods=["GET", "POST"])
+def register() -> Response:
+    if request.method == "GET":
+        return make_response(render_template("register.html", whence=request.referrer))
+    else:
+        sesh = get_sesh()
+        user = svc.create_user(
+            sesh,
+            current_app.config["CRYPT_CONTEXT"],
+            request.form["username"],
+            request.form["password"],
+            request.form.get("email"),
+        )
+        sesh.commit()
+        set_current_user_for_session(user)
+        flash("Account registered")
+        whence = request.form.get(
+            "whence", url_for("csvbase.user", username=user.username)
+        )
+        return redirect(whence)
+
+
 @bp.route("/sign-in", methods=["GET", "POST"])
 def sign_in() -> Response:
-    sesh = get_sesh()
     if request.method == "GET":
         return make_response(render_template("sign_in.html", whence=request.referrer))
     else:
+        sesh = get_sesh()
         username = request.form["username"]
         if svc.is_correct_password(
             sesh,

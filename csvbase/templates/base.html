@@ -61,6 +61,20 @@
         </div>
       </nav>
 
+      {% block explainer %}
+        {% if "current_user" not in g %}
+          <div class="container">
+            <div id='explain-alert' class="alert alert-light" role="alert">
+              <p>csvbase is a website for sharing data tables.{% if table %}  Exporting <code>{{table.table_name}}</code> to pandas is dead easy, run:</p>
+
+              <pre>import pandas; {{table.table_name|snake_case}} = pandas.read_csv("{{url_for('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True)}}")</pre>
+            {% endif %}
+            <p>For more details, see the <a href="{{ url_for('csvbase.about') }}">about page</a> - or even <a href="{{ url_for('csvbase.register') }}">register</a>?</p>
+            </div>
+          </div>
+        {% endif %}
+      {% endblock %}
+
       {% with messages = get_flashed_messages() %}
         {% if messages %}
           <div class="container">
@@ -73,29 +87,13 @@
         {% endif %}
       {% endwith %}
 
-      {% block explainer %}
-        {% if "current_user" not in g %}
-          <div class="container">
-            <div id='explain-alert' class="alert alert-light" role="alert">
-              <p>csvbase is a website for sharing data tables.{% if table %}  Exporting <code>{{table.table_name}}</code> to pandas is dead easy, run:</p>
-
-              <pre>import pandas; {{table.table_name|snake_case}} = pandas.read_csv("{{url_for('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True)}}")</pre>
-            {% endif %}
-            <p>For more details, see the <a href="{{ url_for('csvbase.about') }}">about page</a> - or even <a href="#">register</a>?</p>
-            </div>
-          </div>
-        {% endif %}
-      {% endblock %}
-
       {% block main %}
       {% endblock %}
     {% endblock %}
 
     <div class="container">
       <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 my-5 border-top">
-        <p class="col-md-4 mb-0 text-muted">© 2022 Cal Paterson Ltd, licensed under the AGPL</p>
-
-        <a href="/" class="col-md-4 d-flex align-items-center justify-content-center mb-3 mb-md-0 me-md-auto link-dark text-decoration-none">
+        <a href="/" class="offset-md-4 col-md-4 d-flex align-items-center justify-content-center mb-3 mb-md-0 me-md-auto link-dark text-decoration-none">
           <img src="/static/logo/192x192.png" alt=" " width="32" height="32" class="d-inline-block align-text">
         </a>
 

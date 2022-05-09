@@ -1,3 +1,6 @@
+from typing import Optional
+
+
 class CSVBaseException(Exception):
     """ABC for CSVBase exceptions to make it possible to catch them collectively"""
 
