@@ -258,6 +258,7 @@ def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> 
         MetaData(bind=engine),
         schema="userdata",
     )
+    sesh.query(models.Praise).filter(models.Praise.table_uuid==table_model.table_uuid).delete()
     sesh.delete(table_model)
     sesh.execute(DropTable(sa_table))  # type: ignore
 
