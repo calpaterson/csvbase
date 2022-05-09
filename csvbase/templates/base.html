@@ -65,11 +65,13 @@
         {% if "current_user" not in g %}
           <div class="container">
             <div id='explain-alert' class="alert alert-light" role="alert">
-              <p>csvbase is a website for sharing data tables.{% if table %}  Exporting <code>{{table.table_name}}</code> to pandas is dead easy, run:</p>
+              {% if table %}
+                <p>csvbase is a website for hosting table data. Exporting this table to pandas is dead easy, run:</p>
 
-              <pre>import pandas; {{table.table_name|snake_case}} = pandas.read_csv("{{url_for('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True)}}")</pre>
-            {% endif %}
-            <p>For more details, see the <a href="{{ url_for('csvbase.about') }}">about page</a> - or even <a href="{{ url_for('csvbase.register') }}">register</a>?</p>
+                <p><code>import pandas; {{table.table_name|snake_case}} = pandas.read_csv("{{url_for('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True)}}")</code></p>
+              {% else %}
+                <p>csvbase is a website for hosting table data.  For more details see the <a href="{{ url_for('csvbase.about') }}">about page.</a>
+              {% endif %}
             </div>
           </div>
         {% endif %}

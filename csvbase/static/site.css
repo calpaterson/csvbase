@@ -54,3 +54,12 @@
 #explain-alert p:last-child {
     margin-bottom: 0;
 }
+
+/* the about page */
+#blurb {
+    max-width: 44rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding-right: 1rem;
+    padding-left: 1rem;
+}

@@ -3,7 +3,14 @@
 
 {% import 'table_macros.html' as table_macros %}
 
-{% block explainer %}{% endblock %}
+{% block explainer %}
+  <div class="container">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        {{ super() }}
+      </div>
+  </div>
+{% endblock %}
 
 {% block main %}
   <div class="container">
@@ -14,5 +21,4 @@
         {% endfor %}
       </div>
   </div>
-
 {% endblock %}
