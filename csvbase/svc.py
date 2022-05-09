@@ -258,7 +258,9 @@ def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> 
         MetaData(bind=engine),
         schema="userdata",
     )
-    sesh.query(models.Praise).filter(models.Praise.table_uuid==table_model.table_uuid).delete()
+    sesh.query(models.Praise).filter(
+        models.Praise.table_uuid == table_model.table_uuid
+    ).delete()
     sesh.delete(table_model)
     sesh.execute(DropTable(sa_table))  # type: ignore
 
@@ -705,7 +707,16 @@ LIMIT :n;
     rp = sesh.execute(stmt, dict(n=n))
     for table_uuid, username, table_name, public, caption, licence_id, created in rp:
         columns = get_columns(sesh, table_uuid)
-        table = Table(table_uuid, username, table_name, public, caption, DataLicence(licence_id), columns, created)
+        table = Table(
+            table_uuid,
+            username,
+            table_name,
+            public,
+            caption,
+            DataLicence(licence_id),
+            columns,
+            created,
+        )
         yield table
 
 
