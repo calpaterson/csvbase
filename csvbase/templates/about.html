@@ -21,7 +21,7 @@
       <li>All tables have a <a href="{{ url_for('csvbase.get_table_apidocs', username='meripaterson', table_name='stock-exchanges') }}">simple REST API</a><ul>
           <li>A GraphQL API will follow soon</li>
       </ul></li>
-      <li>Exporting to Pandas/R/MS Excel is particularly easy; just use the url<ul>
+      <li>Exporting to Pandas/R/MS Excel is dead easy; just use the url:<ul>
       <li><code>pandas.read_csv("{{url_for('csvbase.table_view', username='meripaterson', table_name='stock-exchanges', _external=True)}}")</code></ul></li>
     </ul>
 

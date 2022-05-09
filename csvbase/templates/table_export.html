@@ -3,46 +3,51 @@
 
 {% block tab_contents %}
   <div class="container">
-    <h2>Export to MS Excel</h2>
-    <form action="{{ url_for('csvbase.export_table_xlsx', username=table.username, table_name=table.table_name) }}">
-      <div class="form-check">
-        <input type="checkbox" class="form-check-input" disabled checked id="excel-row-id" name="row-id">
-        <label class="form-check-label" for="excel-row-id">Include <code>csvbase_row_id</code></label>
-        <small id="emailHelp" class="form-text text-muted">handy for correlation</small>
-      </div>
-      <div class="form-check">
-        <input type="checkbox" class="form-check-input" id="excel-table" name="excel-table">
-        <label class="form-check-label" for="excel-table">As a table</label>
-        <small id="emailHelp" class="form-text text-muted">Use an embedded excel table</small>
-      </div>
-      <input type="submit" class="btn btn-primary" value="Download .xlsx">
-    </form>
+    <div class="row mb-3">
+      <h2>Export to MS Excel</h2>
+      <form action="{{ url_for('csvbase.export_table_xlsx', username=table.username, table_name=table.table_name) }}">
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" disabled checked id="excel-row-id" name="row-id">
+          <label class="form-check-label" for="excel-row-id">Include <code>csvbase_row_id</code></label>
+          <small id="emailHelp" class="form-text text-muted">handy for correlation</small>
+        </div>
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" id="excel-table" name="excel-table">
+          <label class="form-check-label" for="excel-table">As a table</label>
+          <small id="emailHelp" class="form-text text-muted">Use an embedded excel table</small>
+        </div>
+        <input type="submit" class="btn btn-primary" value="Download .xlsx">
+      </form>
+    </div>
 
-    <h2>Export to CSV/TSV</h2>
-    <form action="{{ url_for('csvbase.export_table_csv', username=table.username, table_name=table.table_name) }}">
-      <div class="form-check">
-        <input type="checkbox" class="form-check-input" disabled checked id="excel-row-id" name="row-id">
-        <label class="form-check-label" for="excel-row-id">Include <code>csvbase_row_id</code></label>
-        <small id="emailHelp" class="form-text text-muted">handy for correlation</small>
-      </div>
-      <div class="col-sm-2">
-        <select class="form-select" name="separator">
-          <option selected value="comma">comma</option>
-          <option value="tab">tab</option>
-          <option value="vertical-bar">vertical bar</option>
-        </select>
-      </div>
-      <input type="submit" class="btn btn-primary" value="Download .csv">
-    </form>
+    <div class="row mb-3">
+      <h2>Export to CSV/TSV</h2>
+      <form action="{{ url_for('csvbase.export_table_csv', username=table.username, table_name=table.table_name) }}">
+        <div class="mb-3 form-check">
+          <input type="checkbox" class="form-check-input" disabled checked id="excel-row-id" name="row-id">
+          <label class="form-check-label" for="excel-row-id">Include <code>csvbase_row_id</code></label>
+          <small id="emailHelp" class="form-text text-muted">handy for correlation</small>
+        </div>
+        <div class="mb-3 col-sm-2">
+          <select class="form-select" name="separator">
+            <option selected value="comma">comma</option>
+            <option value="tab">tab</option>
+            <option value="vertical-bar">vertical bar</option>
+          </select>
+        </div>
+        <input type="submit" class="btn btn-primary" value="Download .csv">
+      </form>
+    </div>
 
-    <h2>Pandas</h2>
-    <p>To load this dataset into <a href="https://pandas.pydata.org/">pandas</a>, do the following</p>
-    {% if table.is_public %}
+    <div class="mb-3 row">
+      <h2>Pandas</h2>
+      <p>To load this dataset into <a href="https://pandas.pydata.org/">pandas</a>, do the following</p>
+      {% if table.is_public %}
       <pre>import pandas
 # you just use the same url as the table page
 {{table.table_name|snake_case}} = pandas.read_csv("{{table_url}}")
 </pre>
-    {% else %}
+      {% else %}
       <pre>import pandas, requests
 {{table.table_name|snake_case}} = pandas.read_csv(
         requests.get(
@@ -51,17 +56,20 @@
         ).raw
 )
 </pre>
-    {% endif %}
+      {% endif %}
 
-    {% if not table.is_public %}
-      <p><em>As <a href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">{{table.table_name}}</a> is private, <strong>requests</strong> is used here to work around pandas bug <a href="https://github.com/pandas-dev/pandas/issues/16716">#16716</a></em></p>
-    {% endif %}
+      {% if not table.is_public %}
+        <p><em>As <a href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">{{table.table_name}}</a> is private, <strong>requests</strong> is used here to work around pandas bug <a href="https://github.com/pandas-dev/pandas/issues/16716">#16716</a></em></p>
+      {% endif %}
+    </div>
 
-    <h3>R</h3>
-    <p>To load this dataset into <a href="https://www.r-project.org/">R</a>, do the following</p>
-    <pre># you just use the same url as the table page
+    <div class="row mb-3">
+      <h3>R</h3>
+      <p>To load this dataset into <a href="https://www.r-project.org/">R</a>, do the following</p>
+      <pre># you just use the same url as the table page
 {{table.table_name|snake_case}} &lt;- read.csv('{{table_url}}')</pre>
 
+    </div>
   </div>
 {% endblock %}
 
