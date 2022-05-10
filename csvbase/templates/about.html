@@ -9,35 +9,34 @@
       <img alt="logo" src="{{ url_for('static', filename='logo/192x192.png') }}" width="192" height="192">
       <h1 class="display-5 fw-bold">csvbase <em><small class="text-muted">(alpha)</small></em></h1>
     </div>
-  </div>
 
-  <div id="blurb">
-    <p>csvbase is a website for hosting table data.</p>
+    <div class="col-auto">
+      <p>csvbase is a website for hosting table data.</p>
 
-    <p>It&apos;s primarily aimed at open data &#8212; but private data is accepted too.</p>
+      <p>It&apos;s primarily aimed at open data &#8212; but private data is accepted too.</p>
 
-    <ul>
-      <li>To get started, just <a href="{{ url_for('csvbase.upload_file') }}">upload your CSV file</a> or <a href="{{ url_for('csvbase.paste') }}">paste directly from MS Excel</a></li>
-      <li>All tables have a <a href="{{ url_for('csvbase.get_table_apidocs', username='meripaterson', table_name='stock-exchanges') }}">simple REST API</a><ul>
-          <li>A GraphQL API will follow soon</li>
-      </ul></li>
-      <li>Exporting to Pandas/R/MS Excel is dead easy; just use the url:<ul>
-      <li><code>pandas.read_csv("{{url_for('csvbase.table_view', username='meripaterson', table_name='stock-exchanges', _external=True)}}")</code></ul></li>
-    </ul>
-
-    <p>Some possible uses might be:
       <ul>
-        <li>Hosting open data, for example <a href="{{ url_for('csvbase.table_view', username='meripaterson', table_name='stock-exchanges') }}">the world&apos;s stock exchanges</a></li>
-        <li>A simple back-end for basic applications</li>
-        <li>Sharing data between developers (who like APIs!) and data analysts (who like CSVs!)</li>
+        <li>To get started, just <a href="{{ url_for('csvbase.upload_file') }}">upload your CSV file</a> or <a href="{{ url_for('csvbase.paste') }}">paste directly from MS Excel</a></li>
+        <li>All tables have a <a href="{{ url_for('csvbase.get_table_apidocs', username='meripaterson', table_name='stock-exchanges') }}">simple REST API</a><ul>
+            <li>A GraphQL API will follow soon</li>
+        </ul></li>
+        <li>Exporting to Pandas/R/MS Excel is dead easy; just use the url:<ul>
+            <li><code>pandas.read_csv("{{url_for('csvbase.table_view', username='meripaterson', table_name='stock-exchanges', _external=True)}}")</code></ul></li>
       </ul>
-    </p>
 
-    <p>csvbase is <a href="https://github.com/calpaterson/csvbase">open source
-    software, under the AGPLv3</a>.  It&apos;s (mostly) written
-    by <a href="https://calpaterson.com/about.html">Cal Paterson</a>.  Please
-    let me know what you think by
-    sending <a href="mailto:cal@calpaterson.com">an email</a>.</p>
+      <p>Some possible uses might be:
+        <ul>
+          <li>Hosting open data, for example <a href="{{ url_for('csvbase.table_view', username='meripaterson', table_name='stock-exchanges') }}">the world&apos;s stock exchanges</a></li>
+          <li>A simple back-end for basic applications</li>
+          <li>Sharing data between developers (who like APIs!) and data analysts (who like CSVs!)</li>
+        </ul>
+      </p>
 
+      <p>csvbase is <a href="https://github.com/calpaterson/csvbase">open source
+          software, under the AGPLv3</a>.  It&apos;s (mostly) written
+          by <a href="https://calpaterson.com/about.html">Cal Paterson</a>.  Please
+          let me know what you think by
+          sending <a href="mailto:cal@calpaterson.com">an email</a>.</p>
+    </div>
   </div>
 {% endblock %}
