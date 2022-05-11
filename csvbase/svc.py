@@ -776,6 +776,9 @@ def unpraise(sesh: Session, praise_id: int) -> None:
 
 
 def load_prohibited_usernames(sesh: Session) -> None:
+    # inflect is only ever used here
+    import inflect
+
     table = satable(
         "temp_prohibited_usernames",
         *[sacolumn("username", type_=satypes.String)],
@@ -810,11 +813,13 @@ RETURNING
     username;
     """
     with closing(importlib.resources.open_text(data, "prohibited-usernames")) as text_f:
-        sesh.execute(create_table_stmt)
-        sesh.execute(
-            table.insert(),
-            [{"username": line.strip()} for line in text_f if "#" not in line],
-        )
+        words = [line.strip() for line in text_f if "#" not in line]
+    p = inflect.engine()
+    plurals = [p.plural(word) for word in words]
+    words.extend(plurals)
+
+    sesh.execute(create_table_stmt)
+    sesh.execute(table.insert(), [{"username": word} for word in words])
     removed_rp = sesh.execute(remove_stmt)
     removed = sorted(t[0] for t in removed_rp.fetchall())
     added_rp = sesh.execute(add_stmt)

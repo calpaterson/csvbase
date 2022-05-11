@@ -18,6 +18,7 @@ setup(
         "flask-babel==2.0",
         "flask==2.0.2",
         "gunicorn==20.1.0",
+        "inflect==5.6.0",
         "marko==1.2.0",
         "passlib==1.7.4",
         "pgcopy==1.5.0",
