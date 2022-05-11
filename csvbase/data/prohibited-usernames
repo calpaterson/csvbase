@@ -1,0 +1,46 @@
+# -*- mode: conf -*-
+# these should all be singular, pluralised versions are added programmatially
+# when loaded
+about
+api
+blog
+column
+column-type
+content
+content-type
+cross-table
+csv
+data
+data-licence
+dataset
+export
+feed
+fk
+foreign
+foreign-key
+form
+form-builder
+graphql
+html
+join
+json
+keyset
+licences
+new-table
+page
+paste
+praise
+pricing
+readme
+register
+rest
+row
+row-id
+schema
+sign-in
+sign-out
+table
+tableset
+type
+user
+view

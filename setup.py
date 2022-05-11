@@ -43,5 +43,10 @@ setup(
             "types-bleach==5.0.2",
         ],
     },
-    entry_points={},
+    entry_points={
+        "console_scripts": [
+            "csvbase-make-tables=csvbase.cli:make_tables",
+            "csvbase-load-prohibited-usernames=csvbase.cli:load_prohibited_usernames",
+        ]
+    },
 )
