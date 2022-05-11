@@ -3,6 +3,7 @@
 # when loaded
 about
 api
+articles
 blog
 column
 column-type
@@ -13,6 +14,7 @@ csv
 data
 data-licence
 dataset
+docs
 export
 feed
 fk
@@ -20,6 +22,7 @@ foreign
 foreign-key
 form
 form-builder
+function
 graphql
 html
 join
@@ -43,6 +46,7 @@ sub
 subscription
 table
 tableset
+trigger
 type
 user
 view
