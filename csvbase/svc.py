@@ -697,8 +697,8 @@ SELECT
     created
 FROM
     metadata.tables AS t
-    JOIN users AS u on t.user_uuid = u.user_uuid
-    LEFT JOIN praise USING (table_uuid)
+    JOIN metadata.users AS u on t.user_uuid = u.user_uuid
+    LEFT JOIN metadata.praise USING (table_uuid)
 WHERE public
 GROUP BY
     table_uuid, username
