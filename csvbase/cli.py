@@ -4,11 +4,15 @@ from sqlalchemy.sql.expression import text
 from .value_objs import DataLicence
 from .models import Base
 from .db import engine
+from csvbase import svc
 
 
 @click.command(help="Load the prohibited username list into the database")
 def load_prohibited_usernames():
-    pass
+    from .web import get_sesh, init_app
+
+    with init_app().app_context():
+        svc.load_prohibited_usernames(get_sesh())
 
 
 @click.command(

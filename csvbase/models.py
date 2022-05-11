@@ -158,3 +158,10 @@ class Praise(Base):
         index=True,
         server_default=func.current_timestamp(),
     )
+
+
+class ProhibitedUsername(Base):
+    __tablename__ = "prohibited_usernames"
+    __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+
+    username = Column(satypes.String, nullable=False, primary_key=True)

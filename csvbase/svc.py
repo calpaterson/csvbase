@@ -19,6 +19,8 @@ from logging import getLogger
 from uuid import uuid4
 import secrets
 import binascii
+from contextlib import closing
+import importlib.resources
 
 import bleach
 import xlsxwriter
@@ -56,6 +58,7 @@ from .value_objs import (
 from . import models
 from .db import engine
 from . import exc
+from . import data
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import RowProxy
@@ -770,3 +773,52 @@ def unpraise(sesh: Session, praise_id: int) -> None:
     if rp.rowcount != 1:
         logger.error("praise could not be removed: %s", praise_id)
         raise RuntimeError("could not unpraise")
+
+
+def load_prohibited_usernames(sesh: Session) -> None:
+    table = satable(
+        "temp_prohibited_usernames",
+        *[sacolumn("username", type_=satypes.String)],
+    )
+    create_table_stmt = """
+CREATE TEMP TABLE temp_prohibited_usernames (
+    username text
+) ON COMMIT DROP;
+    """
+    remove_stmt = """
+DELETE FROM metadata.prohibited_usernames
+WHERE username NOT IN (
+        SELECT
+            username
+        FROM
+            temp_prohibited_usernames)
+RETURNING
+    username;
+    """
+    add_stmt = """
+INSERT INTO metadata.prohibited_usernames (username)
+SELECT
+    username
+FROM
+    temp_prohibited_usernames
+EXCEPT ALL
+SELECT
+    username
+FROM
+    metadata.prohibited_usernames
+RETURNING
+    username;
+    """
+    with closing(importlib.resources.open_text(data, "prohibited-usernames")) as text_f:
+        sesh.execute(create_table_stmt)
+        sesh.execute(
+            table.insert(),
+            [{"username": line.strip()} for line in text_f if "#" not in line],
+        )
+    removed_rp = sesh.execute(remove_stmt)
+    removed = sorted(t[0] for t in removed_rp.fetchall())
+    added_rp = sesh.execute(add_stmt)
+    added = sorted(t[0] for t in added_rp.fetchall())
+    sesh.commit()
+    logger.info("removed the following prohibited usernames: %s", removed)
+    logger.info("added the following prohibited usernames: %s", added)
