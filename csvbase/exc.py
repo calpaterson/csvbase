@@ -58,3 +58,8 @@ class WrongContentType(CSVBaseException):
 
 class ProhibitedUsernameException(CSVBaseException):
     pass
+
+
+class UnconvertableValueException(CSVBaseException):
+    # FIXME: This needs a lot more thought
+    pass

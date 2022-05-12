@@ -2,7 +2,8 @@ from datetime import date
 
 import pytest
 
-from csvbase.conv import DateConverter
+from csvbase import exc
+from csvbase.conv import DateConverter, IntegerConverter
 
 
 @pytest.mark.parametrize(
@@ -37,3 +38,50 @@ def test_DateConverter__sniff(inp, expected):
 def test_DateConverter__convert(inp, expected):
     dc = DateConverter()
     assert dc.convert(inp) == expected
+
+
+def test_DateConverter__convert_failure():
+    dc = DateConverter()
+    with pytest.raises(exc.UnconvertableValueException):
+        dc.convert("nonsense")
+
+
+@pytest.mark.parametrize(
+    "inp, expected",
+    [
+        pytest.param(["1"], True, id="an int"),
+        pytest.param(["-1"], True, id="a negative int"),
+        pytest.param(["1.0"], False, id="a float"),
+        pytest.param(["1000"], True, id="thousand"),
+        pytest.param(["1,000"], True, id="financial thousand"),
+        pytest.param([" 1,000 "], True, id="whitespace"),
+        pytest.param(["-1,000 "], True, id="negative financial"),
+    ],
+)
+def test_IntegerConverter__sniff(inp, expected):
+    ic = IntegerConverter()
+    assert ic.sniff(inp) is expected
+
+
+@pytest.mark.parametrize(
+    "inp, expected",
+    [
+        pytest.param("1", 1, id="an int"),
+        pytest.param("-1", -1, id="a negative int"),
+        pytest.param("1000", 1000, id="thousand"),
+        pytest.param("1,000", 1000, id="financial thousand"),
+        pytest.param(" 1,000 ", 1000, id="whitespace"),
+        pytest.param("-1,000 ", -1000, id="negative financial"),
+        pytest.param(" ", None, id="whitespace"),
+        pytest.param("", None, id="blank"),
+    ],
+)
+def test_IntegerConverter__convert(inp, expected):
+    ic = IntegerConverter()
+    assert ic.convert(inp) == expected
+
+
+def test_IntegerConverter__convert_failure():
+    ic = IntegerConverter()
+    with pytest.raises(exc.UnconvertableValueException):
+        ic.convert("nonsense")

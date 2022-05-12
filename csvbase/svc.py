@@ -67,8 +67,6 @@ if TYPE_CHECKING:
 
 logger = getLogger(__name__)
 
-INT_REGEX = re.compile(r"^\d+$")
-
 FLOAT_REGEX = re.compile(r"^(\d+\.)|(\.\d+)|(\d+\.\d?)$")
 
 BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
@@ -95,10 +93,11 @@ def types_for_csv(
     rv = []
     # FIXME: add support for dates here... (probably using date-util)
     dc = conv.DateConverter()
+    ic = conv.IntegerConverter()
     for key, values in as_dict.items():
         if all(FLOAT_REGEX.match(v) for v in values):
             rv.append(Column(key, ColumnType.FLOAT))
-        elif all(INT_REGEX.match(v) for v in values):
+        elif ic.sniff(values):
             rv.append(Column(key, ColumnType.INTEGER))
         elif all(BOOL_REGEX.match(v) for v in values):
             rv.append(Column(key, ColumnType.BOOLEAN))

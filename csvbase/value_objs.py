@@ -175,6 +175,9 @@ class ColumnType(enum.Enum):
         elif self is ColumnType.DATE:
             dc = conv.DateConverter()
             return dc.convert(as_string)
+        elif self is ColumnType.INTEGER:
+            ic = conv.IntegerConverter()
+            return ic.convert(as_string)
         else:
             return self.python_type()(as_string)
 
