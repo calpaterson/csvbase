@@ -20,6 +20,8 @@ import binascii
 from sqlalchemy import types as satypes
 import werkzeug.datastructures
 
+from csvbase import conv
+
 UserSubmittedCSVData = Union[codecs.StreamReader, io.StringIO]
 
 UserSubmittedBytes = Union[werkzeug.datastructures.FileStorage, io.BytesIO]
@@ -171,7 +173,8 @@ class ColumnType(enum.Enum):
             else:
                 return True
         elif self is ColumnType.DATE:
-            return date.fromisoformat(as_string)
+            dc = conv.DateConverter()
+            return dc.convert(as_string)
         else:
             return self.python_type()(as_string)
 

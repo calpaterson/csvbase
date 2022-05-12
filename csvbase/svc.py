@@ -60,6 +60,7 @@ from . import models
 from .db import engine
 from . import exc
 from . import data
+from . import conv
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import RowProxy
@@ -93,6 +94,7 @@ def types_for_csv(
     as_dict = dict(zip(headers, first_five))
     rv = []
     # FIXME: add support for dates here... (probably using date-util)
+    dc = conv.DateConverter()
     for key, values in as_dict.items():
         if all(FLOAT_REGEX.match(v) for v in values):
             rv.append(Column(key, ColumnType.FLOAT))
@@ -100,6 +102,8 @@ def types_for_csv(
             rv.append(Column(key, ColumnType.INTEGER))
         elif all(BOOL_REGEX.match(v) for v in values):
             rv.append(Column(key, ColumnType.BOOLEAN))
+        elif dc.sniff(values):
+            rv.append(Column(key, ColumnType.DATE))
         else:
             rv.append(Column(key, ColumnType.TEXT))
     logger.info("inferred: %s", rv)
