@@ -74,6 +74,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
     exc.InvalidRequest: ("invalid request", 400),
     exc.CantNegotiateContentType: ("can't agree with you on a content type", 406),
     exc.WrongContentType: ("you sent the wrong content type", 400),
+    exc.ProhibitedUsernameException: ("that username is not allowed", 400),
 }
 
 
@@ -831,6 +832,7 @@ def upsert_table(username: str, table_name: str) -> Response:
     byte_buf = io.BytesIO()
     shutil.copyfileobj(request.stream, byte_buf)
     str_buf = byte_buf_to_str_buf(byte_buf)
+    # FIXME: Should not be sniffing, use existing types...
     dialect, columns = svc.types_for_csv(str_buf)
     str_buf.seek(0)
     table = svc.get_table(sesh, username, table_name)

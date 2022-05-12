@@ -25,7 +25,7 @@ import importlib.resources
 import bleach
 import xlsxwriter
 from pgcopy import CopyManager
-from sqlalchemy import column as sacolumn, types as satypes, func
+from sqlalchemy import column as sacolumn, types as satypes
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import (
     TableClause,
@@ -34,6 +34,7 @@ from sqlalchemy.sql.expression import (
     text,
     table as satable,
 )
+from sqlalchemy.sql import exists
 from sqlalchemy.schema import (  # type: ignore
     CreateTable,
     Table as SATable,
@@ -84,6 +85,7 @@ def types_for_csv(
     logger.info("sniffed dialect: %s", dialect)
     csv_buf.seek(0)
 
+    # FIXME: probably should be configurable but larger default - maybe 25?
     # look just at the first 5 lines - that hopefully is easy to explain
     reader = csv.reader(csv_buf, dialect)
     headers = next(reader)
@@ -604,6 +606,7 @@ def create_user(
     sesh, crypt_context, username: str, password_plain: str, email: Optional[str] = None
 ) -> User:
     user_uuid = uuid4()
+    check_username_is_allowed(sesh, username)
     password_hashed = crypt_context.hash(password_plain)
     registered = datetime.now(timezone.utc)
     user = models.User(
@@ -628,6 +631,15 @@ def create_user(
         api_key=user.api_key.api_key,
         email=email,
     )
+
+
+def check_username_is_allowed(sesh: Session, username: str) -> None:
+    is_prohibited: bool = sesh.query(
+        exists().where(models.ProhibitedUsername.username == username)
+    ).scalar()
+    if is_prohibited:
+        logger.warning("username prohibited: %s", username)
+        raise exc.ProhibitedUsernameException()
 
 
 def is_correct_password(

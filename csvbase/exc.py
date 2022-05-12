@@ -54,3 +54,7 @@ class CantNegotiateContentType(CSVBaseException):
 class WrongContentType(CSVBaseException):
     def __init__(self, supported, recieved):
         super().__init__((supported, recieved))
+
+
+class ProhibitedUsernameException(CSVBaseException):
+    pass
