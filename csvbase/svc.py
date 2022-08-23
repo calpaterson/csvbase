@@ -91,16 +91,16 @@ def types_for_csv(
     first_five = zip(*(row for row, _ in zip(reader, range(5))))
     as_dict = dict(zip(headers, first_five))
     rv = []
-    # FIXME: add support for dates here... (probably using date-util)
     dc = conv.DateConverter()
     ic = conv.IntegerConverter()
     fc = conv.FloatConverter()
+    bc = conv.BooleanConverter()
     for key, values in as_dict.items():
         if fc.sniff(values):
             rv.append(Column(key, ColumnType.FLOAT))
         elif ic.sniff(values):
             rv.append(Column(key, ColumnType.INTEGER))
-        elif all(BOOL_REGEX.match(v) for v in values):
+        elif bc.sniff(values):
             rv.append(Column(key, ColumnType.BOOLEAN))
         elif dc.sniff(values):
             rv.append(Column(key, ColumnType.DATE))

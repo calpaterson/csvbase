@@ -74,3 +74,27 @@ class FloatConverter:
         if not match:
             raise exc.UnconvertableValueException()
         return float(match.group().replace(",", ""))
+
+
+class BooleanConverter:
+    BOOLEAN_REGEX = re.compile(r"^ ?(TRUE|FALSE|T|F|YES|NO|Y|N) ?$", re.I)
+    TRUE_REGEX = re.compile(r"^(TRUE|T|YES|Y)$", re.I)
+    FALSE_REGEX = re.compile(r"^(FALSE|F|NO|N)$", re.I)
+
+    def sniff(self, values: Iterable[str]) -> bool:
+        return sniff_and_allow_blanks(self.BOOLEAN_REGEX, values)
+
+    def convert(self, value: str) -> Optional[float]:
+        stripped = value.strip()
+        if stripped == "":
+            return None
+
+        false_match = self.FALSE_REGEX.match(stripped)
+        if false_match:
+            return False
+
+        true_match = self.TRUE_REGEX.match(stripped)
+        if true_match:
+            return True
+
+        raise exc.UnconvertableValueException()

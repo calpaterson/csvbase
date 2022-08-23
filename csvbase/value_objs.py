@@ -168,10 +168,8 @@ class ColumnType(enum.Enum):
         if as_string == "" or as_string is None:
             return None
         if self is ColumnType.BOOLEAN:
-            if as_string.lower()[0] in ["f", "n"]:
-                return False
-            else:
-                return True
+            bc = conv.BooleanConverter()
+            return bc.convert(as_string)
         elif self is ColumnType.DATE:
             dc = conv.DateConverter()
             return dc.convert(as_string)

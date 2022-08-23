@@ -3,7 +3,12 @@ from datetime import date
 import pytest
 
 from csvbase import exc
-from csvbase.conv import DateConverter, IntegerConverter, FloatConverter
+from csvbase.conv import (
+    DateConverter,
+    IntegerConverter,
+    FloatConverter,
+    BooleanConverter,
+)
 
 
 @pytest.mark.parametrize(
@@ -125,7 +130,57 @@ def test_FloatConverter__convert(inp, expected):
     assert ic.convert(inp) == expected
 
 
-# def test_FloatConverter__convert_failure():
-#     ic = FloatConverter()
-#     with pytest.raises(exc.UnconvertableValueException):
-#         ic.convert("nonsense")
+def test_FloatConverter__convert_failure():
+    ic = FloatConverter()
+    with pytest.raises(exc.UnconvertableValueException):
+        ic.convert("nonsense")
+
+
+def casings(c):
+    return [
+        c.upper(),
+        c.capitalize(),
+        c.lower(),
+        f" {c} ",
+        f"{c} ",
+        f" {c}",
+        c[0].upper(),
+        c[0].lower(),
+    ]
+
+
+@pytest.mark.parametrize(
+    "inp, expected",
+    [
+        pytest.param([item], True)
+        for subl in [casings("true"), casings("false"), casings("yes"), casings("no")]
+        for item in subl
+    ],
+)
+def test_BooleanConverter__sniff(inp, expected):
+    ic = BooleanConverter()
+    assert ic.sniff(inp) is expected
+
+
+@pytest.mark.parametrize(
+    "inp, expected",
+    [
+        pytest.param(item, True)
+        for subl in [casings("true"), casings("yes")]
+        for item in subl
+    ]
+    + [
+        pytest.param(item, False)
+        for subl in [casings("false"), casings("no")]
+        for item in subl
+    ],
+)
+def test_BooleanConverter__convert(inp, expected):
+    ic = BooleanConverter()
+    assert ic.convert(inp) == expected
+
+
+def test_BooleanConverter__convert_failure():
+    ic = BooleanConverter()
+    with pytest.raises(exc.UnconvertableValueException):
+        ic.convert("nonsense")
