@@ -1,2 +1,7 @@
 bootstrap-5.1.3-dist.zip
 .venv
+build
+csvbase.egg-info
+dist
+.tox
+Dockerfile
