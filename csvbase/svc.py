@@ -100,10 +100,10 @@ def peek_csv(
     fc = conv.FloatConverter()
     bc = conv.BooleanConverter()
     for key, values in as_dict.items():
-        if fc.sniff(values):
-            rv.append(Column(key, ColumnType.FLOAT))
-        elif ic.sniff(values):
+        if ic.sniff(values):
             rv.append(Column(key, ColumnType.INTEGER))
+        elif fc.sniff(values):
+            rv.append(Column(key, ColumnType.FLOAT))
         elif bc.sniff(values):
             rv.append(Column(key, ColumnType.BOOLEAN))
         elif dc.sniff(values):
