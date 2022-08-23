@@ -55,6 +55,7 @@ from . import svc
 from . import db
 from . import exc
 from .logging import configure_logging
+from .sentry import configure_sentry
 
 logger = getLogger(__name__)
 
@@ -80,6 +81,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
 
 def init_app():
     configure_logging()
+    configure_sentry()
     app = Flask(__name__)
     app.config["CRYPT_CONTEXT"] = CryptContext(["argon2"])
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"

@@ -23,6 +23,7 @@ setup(
         "passlib==1.7.4",
         "pgcopy==1.5.0",
         "psycopg2==2.9.2",
+        "sentry-sdk[flask]==1.9.5",
         "sqlalchemy==1.4.27",
         "systemd-python==234",
         "typing-extensions==4.0.1",
@@ -42,6 +43,7 @@ setup(
             "sqlalchemy-stubs==0.4",
             "bandit==1.7.4",
             "types-bleach==5.0.2",
+            "types-setuptools==65.1.0",
         ],
     },
     entry_points={
