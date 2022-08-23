@@ -235,7 +235,7 @@ def new_table_form_submission() -> Response:
     else:
         is_public = True
     data_licence = DataLicence(request.form.get("data-licence", type=int))
-    dialect, columns = svc.types_for_csv(csv_buf)
+    dialect, columns = svc.peek_csv(csv_buf)
     csv_buf.seek(0)
     table_uuid = svc.create_table(sesh, g.current_user.username, table_name, columns)
     svc.create_table_metadata(
@@ -835,7 +835,7 @@ def upsert_table(username: str, table_name: str) -> Response:
     shutil.copyfileobj(request.stream, byte_buf)
     str_buf = byte_buf_to_str_buf(byte_buf)
     # FIXME: Should not be sniffing, use existing types...
-    dialect, columns = svc.types_for_csv(str_buf)
+    dialect, columns = svc.peek_csv(str_buf)
     str_buf.seek(0)
     table = svc.get_table(sesh, username, table_name)
     svc.upsert_table_data(

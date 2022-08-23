@@ -72,9 +72,13 @@ FLOAT_REGEX = re.compile(r"^(\d+\.)|(\.\d+)|(\d+\.\d?)$")
 BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
 
 
-def types_for_csv(
+def peek_csv(
     csv_buf: UserSubmittedCSVData,
 ) -> Tuple[Type[csv.Dialect], List[Column]]:
+    """Infer the csv dialect (usually: excel) and the column names/types) by
+    looking at the top of it.
+
+    """
     # FIXME: should be called "peek csv" or similar
     try:
         dialect = csv.Sniffer().sniff(csv_buf.read(1024))

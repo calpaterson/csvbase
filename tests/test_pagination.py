@@ -20,7 +20,7 @@ def letters_table(test_user, module_sesh):
         writer.writerow(char)
     csv_buf.seek(0)
 
-    dialect, columns = svc.types_for_csv(csv_buf)
+    dialect, columns = svc.peek_csv(csv_buf)
     csv_buf.seek(0)
     table_uuid = svc.create_table(module_sesh, test_user.username, table_name, columns)
     svc.create_table_metadata(
