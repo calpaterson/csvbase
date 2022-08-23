@@ -58,3 +58,19 @@ class IntegerConverter:
         if not match:
             raise exc.UnconvertableValueException()
         return int(match.group().replace(",", ""))
+
+
+class FloatConverter:
+    FLOAT_REGEX = re.compile(r"^ ?-?(\d|,|\.| )+$")
+
+    def sniff(self, values: Iterable[str]) -> bool:
+        return sniff_and_allow_blanks(self.FLOAT_REGEX, values)
+
+    def convert(self, value: str) -> Optional[float]:
+        stripped = value.strip()
+        if stripped == "":
+            return None
+        match = self.FLOAT_REGEX.match(value)
+        if not match:
+            raise exc.UnconvertableValueException()
+        return float(match.group().replace(",", ""))

@@ -94,8 +94,9 @@ def types_for_csv(
     # FIXME: add support for dates here... (probably using date-util)
     dc = conv.DateConverter()
     ic = conv.IntegerConverter()
+    fc = conv.FloatConverter()
     for key, values in as_dict.items():
-        if all(FLOAT_REGEX.match(v) for v in values):
+        if fc.sniff(values):
             rv.append(Column(key, ColumnType.FLOAT))
         elif ic.sniff(values):
             rv.append(Column(key, ColumnType.INTEGER))

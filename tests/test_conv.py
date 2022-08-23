@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 
 from csvbase import exc
-from csvbase.conv import DateConverter, IntegerConverter
+from csvbase.conv import DateConverter, IntegerConverter, FloatConverter
 
 
 @pytest.mark.parametrize(
@@ -85,3 +85,47 @@ def test_IntegerConverter__convert_failure():
     ic = IntegerConverter()
     with pytest.raises(exc.UnconvertableValueException):
         ic.convert("nonsense")
+
+
+@pytest.mark.parametrize(
+    "inp, expected",
+    [
+        pytest.param(["1.0"], True, id="an float"),
+        pytest.param(["-1.0"], True, id="a negative int"),
+        pytest.param(["1."], True, id="a float (no trailing 0)"),
+        pytest.param(["1"], True, id="an int (works ok)"),
+        pytest.param(["1000.0"], True, id="thousand"),
+        pytest.param(["1,000.0"], True, id="financial thousand"),
+        pytest.param([" 1,000.0 "], True, id="whitespace"),
+        pytest.param(["-1,000.0 "], True, id="negative financial"),
+    ],
+)
+def test_FloatConverter__sniff(inp, expected):
+    ic = FloatConverter()
+    assert ic.sniff(inp) is expected
+
+
+@pytest.mark.parametrize(
+    "inp, expected",
+    [
+        pytest.param("1.0", 1.0, id="an int"),
+        pytest.param("-1.0", -1.0, id="a negative int"),
+        pytest.param("1.", 1.0, id="a float (no trailing 0)"),
+        pytest.param("1", 1.0, id="an int (works ok)"),
+        pytest.param("1000.0", 1000.0, id="thousand"),
+        pytest.param("1,000.0", 1000.0, id="financial thousand"),
+        pytest.param(" 1,000.0 ", 1000.0, id="whitespace"),
+        pytest.param("-1,000.0 ", -1000.0, id="negative financial"),
+        pytest.param(" ", None, id="whitespace"),
+        pytest.param("", None, id="blank"),
+    ],
+)
+def test_FloatConverter__convert(inp, expected):
+    ic = FloatConverter()
+    assert ic.convert(inp) == expected
+
+
+# def test_FloatConverter__convert_failure():
+#     ic = FloatConverter()
+#     with pytest.raises(exc.UnconvertableValueException):
+#         ic.convert("nonsense")

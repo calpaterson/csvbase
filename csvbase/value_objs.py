@@ -178,6 +178,9 @@ class ColumnType(enum.Enum):
         elif self is ColumnType.INTEGER:
             ic = conv.IntegerConverter()
             return ic.convert(as_string)
+        elif self is ColumnType.FLOAT:
+            fc = conv.FloatConverter()
+            return fc.convert(as_string)
         else:
             return self.python_type()(as_string)
 
