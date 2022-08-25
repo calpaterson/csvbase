@@ -1,6 +1,7 @@
 import itertools
 
 from csvbase.value_objs import ColumnType
+from csvbase.conv import from_string_to_python
 
 import pytest
 
@@ -24,7 +25,7 @@ def _make_versions(inp, expected):
     ),
 )
 def test_bool_parsing_from_string(bool_str, expected):
-    assert ColumnType.BOOLEAN.from_string_to_python(bool_str) == expected
+    assert from_string_to_python(ColumnType.BOOLEAN, bool_str) == expected
 
 
 @pytest.mark.parametrize(

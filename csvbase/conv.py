@@ -2,7 +2,8 @@ import re
 from datetime import date
 from typing import Iterable, Optional, Pattern
 
-from . import exc
+from . import exc, conv
+from .value_objs import ColumnType, PythonType
 
 WHITESPACE_REGEX = re.compile(r"^ *$")
 
@@ -41,7 +42,7 @@ class DateConverter:
         try:
             return date.fromisoformat(stripped)
         except ValueError:
-            raise exc.UnconvertableValueException()
+            raise exc.UnconvertableValueException(ColumnType.DATE, value)
 
 
 class IntegerConverter:
@@ -56,7 +57,7 @@ class IntegerConverter:
             return None
         match = self.INTEGER_REGEX.match(value)
         if not match:
-            raise exc.UnconvertableValueException()
+            raise exc.UnconvertableValueException(ColumnType.INTEGER, value)
         return int(match.group().replace(",", ""))
 
 
@@ -72,7 +73,7 @@ class FloatConverter:
             return None
         match = self.FLOAT_REGEX.match(value)
         if not match:
-            raise exc.UnconvertableValueException()
+            raise exc.UnconvertableValueException(ColumnType.FLOAT, value)
         return float(match.group().replace(",", ""))
 
 
@@ -97,4 +98,27 @@ class BooleanConverter:
         if true_match:
             return True
 
-        raise exc.UnconvertableValueException()
+        raise exc.UnconvertableValueException(ColumnType.BOOLEAN, value)
+
+
+def from_string_to_python(
+    column_type: ColumnType, as_string: str
+) -> Optional["PythonType"]:
+    """Parses values from string (ie: csv) into Python objects, according
+    to ColumnType."""
+    if as_string == "" or as_string is None:
+        return None
+    if column_type is ColumnType.BOOLEAN:
+        bc = conv.BooleanConverter()
+        return bc.convert(as_string)
+    elif column_type is ColumnType.DATE:
+        dc = conv.DateConverter()
+        return dc.convert(as_string)
+    elif column_type is ColumnType.INTEGER:
+        ic = conv.IntegerConverter()
+        return ic.convert(as_string)
+    elif column_type is ColumnType.FLOAT:
+        fc = conv.FloatConverter()
+        return fc.convert(as_string)
+    else:
+        return column_type.python_type()(as_string)

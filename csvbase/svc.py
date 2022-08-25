@@ -79,24 +79,26 @@ def peek_csv(
     looking at the top of it.
 
     """
-    # FIXME: should be called "peek csv" or similar
+    # FIXME: split the sniffing of dialect (/header) out into a separate
+    # function
     try:
-        dialect = csv.Sniffer().sniff(csv_buf.read(1024))
+        dialect = csv.Sniffer().sniff("".join(csv_buf.readlines(8192)))
     except csv.Error:
         logger.warning("unable to sniff dialect, falling back to excel")
         dialect = csv.excel
     logger.info("sniffed dialect: %s", dialect)
     csv_buf.seek(0)
 
-    # FIXME: probably should be configurable but larger default - maybe 25?
-    # look just at the first 5 lines - that hopefully is easy to explain
+    # FIXME: it's probably best that this consider the entire CSV file rather
+    # than just the start of it.  there are many, many csv files that, halfway
+    # down, switch out "YES" for "YES (but only ...)"
     reader = csv.reader(csv_buf, dialect)
     headers = next(reader)
-    first_five = zip(*(row for row, _ in zip(reader, range(5))))
-    as_dict = dict(zip(headers, first_five))
+    first_few = zip(*(row for row, _ in zip(reader, range(100))))
+    as_dict = dict(zip(headers, first_few))
     rv = []
+    # Don't try to infer ints here, just too hard to tell them apart from floats
     dc = conv.DateConverter()
-    ic = conv.IntegerConverter()
     fc = conv.FloatConverter()
     bc = conv.BooleanConverter()
     for key, values in as_dict.items():
@@ -394,7 +396,7 @@ def upsert_table_data(
     reader = csv.reader(csv_buf, dialect)
     csv_buf.readline()  # pop the header, which is not useful
     row_gen = (
-        [col.type_.from_string_to_python(v) for col, v in zip(columns, line)]
+        [conv.from_string_to_python(col.type_, v) for col, v in zip(columns, line)]
         for line in reader
     )
 

@@ -20,8 +20,6 @@ import binascii
 from sqlalchemy import types as satypes
 import werkzeug.datastructures
 
-from csvbase import conv
-
 UserSubmittedCSVData = Union[codecs.StreamReader, io.StringIO]
 
 UserSubmittedBytes = Union[werkzeug.datastructures.FileStorage, io.BytesIO]
@@ -130,6 +128,7 @@ _DATA_LICENCE_SHORT_MAP = {
 
 @enum.unique
 class ColumnType(enum.Enum):
+    # FIXME: These should be strings, not ints, that's just extra confusing
     TEXT = 1
     INTEGER = 2
     FLOAT = 3
@@ -161,26 +160,6 @@ class ColumnType(enum.Enum):
             return value.isoformat()
         else:
             return value
-
-    def from_string_to_python(self, as_string: str) -> Optional["PythonType"]:
-        """Parses values from string (ie: csv) into Python objects, according
-        to ColumnType."""
-        if as_string == "" or as_string is None:
-            return None
-        if self is ColumnType.BOOLEAN:
-            bc = conv.BooleanConverter()
-            return bc.convert(as_string)
-        elif self is ColumnType.DATE:
-            dc = conv.DateConverter()
-            return dc.convert(as_string)
-        elif self is ColumnType.INTEGER:
-            ic = conv.IntegerConverter()
-            return ic.convert(as_string)
-        elif self is ColumnType.FLOAT:
-            fc = conv.FloatConverter()
-            return fc.convert(as_string)
-        else:
-            return self.python_type()(as_string)
 
     def from_html_form_to_python(
         self, form_value: Optional[str]

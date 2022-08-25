@@ -1,5 +1,7 @@
 from typing import Optional
 
+from .value_objs import ColumnType
+
 
 class CSVBaseException(Exception):
     """ABC for CSVBase exceptions to make it possible to catch them collectively"""
@@ -61,5 +63,7 @@ class ProhibitedUsernameException(CSVBaseException):
 
 
 class UnconvertableValueException(CSVBaseException):
-    # FIXME: This needs a lot more thought
-    pass
+    # FIXME: this also undoubtably needs row and column name
+    def __init__(self, expected_type: ColumnType, string: str):
+        self.expected_type = expected_type
+        self.string = string
