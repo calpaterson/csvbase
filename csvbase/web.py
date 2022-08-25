@@ -120,7 +120,11 @@ class TableNameConverter(BaseConverter):
 # https://github.com/pallets/flask/blob/bd56d19b167822a9a23e2e9e2a07ccccc36baa8d/src/flask/typing.py#L49
 @bp.errorhandler(exc.CSVBaseException)  # type: ignore
 def handle_csvbase_exceptions(e: exc.CSVBaseException) -> Response:
-    message, http_code = EXCEPTION_MESSAGE_CODE_MAP[e.__class__]
+    try:
+        message, http_code = EXCEPTION_MESSAGE_CODE_MAP[e.__class__]
+    except KeyError:
+        # An exception we don't have a canned response for - reraise it
+        raise e
     if is_browser():
         if http_code == 401:
             flash("You need to sign in to do that")
@@ -247,6 +251,7 @@ def new_table_form_submission() -> Response:
         "",
         data_licence,
     )
+    # FIXME: what happens if this fails?
     svc.upsert_table_data(
         sesh,
         g.current_user.user_uuid,
