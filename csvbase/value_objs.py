@@ -128,7 +128,8 @@ _DATA_LICENCE_SHORT_MAP = {
 
 @enum.unique
 class ColumnType(enum.Enum):
-    # FIXME: These should be strings, not ints, that's just extra confusing
+    # These are ints because that int will eventually be used in a table
+    # storing columns
     TEXT = 1
     INTEGER = 2
     FLOAT = 3
