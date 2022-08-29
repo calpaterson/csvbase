@@ -20,9 +20,9 @@ If you wanted to load that dataset into
 [pandas](https://github.com/pandas-dev/pandas), for example, you would run:
 
 ```python
->>> import pandas
+>>> import pandas as pd
 >>> # you just put in the same url as on the website, bit of magic here
->>> stock_exchanges = pandas.read_csv("https://csvbase.com/meripaterson/stock-exchanges")
+>>> stock_exchanges = pd.read_csv("https://csvbase.com/meripaterson/stock-exchanges")
 >>> stock_exchanges
      csvbase_row_id      Continent                    Country                                     Name   MIC Last changed
 0                 1         Africa                    Lesotho                                    HYBSE   NaN   2019-03-25

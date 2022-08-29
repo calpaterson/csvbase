@@ -43,13 +43,13 @@
       <h2>Pandas</h2>
       <p>To load this dataset into <a href="https://pandas.pydata.org/">pandas</a>, do the following</p>
       {% if table.is_public %}
-      <pre>import pandas
+      <pre>import pandas as pd
 # you just use the same url as the table page
-{{table.table_name|snake_case}} = pandas.read_csv("{{table_url}}")
+{{table.table_name|snake_case}} = pd.read_csv("{{table_url}}")
 </pre>
       {% else %}
-      <pre>import pandas, requests
-{{table.table_name|snake_case}} = pandas.read_csv(
+      <pre>import pandas as pd, requests
+{{table.table_name|snake_case}} = pd.read_csv(
         requests.get(
             "{{table_url}}",
             stream=True
