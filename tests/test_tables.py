@@ -1,7 +1,7 @@
 from os import path
 from io import StringIO
 
-import pandas
+import pandas as pd
 from pandas.testing import assert_frame_equal
 from flask import url_for
 import pytest
@@ -9,29 +9,32 @@ import pytest
 from .utils import test_data_path, random_string
 
 
-@pytest.mark.xfail(reason="putting a whole csv is no longer enough")
-def test_csvs_in_and_out(test_user, sesh, client):
-    table_name = random_string()
-    url = url_for(
-        "csvbase.upsert_table", username=test_user.username, table_name=table_name
-    )
-
-    with open(path.join(test_data_path, "WID.csv")) as wid_csv:
-        put_resp = client.put(
-            url,
-            data=wid_csv,
-            headers={
-                "Content-Type": "text/csv",
-                "Authorization": test_user.basic_auth(),
-            },
-        )
-    assert put_resp.status_code == 200, put_resp.data
+@pytest.mark.xfail(reason="currently broken/has wrong api")
+def test_csvs_in_and_out(test_user, sesh, client, ten_rows):
+    """Test that a csv can be pulled out, edited, and then posted back"""
+    url = f"/{test_user.username}/{ten_rows}"
 
     get_resp = client.get(url)
-    buf = StringIO(get_resp.data.decode("utf-8"))
-    out_df = pandas.read_csv(buf)
+    df = pd.read_csv(
+        StringIO(get_resp.data.decode("utf-8")), index_col="csvbase_row_id"
+    )
 
-    with open(path.join(test_data_path, "WID.csv")) as wid_csv:
-        in_df = pandas.read_csv(wid_csv)
+    df.loc[5] = "FIVE"
 
-    assert_frame_equal(in_df, out_df.drop("csvbase_row_id", axis=1))
+    buf = StringIO()
+    df.to_csv(buf)
+
+    post_resp = client.put(
+        url,
+        data=buf.getvalue(),
+        headers={
+            "Content-Type": "text/csv",
+            "Authorization": test_user.basic_auth(),
+        },
+    )
+    assert post_resp.status_code == 204
+
+    second_get_resp = client.get(url)
+    second_df = pd.read_csv(StringIO(second_get_resp.data.decode("utf-8")))
+
+    assert_frame_equal(df, second_df)
