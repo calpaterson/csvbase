@@ -19,7 +19,9 @@ def test_csvs_in_and_out(test_user, sesh, client, ten_rows):
         StringIO(get_resp.data.decode("utf-8")), index_col="csvbase_row_id"
     )
 
-    df.loc[5] = "FIVE"
+    df.drop(labels=2, axis="index", inplace=True)  # removed data
+    df.loc[11] = "XI"  # added data
+    df.loc[5] = "FIVE"  # changed data
 
     buf = StringIO()
     df.to_csv(buf)
@@ -32,9 +34,11 @@ def test_csvs_in_and_out(test_user, sesh, client, ten_rows):
             "Authorization": test_user.basic_auth(),
         },
     )
-    assert post_resp.status_code == 204
+    assert post_resp.status_code == 200
 
     second_get_resp = client.get(url)
-    second_df = pd.read_csv(StringIO(second_get_resp.data.decode("utf-8")))
+    second_df = pd.read_csv(
+        StringIO(second_get_resp.data.decode("utf-8")), index_col="csvbase_row_id"
+    )
 
     assert_frame_equal(df, second_df)

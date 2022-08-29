@@ -32,7 +32,7 @@ def letters_table(test_user, module_sesh):
         "",
         DataLicence.ALL_RIGHTS_RESERVED,
     )
-    svc.upsert_table_data(
+    svc.insert_table_data(
         module_sesh,
         test_user.user_uuid,
         test_user.username,
@@ -41,7 +41,6 @@ def letters_table(test_user, module_sesh):
         csv_buf,
         dialect,
         columns,
-        truncate_first=False,
     )
     module_sesh.commit()
     return svc.get_table(module_sesh, test_user.username, table_name)

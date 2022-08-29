@@ -252,7 +252,7 @@ def new_table_form_submission() -> Response:
         data_licence,
     )
     # FIXME: what happens if this fails?
-    svc.upsert_table_data(
+    svc.insert_table_data(
         sesh,
         g.current_user.user_uuid,
         g.current_user.username,
@@ -261,7 +261,6 @@ def new_table_form_submission() -> Response:
         csv_buf,
         dialect,
         columns,
-        truncate_first=False,
     )
     sesh.commit()
     return redirect(
@@ -839,20 +838,15 @@ def upsert_table(username: str, table_name: str) -> Response:
     byte_buf = io.BytesIO()
     shutil.copyfileobj(request.stream, byte_buf)
     str_buf = byte_buf_to_str_buf(byte_buf)
-    # FIXME: Should not be sniffing, use existing types...
-    dialect, columns = svc.peek_csv(str_buf)
-    str_buf.seek(0)
+    dialect, _ = svc.sniff_csv(str_buf)
     table = svc.get_table(sesh, username, table_name)
+
+    str_buf.seek(0)
     svc.upsert_table_data(
         sesh,
-        svc.user_by_name(sesh, username).user_uuid,
-        username,
-        table_name,
-        table.table_uuid,
+        table,
         str_buf,
         dialect,
-        columns,
-        truncate_first=True,
     )
     sesh.commit()
     return make_text_response(f"upserted {username}/{table_name}")

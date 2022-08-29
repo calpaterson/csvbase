@@ -72,6 +72,29 @@ FLOAT_REGEX = re.compile(r"^(\d+\.)|(\.\d+)|(\d+\.\d?)$")
 BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
 
 
+def sniff_csv(
+    csv_buf: UserSubmittedCSVData, sample_size_hint: int = 2**13
+) -> Tuple[Type[csv.Dialect], bool]:
+    """Return csv dialect and a boolean indicating a guess at whether there is
+    a header."""
+    sniffer = csv.Sniffer()
+    sample = "".join(csv_buf.readlines(sample_size_hint))
+
+    try:
+        dialect = csv.Sniffer().sniff(sample)
+    except csv.Error:
+        logger.warning("unable to sniff dialect, falling back to excel")
+        dialect = csv.excel
+    logger.info("sniffed dialect: %s", dialect)
+
+    has_header = sniffer.has_header(sample)
+    logger.info("has_header = %s", has_header)
+
+    csv_buf.seek(0)
+
+    return dialect, has_header
+
+
 def peek_csv(
     csv_buf: UserSubmittedCSVData,
 ) -> Tuple[Type[csv.Dialect], List[Column]]:
@@ -79,15 +102,7 @@ def peek_csv(
     looking at the top of it.
 
     """
-    # FIXME: split the sniffing of dialect (/header) out into a separate
-    # function
-    try:
-        dialect = csv.Sniffer().sniff("".join(csv_buf.readlines(8192)))
-    except csv.Error:
-        logger.warning("unable to sniff dialect, falling back to excel")
-        dialect = csv.excel
-    logger.info("sniffed dialect: %s", dialect)
-    csv_buf.seek(0)
+    dialect, _ = sniff_csv(csv_buf)
 
     # FIXME: it's probably best that this consider the entire CSV file rather
     # than just the start of it.  there are many, many csv files that, halfway
@@ -366,16 +381,19 @@ def make_truncate_table_ddl(sesh: Session, table_uuid: UUID) -> TextClause:
 
 
 def make_userdata_table_name(table_uuid: UUID, with_schema=False):
-    # FIXME: This needs to be changed, as we allow usernames and table names up
-    # to 200 chars but PG has a limit of 64 chars on table names.  Should
-    # probably just be "table_{table_uuid}".  This will also make renaming easier.
     if with_schema:
         return f"userdata.table_{table_uuid.hex}"
     else:
         return f"table_{table_uuid.hex}"
 
 
-def upsert_table_data(
+def make_temp_table_name():
+    # FIXME: this name should probably include the date and some other helpful
+    # info for debugging
+    return f"temp_{uuid4().hex}"
+
+
+def insert_table_data(
     sesh: Session,
     user_uuid: UUID,
     username: str,
@@ -384,12 +402,7 @@ def upsert_table_data(
     csv_buf: UserSubmittedCSVData,
     dialect: Type[csv.Dialect],
     columns: Sequence[Column],
-    truncate_first=True,
 ) -> None:
-    if truncate_first:
-        sesh.execute(make_truncate_table_ddl(sesh, table_uuid))
-        logger.info("truncated %s/%s", username, table_name)
-
     # Copy in with binary copy
     reader = csv.reader(csv_buf, dialect)
     csv_buf.readline()  # pop the header, which is not useful
@@ -405,6 +418,54 @@ def upsert_table_data(
         raw_conn, make_userdata_table_name(table_uuid, with_schema=True), cols
     )
     copy_manager.copy(row_gen)
+
+
+def upsert_table_data(
+    sesh: Session,
+    table: Table,
+    csv_buf: UserSubmittedCSVData,
+    dialect: Type[csv.Dialect],
+) -> None:
+    """Upsert table data, using the csvbase_row_id to correlate the submitted
+    csv with the extant table.
+
+    """
+    reader = csv.reader(csv_buf, dialect)
+    csv_buf.readline()  # pop the header, which is not useful
+    row_gen = (
+        [
+            conv.from_string_to_python(col.type_, v)
+            for col, v in zip(table.columns, line)
+        ]
+        for line in reader
+    )
+    temp_table_name = make_temp_table_name()
+    table_name = make_userdata_table_name(table.table_uuid, with_schema=True)
+    create_temp_table_ddl = f"""
+CREATE temp TABLE "{temp_table_name}" ON COMMIT DROP AS
+SELECT
+    *
+FROM
+    {table_name}
+LIMIT 0;
+"""
+    sesh.execute(create_temp_table_ddl)
+    raw_conn = sesh.connection().connection
+    cols = [c.name for c in table.columns]
+    copy_manager = CopyManager(raw_conn, temp_table_name, cols)
+    copy_manager.copy(row_gen)
+
+    # 1. removals
+    remove_stmt = f"""
+DELETE FROM {table_name} as main
+USING {temp_table_name} as temp
+WHERE main.csvbase_row_id not in (select csvbase_row_id from {temp_table_name});
+    """
+    # 2. updates
+    # FIXME: continue here
+    # 3. additions
+
+    sesh.execute(remove_stmt)
 
 
 def table_as_csv(
