@@ -41,7 +41,7 @@ setup(
             "pytest-flask==1.2.0",
             "pytest==7.1.1",
             "sqlalchemy-stubs==0.4",
-            "bandit==1.7.4",
+            "bandit==1.6.3",
             "types-bleach==5.0.2",
             "types-setuptools==65.1.0",
         ],

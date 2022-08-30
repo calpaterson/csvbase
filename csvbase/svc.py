@@ -231,10 +231,17 @@ def get_columns(sesh, table_uuid) -> List["Column"]:
 
 def get_userdata_tableclause(sesh, table_uuid) -> TableClause:
     columns = get_columns(sesh, table_uuid)
+    table_name = make_userdata_table_name(table_uuid)
+    return get_tableclause(table_name, columns, schema="userdata")
+
+
+def get_tableclause(
+    table_name: str, columns: Sequence[Column], schema: Optional[str] = None
+) -> TableClause:
     return satable(  # type: ignore
-        make_userdata_table_name(table_uuid),
+        table_name,
         *[sacolumn(c.name, type_=c.type_.sqla_type()) for c in columns],
-        schema="userdata",
+        schema=schema,
     )
 
 
@@ -430,6 +437,7 @@ def upsert_table_data(
     csv with the extant table.
 
     """
+    # This is a complicated routine.  First make a generator for the incoming rows.
     reader = csv.reader(csv_buf, dialect)
     csv_buf.readline()  # pop the header, which is not useful
     row_gen = (
@@ -439,33 +447,65 @@ def upsert_table_data(
         ]
         for line in reader
     )
+
+    # Then make a temp table and COPY the new rows into it
     temp_table_name = make_temp_table_name()
-    table_name = make_userdata_table_name(table.table_uuid, with_schema=True)
-    create_temp_table_ddl = f"""
+    main_table_name = make_userdata_table_name(table.table_uuid, with_schema=True)
+
+    # The below 'nosec' location and fmt pragma are hacks to work around
+    # https://github.com/PyCQA/bandit/issues/658
+    # This only works on bandit 1.6.3
+    # fmt: off
+    """# nosec"""; create_temp_table_ddl = f"""
 CREATE temp TABLE "{temp_table_name}" ON COMMIT DROP AS
 SELECT
     *
 FROM
-    {table_name}
+    {main_table_name}
 LIMIT 0;
 """
+    # fmt: on
     sesh.execute(create_temp_table_ddl)
     raw_conn = sesh.connection().connection
-    cols = [c.name for c in table.columns]
-    copy_manager = CopyManager(raw_conn, temp_table_name, cols)
+    column_names = [c.name for c in table.columns]
+    copy_manager = CopyManager(raw_conn, temp_table_name, column_names)
     copy_manager.copy(row_gen)
 
-    # 1. removals
-    remove_stmt = f"""
-DELETE FROM {table_name} as main
-USING {temp_table_name} as temp
-WHERE main.csvbase_row_id not in (select csvbase_row_id from {temp_table_name});
-    """
-    # 2. updates
-    # FIXME: continue here
-    # 3. additions
+    # Next selectively use the temp table to update the 'main' one
+    main_tableclause = get_userdata_tableclause(sesh, table.table_uuid)
+    temp_tableclause = get_tableclause(temp_table_name, table.columns)
 
+    # 1. for removals
+    remove_stmt = main_tableclause.delete().where(
+        main_tableclause.c.csvbase_row_id.not_in(  # type: ignore
+            select(temp_tableclause.c.csvbase_row_id)  # type: ignore
+        )
+    )
+
+    # 2. updates
+    update_stmt = (
+        main_tableclause.update()
+        .values(
+            **{col.name: getattr(temp_tableclause.c, col.name) for col in table.columns}
+        )
+        .where(main_tableclause.c.csvbase_row_id == temp_tableclause.c.csvbase_row_id)
+    )
+
+    # 3. and additions
+    add_stmt = main_tableclause.insert().from_select(
+        column_names,
+        select(*[getattr(temp_tableclause.c, col) for col in column_names])
+        .select_from(
+            temp_tableclause.outerjoin(
+                main_tableclause,
+                main_tableclause.c.csvbase_row_id == temp_tableclause.c.csvbase_row_id,
+            )
+        )
+        .where(main_tableclause.c.csvbase_row_id.is_(None)),
+    )
     sesh.execute(remove_stmt)
+    sesh.execute(update_stmt)
+    sesh.execute(add_stmt)
 
 
 def table_as_csv(

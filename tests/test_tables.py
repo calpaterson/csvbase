@@ -9,7 +9,6 @@ import pytest
 from .utils import test_data_path, random_string
 
 
-@pytest.mark.xfail(reason="currently broken/has wrong api")
 def test_csvs_in_and_out(test_user, sesh, client, ten_rows):
     """Test that a csv can be pulled out, edited, and then posted back"""
     url = f"/{test_user.username}/{ten_rows}"
