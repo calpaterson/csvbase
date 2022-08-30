@@ -37,7 +37,7 @@ setup(
             "black==22.3.0",
             "bpython~=0.22.1",
             "mypy==0.910",
-            "pandas==1.4.3",
+            "pandas==1.3.5",
             "pytest-flask==1.2.0",
             "pytest==7.1.1",
             "sqlalchemy-stubs==0.4",
