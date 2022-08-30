@@ -41,3 +41,10 @@ def test_csvs_in_and_out(test_user, sesh, client, ten_rows):
     )
 
     assert_frame_equal(df, second_df)
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_putting_a_table_doesnt_break_adding_new_rows():
+    # At the moment if you add a new row above the sequence, adding a row 500's.  Some sample code here:
+    # https://stackoverflow.com/questions/244243/how-to-reset-postgres-primary-key-sequence-when-it-falls-out-of-sync
+    assert False

@@ -507,6 +507,8 @@ LIMIT 0;
     sesh.execute(update_stmt)
     sesh.execute(add_stmt)
 
+    # FIXME: next need to reset the sequence...
+
 
 def table_as_csv(
     sesh: Session,
