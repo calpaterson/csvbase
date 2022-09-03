@@ -11,6 +11,7 @@ content
 content-type
 cross-table
 csv
+csvbase
 data
 data-licence
 dataset
@@ -48,6 +49,7 @@ sign-out
 status
 sub
 subscription
+system
 table
 tableset
 test
