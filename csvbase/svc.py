@@ -25,7 +25,7 @@ import importlib.resources
 import bleach
 import xlsxwriter
 from pgcopy import CopyManager
-from sqlalchemy import column as sacolumn, types as satypes
+from sqlalchemy import column as sacolumn, types as satypes, func
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import (
     TableClause,
@@ -492,9 +492,14 @@ LIMIT 0;
     )
 
     # 3. and additions
+    select_columns = [func.coalesce(
+        temp_tableclause.c.csvbase_row_id,
+        func.nextval(func.pg_get_serial_sequence(main_table_name, "csvbase_row_id"))
+    )]
+    select_columns += [getattr(temp_tableclause.c, c.name) for c in table.user_columns()]
     add_stmt = main_tableclause.insert().from_select(
         column_names,
-        select(*[getattr(temp_tableclause.c, col) for col in column_names])
+        select(select_columns)
         .select_from(
             temp_tableclause.outerjoin(
                 main_tableclause,
