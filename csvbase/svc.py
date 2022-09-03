@@ -456,14 +456,14 @@ def upsert_table_data(
     # https://github.com/PyCQA/bandit/issues/658
     # This only works on bandit 1.6.3
     # fmt: off
-    """# nosec"""; create_temp_table_ddl = f"""
+    """# nosec"""; create_temp_table_ddl = text(f"""
 CREATE temp TABLE "{temp_table_name}" ON COMMIT DROP AS
 SELECT
     *
 FROM
     {main_table_name}
 LIMIT 0;
-"""
+""")
     # fmt: on
     sesh.execute(create_temp_table_ddl)
     raw_conn = sesh.connection().connection
@@ -491,28 +491,61 @@ LIMIT 0;
         .where(main_tableclause.c.csvbase_row_id == temp_tableclause.c.csvbase_row_id)
     )
 
-    # 3. and additions
-    select_columns = [func.coalesce(
-        temp_tableclause.c.csvbase_row_id,
-        func.nextval(func.pg_get_serial_sequence(main_table_name, "csvbase_row_id"))
-    )]
-    select_columns += [getattr(temp_tableclause.c, c.name) for c in table.user_columns()]
-    add_stmt = main_tableclause.insert().from_select(
+    # 3a. and additions where the csvbase_row_id as been set
+    add_stmt_select_columns = [
+        getattr(temp_tableclause.c, c.name) for c in table.columns
+    ]
+    add_stmt_no_blanks = main_tableclause.insert().from_select(
         column_names,
-        select(select_columns)
+        select(*add_stmt_select_columns)  # type: ignore
         .select_from(
             temp_tableclause.outerjoin(
                 main_tableclause,
                 main_tableclause.c.csvbase_row_id == temp_tableclause.c.csvbase_row_id,
             )
         )
-        .where(main_tableclause.c.csvbase_row_id.is_(None)),
+        .where(
+            main_tableclause.c.csvbase_row_id.is_(None),
+            temp_tableclause.c.csvbase_row_id.is_not(None),  # type: ignore
+        ),
+    )
+
+    # 3b. now reseting the sequence that allocates pks
+    reset_serial_stmt = select(
+        func.setval(
+            func.pg_get_serial_sequence(main_table_name, "csvbase_row_id"),
+            func.max(main_tableclause.c.csvbase_row_id),
+        )
+    )
+
+    # 3c. additions which do not have a csvbase_row_id set
+    select_columns = [
+        func.coalesce(
+            func.nextval(func.pg_get_serial_sequence(main_table_name, "csvbase_row_id"))
+        )
+    ]
+    select_columns += [
+        getattr(temp_tableclause.c, c.name) for c in table.user_columns()
+    ]
+    add_stmt_blanks = main_tableclause.insert().from_select(
+        column_names,
+        select(*select_columns)  # type: ignore
+        .select_from(
+            temp_tableclause.outerjoin(
+                main_tableclause,
+                main_tableclause.c.csvbase_row_id == temp_tableclause.c.csvbase_row_id,
+            )
+        )
+        .where(
+            main_tableclause.c.csvbase_row_id.is_(None),
+            temp_tableclause.c.csvbase_row_id.is_(None),
+        ),
     )
     sesh.execute(remove_stmt)
     sesh.execute(update_stmt)
-    sesh.execute(add_stmt)
-
-    # FIXME: next need to reset the sequence...
+    sesh.execute(add_stmt_no_blanks)
+    sesh.execute(reset_serial_stmt)
+    sesh.execute(add_stmt_blanks)
 
 
 def table_as_csv(

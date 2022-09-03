@@ -31,7 +31,6 @@ def put_df(client, user, url, df: pd.DataFrame) -> None:
     assert post_resp.status_code == 200
 
 
-
 def test_csvs_in_and_out(test_user, sesh, client, ten_rows):
     """Test that a csv can be pulled out, edited, and then posted back"""
     url = f"/{test_user.username}/{ten_rows}"
@@ -71,4 +70,24 @@ def test_putting_blanks_makes_them_get_autofilled(test_user, sesh, client, ten_r
 
     # the next number should be 11
     df = df.rename(index={pd.NA: 11})
+    assert_frame_equal(df, second_df)
+
+
+def test_mixing_blanks_and_row_ids(test_user, sesh, client, ten_rows):
+    url = f"/{test_user.username}/{ten_rows}"
+
+    df = get_df(client, url).reset_index()
+    df = pd.concat(
+        [df, pd.DataFrame({"csvbase_row_id": [11], "roman_numeral": ["XI"]})]
+    )
+    df = pd.concat([df, pd.DataFrame({"roman_numeral": ["XII"]})])
+    df = df.set_index("csvbase_row_id")
+    df.index = df.index.astype(pd.Int64Dtype())
+
+    put_df(client, test_user, url, df)
+
+    second_df = get_df(client, url)
+
+    # the next number should be 11
+    df = df.rename(index={pd.NA: 12})
     assert_frame_equal(df, second_df)
