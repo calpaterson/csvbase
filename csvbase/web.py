@@ -54,6 +54,7 @@ from .value_objs import (
 from . import svc
 from . import db
 from . import exc
+from . import blog
 from .logging import configure_logging
 from .sentry import configure_sentry
 
@@ -99,9 +100,16 @@ def init_app():
 
     app.register_blueprint(bp)
 
+    if "CSVBASE_BLOG" in environ:
+        app.register_blueprint(blog.bp)
+
     @app.context_processor
     def inject_heroku():
         return dict(HEROKU="HEROKU" in environ)
+
+    @app.context_processor
+    def inject_blueprints():
+        return dict(blueprints=app.blueprints.keys())
 
     app.jinja_env.filters["snake_case"] = snake_case
     app.jinja_env.filters["ppjson"] = ppjson

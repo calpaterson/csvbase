@@ -37,6 +37,12 @@
                    href="{{ url_for('csvbase.paste') }}">Paste</a>
               </li>
 
+              {% if "blog" in blueprints %}
+                <li class="nav-item">
+                  <a class="nav-link {% if request.endpoint == 'blog.blog_index' %}active{% endif %}"
+                     href="{{ url_for('blog.blog_index') }}">Blog</a>
+                </li>
+              {% endif %}
 
               <li class="nav-item">
                 <a class="nav-link {% if request.endpoint == 'csvbase.about' %}active{% endif %}"
@@ -64,13 +70,13 @@
       {% block explainer %}
         {% if "current_user" not in g %}
           <div class="container">
-            <div id='explain-alert' class="alert alert-light" role="alert">
+            <div id='explain-alert' class="alert alert-light" role="alert" style="text-align: center; padding-top: 0; padding-bottom: 0">
               {% if table %}
-                <p>csvbase is a website for hosting table data. Exporting this table to pandas is dead easy, run:</p>
+                <p>csvbase is a website for <mark>hosting table data</mark>. Exporting this table to pandas is dead easy, run:</p>
 
                 <p><code>import pandas as pd; {{table.table_name|snake_case}} = pd.read_csv("{{url_for('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True)}}")</code></p>
               {% else %}
-                <p>csvbase is a website for hosting table data.  For more details see the <a href="{{ url_for('csvbase.about') }}">about page.</a>
+                <p>csvbase is a website for <mark>hosting table data</mark>.  For more details see the <a href="{{ url_for('csvbase.about') }}">about page.</a>
               {% endif %}
             </div>
           </div>

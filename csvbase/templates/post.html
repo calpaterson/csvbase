@@ -1,0 +1,14 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "base.html" %}
+
+{% block main %}
+  <div class="container">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <h1>{{ post.title }}</h1>
+
+        {{ post.render_markdown()|safe }}
+      </div>
+    </div>
+  </div>
+{% endblock %}

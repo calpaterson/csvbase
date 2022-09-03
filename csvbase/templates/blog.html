@@ -1,0 +1,16 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "base.html" %}
+
+{% block main %}
+  <div class="container">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <h1 class="py-2">Blog</h1>
+        {% for post in posts %}
+          <p><a href="{{ url_for('blog.post', post_slug=post.slug) }}">{{ post.title }}</a>
+            <span style="float: right">{{ post.render_posted() }}</span></p>
+          {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endblock %}
