@@ -56,11 +56,11 @@ def test_DateConverter__convert_failure():
     [
         pytest.param(["1"], True, id="an int"),
         pytest.param(["-1"], True, id="a negative int"),
-        pytest.param(["1.0"], False, id="a float"),
         pytest.param(["1000"], True, id="thousand"),
         pytest.param(["1,000"], True, id="financial thousand"),
         pytest.param([" 1,000 "], True, id="whitespace"),
         pytest.param(["-1,000 "], True, id="negative financial"),
+        pytest.param(["1.0"], False, id="float not ok when sniffing")
     ],
 )
 def test_IntegerConverter__sniff(inp, expected):
@@ -77,6 +77,7 @@ def test_IntegerConverter__sniff(inp, expected):
         pytest.param("1,000", 1000, id="financial thousand"),
         pytest.param(" 1,000 ", 1000, id="whitespace"),
         pytest.param("-1,000 ", -1000, id="negative financial"),
+        pytest.param("1.0", 1, id="float ok when converting"),
         pytest.param(" ", None, id="whitespace"),
         pytest.param("", None, id="blank"),
     ],

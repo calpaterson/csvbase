@@ -46,19 +46,20 @@ class DateConverter:
 
 
 class IntegerConverter:
-    INTEGER_REGEX = re.compile(r"^ ?-?(\d|,| )+$")
+    INTEGER_SNIFF_REGEX = re.compile(r"^ ?(-?(?:\d|,| )+)$")
+    INTEGER_CONVERT_REGEX = re.compile(r"^ ?(-?(?:\d|,| )+)(\.0)?$")
 
     def sniff(self, values: Iterable[str]) -> bool:
-        return sniff_and_allow_blanks(self.INTEGER_REGEX, values)
+        return sniff_and_allow_blanks(self.INTEGER_SNIFF_REGEX, values)
 
     def convert(self, value: str) -> Optional[int]:
         stripped = value.strip()
         if stripped == "":
             return None
-        match = self.INTEGER_REGEX.match(value)
+        match = self.INTEGER_CONVERT_REGEX.match(value)
         if not match:
             raise exc.UnconvertableValueException(ColumnType.INTEGER, value)
-        return int(match.group().replace(",", ""))
+        return int(match.group(1).replace(",", ""))
 
 
 class FloatConverter:
