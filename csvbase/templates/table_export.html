@@ -45,7 +45,7 @@
       {% if table.is_public %}
       <pre>import pandas as pd
 # you just use the same url as the table page
-{{table.table_name|snake_case}} = pd.read_csv("{{table_url}}")
+{{table.table_name|snake_case}} = pd.read_csv("{{table_url}}", index_col="csvbase_row_id")
 </pre>
       {% else %}
       <pre>import pandas as pd, requests
@@ -54,6 +54,7 @@
             "{{table_url}}",
             stream=True
         ).raw
+        index_col="csvbase_row_id"
 )
 </pre>
       {% endif %}
