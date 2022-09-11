@@ -13,10 +13,15 @@ bp = Blueprint("blog", __name__)
 
 
 @bp.route("/blog")
-def blog_index():
+def blog_index() -> str:
     return render_template("blog.html", posts=blog_svc.get_posts())
 
 
 @bp.route("/blog/<post_slug>")
-def post(post_slug):
+def post(post_slug) -> str:
     return render_template("post.html", post=blog_svc.get_post(post_slug))
+
+
+@bp.route("/blog/csvbase-blog.rss")
+def rss() -> str:
+    ...

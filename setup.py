@@ -2,6 +2,25 @@ from setuptools import setup, find_packages
 
 VERSION = open("csvbase/VERSION").read().strip()
 
+blog_reqs = ["feedgen==0.9.0"]
+
+# The tests test the blog, so it must be installed
+test_reqs = blog_reqs[:]
+test_reqs.extend(
+    [
+        "black==22.3.0",
+        "bpython~=0.22.1",
+        "mypy==0.910",
+        "pandas==1.3.5",
+        "pytest-flask==1.2.0",
+        "pytest==7.1.1",
+        "sqlalchemy-stubs==0.4",
+        "bandit==1.6.3",
+        "types-bleach==5.0.2",
+        "types-setuptools==65.1.0",
+    ]
+)
+
 setup(
     name="csvbase",
     version=VERSION,
@@ -32,20 +51,7 @@ setup(
         "werkzeug<2.1.0",
         "xlsxwriter==3.0.3",
     ],
-    extras_require={
-        "tests": [
-            "black==22.3.0",
-            "bpython~=0.22.1",
-            "mypy==0.910",
-            "pandas==1.3.5",
-            "pytest-flask==1.2.0",
-            "pytest==7.1.1",
-            "sqlalchemy-stubs==0.4",
-            "bandit==1.6.3",
-            "types-bleach==5.0.2",
-            "types-setuptools==65.1.0",
-        ],
-    },
+    extras_require={"tests": test_reqs, "blog": blog_reqs},
     entry_points={
         "console_scripts": [
             "csvbase-make-tables=csvbase.cli:make_tables",
