@@ -55,6 +55,7 @@ from . import svc
 from . import db
 from . import exc
 from . import blog
+from .sesh import get_sesh
 from .logging import configure_logging
 from .sentry import configure_sentry
 
@@ -100,7 +101,7 @@ def init_app():
 
     app.register_blueprint(bp)
 
-    if "CSVBASE_BLOG" in environ:
+    if "CSVBASE_BLOG_REF" in environ:
         app.register_blueprint(blog.bp)
 
     @app.context_processor
@@ -1113,10 +1114,6 @@ def json_or_400() -> Dict[str, Any]:
         raise exc.InvalidRequest()
     else:
         return request.json
-
-
-def get_sesh() -> Session:
-    return current_app.scoped_session  # type: ignore
 
 
 def snake_case(inp: str) -> str:

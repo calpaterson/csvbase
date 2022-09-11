@@ -13,8 +13,8 @@ from .utils import random_string, make_user
 
 @pytest.fixture(scope="session")
 def app():
-    # enable the blog
-    with patch.dict(os.environ, {"CSVBASE_BLOG": ""}):
+    # enable the blog (but with a blank table ref!)
+    with patch.dict(os.environ, {"CSVBASE_BLOG_REF": ""}):
         a = web.init_app()
     a.config["TESTING"] = True
     # Speeds things up considerably when testing
