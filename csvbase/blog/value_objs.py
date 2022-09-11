@@ -1,12 +1,10 @@
+from datetime import date
 from typing import Optional
 from uuid import UUID
-from datetime import date
 from dataclasses import dataclass
 
-from flask import Blueprint, render_template
 import marko
 
-bp = Blueprint("blog", __name__)
 
 @dataclass
 class Post:
@@ -28,23 +26,3 @@ class Post:
             return self.posted.isoformat()
         else:
             return "(not posted yet)"
-
-
-frist_post = Post(
-    "frist",
-    "Hello, World",
-    UUID("edf795a0-93a9-4b5e-962a-c4194e3fddbb"),
-    description="The first post",
-    draft=False,
-    markdown="Hi, so about *csvbase*...",
-)
-
-
-@bp.route("/blog")
-def blog_index():
-    return render_template("blog.html", posts=[frist_post])
-
-
-@bp.route("/blog/<post_slug>")
-def post(post_slug):
-    return render_template("post.html", post=frist_post)

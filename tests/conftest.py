@@ -1,4 +1,6 @@
+import os
 from logging import basicConfig, DEBUG
+from unittest.mock import patch
 
 from sqlalchemy.orm import sessionmaker
 import pytest
@@ -11,7 +13,9 @@ from .utils import random_string, make_user
 
 @pytest.fixture(scope="session")
 def app():
-    a = web.init_app()
+    # enable the blog
+    with patch.dict(os.environ, {"CSVBASE_BLOG": ""}):
+        a = web.init_app()
     a.config["TESTING"] = True
     # Speeds things up considerably when testing
     a.config["CRYPT_CONTEXT"] = CryptContext(["plaintext"])
