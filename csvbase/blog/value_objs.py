@@ -14,12 +14,9 @@ class Post:
     description: str
     draft: bool
     markdown: str
+    cover_image_url: str
+    cover_image_alt: str
     posted: Optional[date] = None
-    cover_image: Optional[str] = None
-    cover_image_alt: Optional[str] = None
-
-    def render_markdown(self) -> str:
-        return marko.convert(self.markdown)
 
     def render_posted(self) -> str:
         if self.posted is not None:

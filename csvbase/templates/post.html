@@ -3,8 +3,8 @@
 
 {% block head %}
   {{ super() }}
-  <link rel="alternate" type="application/rss+xml" title="csvbase blog" href=
-    "{{ url_for('blog.rss', _external=True) }}">
+  <link rel="alternate" type="application/rss+xml" title="csvbase blog"
+        href="{{ url_for('blog.rss', _external=True) }}">
 {% endblock %}
 
 {% block main %}
@@ -13,7 +13,7 @@
       <div class="col-md-8 offset-md-2">
         <h1>{{ post.title }}</h1>
 
-        {{ post.render_markdown()|safe }}
+        {{ rendered|safe }}
       </div>
     </div>
   </div>

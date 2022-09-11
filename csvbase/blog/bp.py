@@ -20,7 +20,9 @@ def blog_index() -> str:
 
 @bp.route("/blog/<post_slug>")
 def post(post_slug) -> str:
-    return render_template("post.html", post=blog_svc.get_post(post_slug))
+    post_obj = blog_svc.get_post(post_slug)
+    md = render_md(post_obj.markdown)
+    return render_template("post.html", post=post_obj, rendered=md)
 
 
 @bp.route("/blog/posts.rss")
@@ -46,3 +48,7 @@ def make_feed(feed_url: str) -> str:
         fe.link(href=url_for("blog.post", post_slug=post.slug, _external=True))
 
     return fg.rss_str(pretty=True)
+
+
+def render_md(markdown: str):
+    return marko.convert(markdown)

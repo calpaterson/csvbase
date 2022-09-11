@@ -10,6 +10,8 @@ frist_post = Post(
     description="The first post",
     draft=False,
     markdown="Hi, so about *csvbase*...",
+    cover_image_url="http://example.com/some.jpg",
+    cover_image_alt="some jpg"
 )
 
 
