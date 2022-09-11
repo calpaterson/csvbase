@@ -2,6 +2,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+    {% block head %}
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css' ) }}" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3">
@@ -9,6 +10,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='logo/192x192.png') }}">
     <link rel="canonical" href="{{ canonical_url or request.base_url }}">
     <title>{{page_title or "csvbase (alpha)"}}</title>
+    {% endblock %}
   </head>
   <body>
     {% block body %}

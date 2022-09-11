@@ -11,7 +11,7 @@ default: tox
 
 .venv/touchfile: setup.py
 	test -d .venv || virtualenv .venv --python=python3
-	. .venv/bin/activate; python -m pip install .
+	. .venv/bin/activate; python -m pip install .[blog]
 	touch $@
 
 serve: .venv csvbase/static/bootstrap.min.css

@@ -8,14 +8,15 @@ blog_reqs = ["feedgen==0.9.0"]
 test_reqs = blog_reqs[:]
 test_reqs.extend(
     [
+        "bandit==1.6.3",
         "black==22.3.0",
         "bpython~=0.22.1",
+        "feedparser==6.0.2",
         "mypy==0.910",
         "pandas==1.3.5",
         "pytest-flask==1.2.0",
         "pytest==7.1.1",
         "sqlalchemy-stubs==0.4",
-        "bandit==1.6.3",
         "types-bleach==5.0.2",
         "types-setuptools==65.1.0",
     ]
