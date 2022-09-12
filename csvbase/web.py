@@ -97,6 +97,9 @@ def init_app():
 
     Babel(app, default_locale="en_GB", default_timezone="Europe/London")
 
+    class TableNameConverter(BaseConverter):
+        regex = r"[A-z][-A-z0-9]+"
+
     app.url_map.converters["table_name"] = TableNameConverter
 
     app.register_blueprint(bp)
@@ -118,75 +121,72 @@ def init_app():
     sesh = flask_scoped_session(sessionmaker(bind=db.engine))
     sesh.init_app(app)
 
-    return app
-
-
-class TableNameConverter(BaseConverter):
-    regex = r"[A-z][-A-z0-9]+"
-
-
-# typing for errorhandler is apparently tricky...
-# https://github.com/pallets/flask/blob/bd56d19b167822a9a23e2e9e2a07ccccc36baa8d/src/flask/typing.py#L49
-@bp.errorhandler(exc.CSVBaseException)  # type: ignore
-def handle_csvbase_exceptions(e: exc.CSVBaseException) -> Response:
-    try:
-        message, http_code = EXCEPTION_MESSAGE_CODE_MAP[e.__class__]
-    except KeyError:
-        # An exception we don't have a canned response for - reraise it
-        raise e
-    if is_browser():
-        if http_code == 401:
-            flash("You need to sign in to do that")
-            return redirect(url_for("csvbase.register"))
+    # typing for errorhandler is apparently tricky...
+    # https://github.com/pallets/flask/blob/bd56d19b167822a9a23e2e9e2a07ccccc36baa8d/src/flask/typing.py#L49
+    @app.errorhandler(exc.CSVBaseException)  # type: ignore
+    def handle_csvbase_exceptions(e: exc.CSVBaseException) -> Response:
+        try:
+            message, http_code = EXCEPTION_MESSAGE_CODE_MAP[e.__class__]
+        except KeyError:
+            # An exception we don't have a canned response for - reraise it
+            raise e
+        if is_browser():
+            if http_code == 401:
+                flash("You need to sign in to do that")
+                return redirect(url_for("csvbase.register"))
+            else:
+                resp = make_response(f"http error code {http_code}: {message}")
+                resp.status_code = http_code
+                return resp
         else:
-            resp = make_response(f"http error code {http_code}: {message}")
+            resp = jsonify({"error": message})
             resp.status_code = http_code
             return resp
-    else:
-        resp = jsonify({"error": message})
-        resp.status_code = http_code
-        return resp
 
-
-@bp.before_request
-def put_user_in_g() -> None:
-    app_logger = current_app.logger
-    user_uuid: Optional[Any] = flask_session.get("user_uuid")
-    auth = request.authorization
-    if user_uuid is not None:
-        if not isinstance(user_uuid, UUID):
-            del flask_session["user_uuid"]
-            app_logger.warning("cleared a corrupt user_uuid cookie: %s", user_uuid)
-        else:
-            sesh = get_sesh()
-            try:
-                user = svc.user_by_user_uuid(sesh, user_uuid)
-            except exc.UserDoesNotExistException:
+    @app.before_request
+    def put_user_in_g() -> None:
+        app_logger = current_app.logger
+        user_uuid: Optional[Any] = flask_session.get("user_uuid")
+        auth = request.authorization
+        if user_uuid is not None:
+            if not isinstance(user_uuid, UUID):
                 del flask_session["user_uuid"]
                 app_logger.warning("cleared a corrupt user_uuid cookie: %s", user_uuid)
             else:
+                sesh = get_sesh()
+                try:
+                    user = svc.user_by_user_uuid(sesh, user_uuid)
+                except exc.UserDoesNotExistException:
+                    del flask_session["user_uuid"]
+                    app_logger.warning(
+                        "cleared a corrupt user_uuid cookie: %s", user_uuid
+                    )
+                else:
+                    set_current_user(user)
+                    app_logger.debug(
+                        "currently signed in as: %s", g.current_user.username
+                    )
+
+        elif auth is not None:
+            sesh = get_sesh()
+            username = auth.username or ""
+            if svc.is_valid_api_key(sesh, username, auth.password or ""):
+                user = svc.user_by_name(sesh, username)
                 set_current_user(user)
-                app_logger.debug("currently signed in as: %s", g.current_user.username)
-
-    elif auth is not None:
-        sesh = get_sesh()
-        username = auth.username or ""
-        if svc.is_valid_api_key(sesh, username, auth.password or ""):
-            user = svc.user_by_name(sesh, username)
-            set_current_user(user)
+            else:
+                raise exc.WrongAuthException()
         else:
-            raise exc.WrongAuthException()
-    else:
-        app_logger.debug("not signed in")
+            app_logger.debug("not signed in")
 
+    @app.after_request
+    def set_default_cache_control(response: FlaskResponse) -> FlaskResponse:
+        cc = response.cache_control
+        if len(cc.values()) == 0:
+            # nothing specific has been set, so set the default
+            cc.no_store = True
+        return response
 
-@bp.after_request
-def set_default_cache_control(response: FlaskResponse) -> FlaskResponse:
-    cc = response.cache_control
-    if len(cc.values()) == 0:
-        # nothing specific has been set, so set the default
-        cc.no_store = True
-    return response
+    return app
 
 
 @bp.route("/")
