@@ -11,11 +11,11 @@
   <div class="container">
     <div class="row">
       <div class="col-md-8 offset-md-2">
-        <h1>{{ post.title }}</h1>
-
-        <figure>
-          <img src="{{ post.cover_image_url}}" alt="{{ post.cover_image_alt}}">
+        <figure class="figure">
+          <img class="figure-img img-fluid rounded" src="{{ post.cover_image_url}}" alt="{{ post.cover_image_alt}}">
         </figure>
+
+        <h1 class="py-2">{{ post.title }}</h1>
 
         {{ rendered|safe }}
       </div>
