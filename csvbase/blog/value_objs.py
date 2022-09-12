@@ -8,7 +8,7 @@ import marko
 
 @dataclass
 class Post:
-    slug: str
+    id: int
     title: str
     uuid: UUID
     description: str

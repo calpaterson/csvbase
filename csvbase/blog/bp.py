@@ -21,10 +21,10 @@ def blog_index() -> str:
     return render_template("blog.html", posts=blog_svc.get_posts(sesh))
 
 
-@bp.route("/blog/<post_slug>", methods=["GET"])
-def post(post_slug) -> str:
+@bp.route("/blog/<int:post_id>", methods=["GET"])
+def post(post_id: int) -> str:
     sesh = get_sesh()
-    post_obj = blog_svc.get_post(sesh, post_slug)
+    post_obj = blog_svc.get_post(sesh, post_id)
     md = render_md(post_obj.markdown)
     return render_template("post.html", post=post_obj, rendered=md)
 
@@ -50,7 +50,7 @@ def make_feed(sesh: Session, feed_url: str) -> str:
         fe.id(str(post.uuid))
         fe.title(post.title)
         fe.description(post.description)
-        fe.link(href=url_for("blog.post", post_slug=post.slug, _external=True))
+        fe.link(href=url_for("blog.post", post_id=post.id, _external=True))
 
     return fg.rss_str(pretty=True)
 
