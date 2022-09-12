@@ -13,6 +13,10 @@
       <div class="col-md-8 offset-md-2">
         <h1>{{ post.title }}</h1>
 
+        <figure>
+          <img src="{{ post.cover_image_url}}" alt="{{ post.cover_image_alt}}">
+        </figure>
+
         {{ rendered|safe }}
       </div>
     </div>

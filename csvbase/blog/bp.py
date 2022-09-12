@@ -18,7 +18,9 @@ bp = Blueprint("blog", __name__)
 @bp.route("/blog")
 def blog_index() -> str:
     sesh = get_sesh()
-    return render_template("blog.html", posts=blog_svc.get_posts(sesh))
+    return render_template(
+        "blog.html", posts=blog_svc.get_posts(sesh), page_title="The csvbase blog"
+    )
 
 
 @bp.route("/blog/<int:post_id>", methods=["GET"])
@@ -26,7 +28,9 @@ def post(post_id: int) -> str:
     sesh = get_sesh()
     post_obj = blog_svc.get_post(sesh, post_id)
     md = render_md(post_obj.markdown)
-    return render_template("post.html", post=post_obj, rendered=md)
+    return render_template(
+        "post.html", post=post_obj, rendered=md, page_title=post_obj.title
+    )
 
 
 @bp.route("/blog/posts.rss")
