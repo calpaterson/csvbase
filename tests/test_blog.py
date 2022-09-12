@@ -15,17 +15,19 @@ from csvbase.value_objs import User, Table, Column, ColumnType, DataLicence
 from .utils import random_string
 
 
-def make_post(post_id: int = 1):
-    return Post(
-        post_id,
-        "Hello, World",
-        uuid4(),
-        description="The first post",
-        draft=False,
-        markdown="Hi, so about *csvbase*...",
-        cover_image_url="http://example.com/some.jpg",
-        cover_image_alt="some jpg",
-    )
+def make_post(**overrides):
+    kwargs = {
+        "id": 1,
+        "title": "Hello, World",
+        "uuid": str(uuid4()),
+        "description": "The first post",
+        "draft": False,
+        "markdown": "Hi, so about *csvbase*...",
+        "cover_image_url": "http://example.com/some.jpg",
+        "cover_image_alt": "some jpg",
+    }
+    kwargs.update(**overrides)
+    return Post(**kwargs)  # type: ignore
 
 
 @pytest.fixture(scope="function")
@@ -89,6 +91,22 @@ def test_post(sesh, client, blog_table):
     assert_feed_header(root)
 
 
+def test_draft(client, sesh, blog_table):
+    post = make_post(draft=True)
+    blog_svc.insert_post(sesh, post)
+    sesh.commit()
+    resp = client.get(f"/blog/{post.id}")
+    assert resp.status_code == 404
+
+
+def test_unpublished_draft_with_uuid(client, sesh, blog_table):
+    post = make_post(draft=True)
+    blog_svc.insert_post(sesh, post)
+    sesh.commit()
+    resp = client.get(f"/blog/{post.id}?uuid={str(post.uuid)}")
+    assert resp.status_code == 200
+
+
 def assert_feed_header(root):
     links = root.find("head").findall("link")
     for link in links:
@@ -102,8 +120,10 @@ def assert_feed_header(root):
 
 
 def test_rss(client, sesh, blog_table):
-    post = make_post()
-    blog_svc.insert_post(sesh, post)
+    post1 = make_post()
+    post2 = make_post(id=2, draft=True)
+    blog_svc.insert_post(sesh, post1)
+    blog_svc.insert_post(sesh, post2)
     sesh.commit()
     resp = client.get("/blog/posts.rss")
     assert resp.status_code == 200
@@ -114,7 +134,7 @@ def test_rss(client, sesh, blog_table):
     assert parsed["feed"]["link"] == "http://localhost/blog/posts.rss"
 
     (entry,) = parsed["entries"]
-    assert entry["id"] == str(post.uuid)
-    assert entry["link"] == f"http://localhost/blog/{post.id}"
-    assert entry["title"] == post.title
-    assert entry["summary"] == post.description
+    assert entry["id"] == str(post1.uuid)
+    assert entry["link"] == f"http://localhost/blog/{post1.id}"
+    assert entry["title"] == post1.title
+    assert entry["summary"] == post1.description

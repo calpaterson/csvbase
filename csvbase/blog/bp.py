@@ -4,12 +4,13 @@ from datetime import date
 from dataclasses import dataclass
 
 from feedgen.feed import FeedGenerator
-from flask import Blueprint, render_template, Response, url_for
+from flask import Blueprint, render_template, Response, url_for, make_response, request
 import marko
 from sqlalchemy.orm import Session
 
 from .value_objs import Post
 from . import svc as blog_svc
+from .. import exc
 from csvbase.sesh import get_sesh
 
 bp = Blueprint("blog", __name__)
@@ -24,12 +25,24 @@ def blog_index() -> str:
 
 
 @bp.route("/blog/<int:post_id>", methods=["GET"])
-def post(post_id: int) -> str:
+def post(post_id: int) -> Response:
     sesh = get_sesh()
-    post_obj = blog_svc.get_post(sesh, post_id)
+    not_found_message = "http error code 404: blog post not found"
+    try:
+        post_obj = blog_svc.get_post(sesh, post_id)
+    except exc.RowDoesNotExistException:
+        response = make_response(not_found_message)
+        response.status_code = 404
+        return response
+    if post_obj.draft and request.args.get("uuid", "") != str(post_obj.uuid):
+        response = make_response(not_found_message)
+        response.status_code = 404
+        return response
     md = render_md(post_obj.markdown)
-    return render_template(
-        "post.html", post=post_obj, rendered=md, page_title=post_obj.title
+    return make_response(
+        render_template(
+            "post.html", post=post_obj, rendered=md, page_title=post_obj.title
+        )
     )
 
 
@@ -50,6 +63,8 @@ def make_feed(sesh: Session, feed_url: str) -> str:
     fg.description("nothing")
 
     for post in blog_svc.get_posts(sesh):
+        if post.draft:
+            continue
         fe = fg.add_entry()
         fe.id(str(post.uuid))
         fe.title(post.title)
