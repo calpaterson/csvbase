@@ -897,6 +897,7 @@ def robots() -> Response:
 def sitemap() -> Response:
     sesh = get_sesh()
     table_names = svc.get_public_table_names(sesh)
+    # FIXME: include blog urls
     table_urls = (
         url_for(
             "csvbase.table_view",
@@ -907,6 +908,7 @@ def sitemap() -> Response:
         for username, table_name in table_names
     )
     resp = make_response(render_template("sitemap.xml", urls=table_urls))
+    resp.mimetype = "application/xml"
     resp.cache_control.public = True
     resp.cache_control.max_age = int(timedelta(days=1).total_seconds())
     return resp

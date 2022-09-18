@@ -113,7 +113,7 @@ def test_draft(client, sesh, blog_table):
     assert resp.status_code == 404
 
 
-def test_unpublished_draft_with_uuid(client, sesh, blog_table):
+def test_draft_with_uuid(client, sesh, blog_table):
     post = make_post(draft=True)
     blog_svc.insert_post(sesh, post)
     sesh.commit()
