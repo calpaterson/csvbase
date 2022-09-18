@@ -103,6 +103,20 @@ def test_post(sesh, client, blog_table):
     html_parser = etree.HTMLParser()
     root = etree.fromstring(resp.data, html_parser)
     assert_feed_header_is_present(root)
+    # FIXME: It would be great to have tests for all this stuff:
+    # image
+    # image alt
+    # og:url
+    #   : site_name
+    #   : author
+    #   : title
+    #   : local
+    #   : type (article)
+    # article:published_time
+    # ld+json
+    # twitter:card
+    # date
+    # description
 
 
 def test_draft(client, sesh, blog_table):
