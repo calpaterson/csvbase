@@ -24,3 +24,35 @@
         </tbody>
       </table>
 {% endmacro %}
+
+{% macro column_value_input(col, val) %}
+  {% if col.type_.name == "TEXT" and "\n" in val %}
+    <textarea
+      class="form-control"
+      id="{{col.name}}-textarea"
+      name="{{ col.name }}"
+      style="resize: both"
+      >{{val}}</textarea>
+  {% elif col.type_.name == "BOOLEAN" %}
+    <div class="form-check">
+      <input
+        class="form-check-input"
+        id="{{col.name}}-input"
+        type="checkbox"
+        type="{{ col.type_.html_type() }}"
+        name="{{ col.name }}"
+        {% if val %}
+          checked
+        {% endif %}
+        >
+  {% else %}
+    <input
+        class="form-control"
+      {% if col.name == "csvbase_row_id" %}readonly{% endif %}
+      id="{{col.name}}-input"
+      type="{{ col.type_.html_type() }}"
+      name="{{ col.name }}"
+      value="{{ val }}"
+      >
+    {% endif %}
+{% endmacro %}

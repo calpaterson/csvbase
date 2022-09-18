@@ -66,10 +66,24 @@ def test_blog_with_no_posts(client, blog_table):
     assert resp.status_code == 200
     html_parser = etree.HTMLParser()
     root = etree.fromstring(resp.data, html_parser)
-    assert_feed_header(root)
+    assert_feed_header_is_present(root)
 
 
 def test_blog_with_posts(sesh, client, blog_table):
+    post1 = make_post()
+    post2 = make_post(id=2, draft=True, title="A draft post")
+    blog_svc.insert_post(sesh, post1)
+    blog_svc.insert_post(sesh, post2)
+    sesh.commit()
+    resp = client.get("/blog")
+    assert resp.status_code == 200
+    assert b"A draft post" not in resp.data
+    html_parser = etree.HTMLParser()
+    root = etree.fromstring(resp.data, html_parser)
+    assert_feed_header_is_present(root)
+
+
+def test_blog_with_draft_post(sesh, client, blog_table):
     post = make_post()
     blog_svc.insert_post(sesh, post)
     sesh.commit()
@@ -77,7 +91,7 @@ def test_blog_with_posts(sesh, client, blog_table):
     assert resp.status_code == 200
     html_parser = etree.HTMLParser()
     root = etree.fromstring(resp.data, html_parser)
-    assert_feed_header(root)
+    assert_feed_header_is_present(root)
 
 
 def test_post(sesh, client, blog_table):
@@ -88,7 +102,7 @@ def test_post(sesh, client, blog_table):
     assert resp.status_code == 200
     html_parser = etree.HTMLParser()
     root = etree.fromstring(resp.data, html_parser)
-    assert_feed_header(root)
+    assert_feed_header_is_present(root)
 
 
 def test_draft(client, sesh, blog_table):
@@ -107,7 +121,7 @@ def test_unpublished_draft_with_uuid(client, sesh, blog_table):
     assert resp.status_code == 200
 
 
-def assert_feed_header(root):
+def assert_feed_header_is_present(root):
     links = root.find("head").findall("link")
     for link in links:
         if link.attrib["rel"] == "alternate":

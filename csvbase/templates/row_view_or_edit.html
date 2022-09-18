@@ -22,19 +22,7 @@
                 {% endif %}
               </div>
               <div class="col-auto">
-                <input
-                  {% if col.name == "csvbase_row_id" %}readonly{% endif %}
-                  id="{{col.name}}-input"
-                  type="{{ col.type_.html_type() }}"
-                  name="{{ col.name }}"
-                  {% if col.type_.name == "BOOLEAN" %}
-                    {% if v %}
-                      checked
-                    {% endif %}
-                  {% else %}
-                    value="{{ v }}"
-                  {% endif %}
-                  >
+                {{ row_macros.column_value_input(col, v) }}
               </div>
               {% if col.name == "csvbase_row_id" %}
                 <div class="col-auto">

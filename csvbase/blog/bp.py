@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 from uuid import UUID
 from datetime import date
@@ -19,9 +20,8 @@ bp = Blueprint("blog", __name__)
 @bp.route("/blog")
 def blog_index() -> str:
     sesh = get_sesh()
-    return render_template(
-        "blog.html", posts=blog_svc.get_posts(sesh), page_title="The csvbase blog"
-    )
+    posts = [post for post in blog_svc.get_posts(sesh) if not post.draft]
+    return render_template("blog.html", posts=posts, page_title="The csvbase blog")
 
 
 @bp.route("/blog/<int:post_id>", methods=["GET"])
@@ -39,9 +39,16 @@ def post(post_id: int) -> Response:
         response.status_code = 404
         return response
     md = render_md(post_obj.markdown)
+    post_url = url_for("blog.post", post_id=post_id, _external=True)
+    ld_json = make_ld_json(post_obj, post_url)
     return make_response(
         render_template(
-            "post.html", post=post_obj, rendered=md, page_title=post_obj.title
+            "post.html",
+            post=post_obj,
+            rendered=md,
+            page_title=post_obj.title,
+            ld_json=ld_json,
+            canonical_url=post_url,
         )
     )
 
@@ -74,5 +81,38 @@ def make_feed(sesh: Session, feed_url: str) -> str:
     return fg.rss_str(pretty=True)
 
 
-def render_md(markdown: str):
+def render_md(markdown: str) -> str:
     return marko.convert(markdown)
+
+
+def make_ld_json(post: Post, post_url: str) -> str:
+    document = {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": post.title,
+        "url": post_url,
+        "description": post.description,
+        "author": {
+            "@type": "Person",
+            "name": "Cal Paterson",
+            "email": "cal@calpaterson.com",
+            "url": "https://calpaterson.com/about.html",
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "Cal Paterson Ltd",
+            "email": "cal@calpaterson.com",
+            "url": "https://calpaterson.com/about.html",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://calpaterson.com/assets/favicon.png",
+            },
+        },
+        "mainEntityOfPage": post_url,
+    }
+    document["image"] = post.cover_image_url
+    if post.posted is not None:
+        document["datePublished"] = post.posted.isoformat()
+        document["dateCreated"] = post.posted.isoformat()
+        document["dateModified"] = post.posted.isoformat()
+    return json.dumps(document, indent=4)

@@ -187,14 +187,6 @@ class ColumnType(enum.Enum):
         else:
             return json_value
 
-    def html_type(self) -> str:
-        if self is ColumnType.BOOLEAN:
-            return "checkbox"
-        elif self is ColumnType.DATE:
-            return "date"
-        else:
-            return "text"
-
     def pretty_name(self) -> str:
         return self.name.capitalize()
 
