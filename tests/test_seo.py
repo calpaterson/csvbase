@@ -1,5 +1,6 @@
 from lxml import etree
 
+
 def test_robots(client):
     resp = client.get("/robots.txt")
     assert resp.status_code == 200
