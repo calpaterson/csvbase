@@ -19,11 +19,11 @@
               {% if col.name == "csvbase_row_id" %}
                 <td>Row ID (<code>csvbase_row_id</code>)</td>
                 <td>{{col.type_.pretty_type()}}</td>
-                <td>No</td>
+                <td>Not allowed</td>
               {% else %}
                 <td>{{ col.name }}</td>
                 <td>{{col.type_.pretty_type()}}</td>
-                <td>Yes</td>
+                <td>Allowed</td>
             {% endif %}
             </tr>
           {% endfor %}
