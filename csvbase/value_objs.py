@@ -24,6 +24,8 @@ UserSubmittedCSVData = Union[codecs.StreamReader, io.StringIO]
 
 UserSubmittedBytes = Union[werkzeug.datastructures.FileStorage, io.BytesIO]
 
+# Preliminary version of a Row.  Another option would be to subclass tuple and
+# implement __getattr__ to provide access by column
 Row = Mapping["Column", Optional["PythonType"]]
 
 
