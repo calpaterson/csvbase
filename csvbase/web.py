@@ -1087,10 +1087,7 @@ def byte_buf_to_str_buf(byte_buf: UserSubmittedBytes) -> codecs.StreamReader:
         logger.warning("unable to detect charset, assuming utf-8")
         encoding = "utf-8"
     Reader = codecs.getreader(encoding)
-    # FIXME: the issue here seems to be that StreamReader is typed to want
-    # specifically an IO[bytes] but will actually work with other things that
-    # are file-like enough
-    return Reader(byte_buf)  # type: ignore
+    return Reader(byte_buf)
 
 
 def set_current_user_for_session(user: User, session: Optional[Any] = None) -> None:
