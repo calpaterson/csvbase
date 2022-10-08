@@ -8,6 +8,24 @@ from .value_objs import ColumnType, PythonType
 WHITESPACE_REGEX = re.compile(r"^ *$")
 
 
+NULL_STRINGS = {
+    "",
+    "#n/a n/a",
+    "#n/a",
+    "#na",
+    "-1.#ind",
+    "-1.#qnan",
+    "-nan",
+    "1.#ind",
+    "1.#qnan",
+    "<na>",
+    "n/a",
+    "na",
+    "nan",
+    "null",
+}
+
+
 def sniff_and_allow_blanks(regex: Pattern, values: Iterable[str]) -> bool:
     """This function takes a regex and looks at the values, return if:
     - at least one value matches the regex
@@ -27,6 +45,10 @@ def sniff_and_allow_blanks(regex: Pattern, values: Iterable[str]) -> bool:
     return (non_match is False) and one_match
 
 
+def is_null_str(value: str) -> bool:
+    return value.lower() in NULL_STRINGS
+
+
 class DateConverter:
     DATE_REGEX = re.compile(r"^ ?\d{4}-\d{2}-\d{2} ?$")
     DATE_FORMAT = "%Y-%m-%d"
@@ -36,7 +58,7 @@ class DateConverter:
 
     def convert(self, value: str) -> Optional[date]:
         stripped = value.strip()
-        if stripped == "":
+        if is_null_str(stripped):
             return None
 
         try:
@@ -46,33 +68,33 @@ class DateConverter:
 
 
 class IntegerConverter:
-    INTEGER_SNIFF_REGEX = re.compile(r"^ ?(-?(?:\d|,| )+)$")
-    INTEGER_CONVERT_REGEX = re.compile(r"^ ?(-?(?:\d|,| )+)(\.0)?$")
+    INTEGER_SNIFF_REGEX = re.compile(r"^(-?(?:\d|,| )+)$")
+    INTEGER_CONVERT_REGEX = re.compile(r"^(-?(?:\d|,| )+)(\.0)?$")
 
     def sniff(self, values: Iterable[str]) -> bool:
         return sniff_and_allow_blanks(self.INTEGER_SNIFF_REGEX, values)
 
     def convert(self, value: str) -> Optional[int]:
         stripped = value.strip()
-        if stripped == "":
+        if is_null_str(stripped):
             return None
-        match = self.INTEGER_CONVERT_REGEX.match(value)
+        match = self.INTEGER_CONVERT_REGEX.match(stripped)
         if not match:
             raise exc.UnconvertableValueException(ColumnType.INTEGER, value)
         return int(match.group(1).replace(",", ""))
 
 
 class FloatConverter:
-    FLOAT_REGEX = re.compile(r"^ ?-?(\d|,|\.| )+$")
+    FLOAT_REGEX = re.compile(r"^-?(\d|,|\.| )+$")
 
     def sniff(self, values: Iterable[str]) -> bool:
         return sniff_and_allow_blanks(self.FLOAT_REGEX, values)
 
     def convert(self, value: str) -> Optional[float]:
         stripped = value.strip()
-        if stripped == "":
+        if is_null_str(stripped):
             return None
-        match = self.FLOAT_REGEX.match(value)
+        match = self.FLOAT_REGEX.match(stripped)
         if not match:
             raise exc.UnconvertableValueException(ColumnType.FLOAT, value)
         return float(match.group().replace(",", ""))
@@ -88,7 +110,7 @@ class BooleanConverter:
 
     def convert(self, value: str) -> Optional[float]:
         stripped = value.strip()
-        if stripped == "":
+        if is_null_str(stripped):
             return None
 
         false_match = self.FALSE_REGEX.match(stripped)

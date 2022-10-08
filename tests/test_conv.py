@@ -185,3 +185,34 @@ def test_BooleanConverter__convert_failure():
     ic = BooleanConverter()
     with pytest.raises(exc.UnconvertableValueException):
         ic.convert("nonsense")
+
+
+@pytest.mark.parametrize(
+    "Converter", [BooleanConverter, DateConverter, FloatConverter, IntegerConverter]
+)
+@pytest.mark.parametrize(
+    "null_str",
+    [
+        "",
+        "#N/A",
+        "#N/A N/A",
+        "#NA",
+        "-1.#IND",
+        "-1.#QNAN",
+        "-NaN",
+        "-nan",
+        "1.#IND",
+        "1.#QNAN",
+        "<NA>",
+        "N/A",
+        "NA",
+        "NULL",
+        "NaN",
+        "n/a",
+        "nan",
+        "null",
+    ],
+)
+def test_nulls(Converter, null_str):
+    c = Converter()
+    assert c.convert(null_str) is None
