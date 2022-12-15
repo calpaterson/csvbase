@@ -256,4 +256,21 @@ class ContentType(enum.Enum):
     HTML = "text/html"
     CSV = "text/csv"
     JSON = "application/json"
+    PARQUET = "application/parquet"  # this is unofficial, but convenient
+    JSON_LINES = ("applicate/x-jsonlines",)  # no consensus
     HTML_FORM = "application/x-www-form-urlencoded"
+    XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    @classmethod
+    def from_file_extension(cls, file_extension: str) -> Optional["ContentType"]:
+        return EXTENSION_MAP.get(file_extension)
+
+
+EXTENSION_MAP: Mapping[str, ContentType] = {
+    "html": ContentType.HTML,
+    "csv": ContentType.CSV,
+    "parquet": ContentType.PARQUET,
+    "json": ContentType.JSON,
+    "jsonl": ContentType.JSON_LINES,
+    "xlsx": ContentType.XLSX,
+}

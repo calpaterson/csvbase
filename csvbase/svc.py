@@ -1,5 +1,6 @@
 import re
 from uuid import UUID
+import json
 import io
 from typing import (
     Optional,
@@ -23,6 +24,8 @@ from contextlib import closing
 import importlib.resources
 
 import bleach
+import pyarrow as pa
+import pyarrow.parquet as pq
 import xlsxwriter
 from pgcopy import CopyManager
 from sqlalchemy import column as sacolumn, types as satypes, func
@@ -567,6 +570,35 @@ def table_as_csv(
 
     csv_buf.seek(0)
     return csv_buf
+
+
+def table_as_jsonlines(sesh: Session, table_uuid: UUID) -> io.StringIO:
+    jl_buf = io.StringIO()
+
+    columns = [c.name for c in get_columns(sesh, table_uuid)]
+    for row in table_as_rows(sesh, table_uuid):
+        json.dump(dict(zip(columns, row)), jl_buf)
+        jl_buf.write("\n")
+    jl_buf.seek(0)
+    return jl_buf
+
+
+def table_as_parquet(
+    sesh: Session,
+    table_uuid: UUID,
+) -> io.BytesIO:
+    columns = [c.name for c in get_columns(sesh, table_uuid)]
+    mapping = [dict(zip(columns, row)) for row in table_as_rows(sesh, table_uuid)]
+
+    # FIXME: it is extremely annoying that pyarrow.Tables add a numeric index
+    # that ends up in the final parquet.  Doesn't look like there is any way to
+    # remove this at this point.
+    pa_table = pa.Table.from_pylist(mapping)
+    parquet_buf = io.BytesIO()
+    pq.write_table(pa_table, parquet_buf)
+    parquet_buf.seek(0)
+
+    return parquet_buf
 
 
 def table_as_xlsx(

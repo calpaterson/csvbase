@@ -39,6 +39,7 @@ setup(
         "passlib==1.7.4",
         "pgcopy==1.5.0",
         "psycopg2==2.9.2",
+        "pyarrow==10.0.1",
         "sentry-sdk[flask]==1.9.5",
         "sqlalchemy==1.4.27",
         "systemd-python==234",

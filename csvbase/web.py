@@ -65,6 +65,8 @@ bp = Blueprint("csvbase", __name__)
 
 CORS_EXPIRY = timedelta(hours=8)
 
+# 128KB, a reasonable size for buffers
+COPY_BUFFER_SIZE = 128 * 1024
 
 EXCEPTION_MESSAGE_CODE_MAP = {
     exc.UserDoesNotExistException: ("that user does not exist", 404),
@@ -372,13 +374,37 @@ def table_view(username: str, table_name: str) -> Response:
     )
 
     table = svc.get_table(sesh, username, table_name)
+
+    return make_table_view_response(sesh, user, content_type, table)
+
+
+@bp.route("/<username>/<table_name:table_name>.<extension>", methods=["GET"])
+@cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
+def table_view_with_extension(
+    username: str, table_name: str, extension: str
+) -> Response:
+    sesh = get_sesh()
+    user = svc.user_by_name(sesh, username)
+    if not svc.is_public(sesh, username, table_name) and not am_user(user.username):
+        raise exc.TableDoesNotExistException(username, table_name)
+
+    content_type = ContentType.from_file_extension(extension)
+    if content_type is None:
+        raise exc.CantNegotiateContentType([e for e in ContentType])
+
+    table = svc.get_table(sesh, username, table_name)
+
+    return make_table_view_response(sesh, user, content_type, table)
+
+
+def make_table_view_response(sesh, user, content_type, table):
     if content_type is ContentType.HTML:
         keyset = keyset_from_request_args()
-        page = svc.table_page(sesh, username, table, keyset)
+        page = svc.table_page(sesh, user.username, table, keyset)
         return make_response(
             render_template(
                 "table_view.html",
-                page_title=f"{username}/{table_name}",
+                page_title=f"{user.username}/{table.table_name}",
                 table=table,
                 page=page,
                 keyset=keyset,
@@ -388,10 +414,20 @@ def table_view(username: str, table_name: str) -> Response:
         )
     elif content_type is ContentType.JSON:
         keyset = keyset_from_request_args()
-        page = svc.table_page(sesh, username, table, keyset)
+        page = svc.table_page(sesh, user.username, table, keyset)
         return jsonify(table_to_json_dict(table, page))
+    elif content_type is ContentType.PARQUET:
+        return make_streaming_response(
+            svc.table_as_parquet(sesh, table.table_uuid), "application/octet-stream"
+        )
+    elif content_type is ContentType.JSON_LINES:
+        return make_streaming_response(
+            svc.table_as_jsonlines(sesh, table.table_uuid), "text/plain"
+        )
     else:
-        return make_csv_response(svc.table_as_csv(sesh, table.table_uuid))
+        return make_streaming_response(
+            svc.table_as_csv(sesh, table.table_uuid), ContentType.CSV.value
+        )
 
 
 @bp.route("/<username>/<table_name:table_name>/readme", methods=["GET"])
@@ -580,7 +616,9 @@ def get_table_csv(username: str, table_name: str) -> Response:
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     table = svc.get_table(sesh, username, table_name)
 
-    return make_csv_response(svc.table_as_csv(sesh, table.table_uuid))
+    return make_streaming_response(
+        svc.table_as_csv(sesh, table.table_uuid), ContentType.CSV.value
+    )
 
 
 @bp.route("/<username>/<table_name:table_name>.json", methods=["GET"])
@@ -594,7 +632,9 @@ def get_table_xlsx(username: str, table_name: str) -> Response:
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     table = svc.get_table(sesh, username, table_name)
 
-    return make_xlsx_response(svc.table_as_xlsx(sesh, table.table_uuid))
+    return make_streaming_response(
+        svc.table_as_xlsx(sesh, table.table_uuid), ContentType.CSV.value
+    )
 
 
 @bp.route("/<username>/<table_name:table_name>/export/xlsx", methods=["GET"])
@@ -607,9 +647,10 @@ def export_table_xlsx(username: str, table_name: str) -> Response:
 
     xlsx_buf = svc.table_as_xlsx(sesh, table.table_uuid, excel_table=excel_table)
 
-    return make_xlsx_response(
+    return make_streaming_response(
         xlsx_buf,
         make_download_filename(username, table_name, "xlsx"),
+        ContentType.XLSX.value,
     )
 
 
@@ -635,9 +676,10 @@ def export_table_csv(username: str, table_name: str) -> Response:
     )
 
     extension = "tsv" if separator == "tab" else "csv"
-    return make_csv_response(
+    return make_streaming_response(
         csv_buf,
         make_download_filename(username, table_name, extension),
+        ContentType.CSV.value,
     )
 
 
@@ -1010,35 +1052,18 @@ def make_download_filename(username: str, table_name: str, extension: str) -> st
     return f"{table_name}-{timestamp}.{extension}"
 
 
-def make_csv_response(
-    csv_buf: io.StringIO, download_filename: Optional[str] = None
+def make_streaming_response(
+    parquet_buf: Union[io.BytesIO, io.StringIO],
+    mimetype: str,
+    download_filename: Optional[str] = None,
 ) -> Response:
     def generate():
-        minibuf = csv_buf.read(4096)
+        minibuf = parquet_buf.read(COPY_BUFFER_SIZE)
         while minibuf:
             yield minibuf
-            minibuf = csv_buf.read(4096)
+            minibuf = parquet_buf.read(COPY_BUFFER_SIZE)
 
-    response = current_app.response_class(generate(), mimetype="text/csv")
-    if download_filename is not None:
-        response.headers[
-            "Content-Disposition"
-        ] = f'attachment; filename="{download_filename}"'
-    return response
-
-
-def make_xlsx_response(
-    xlsx_buf: io.BytesIO, download_filename: Optional[str] = None
-) -> Response:
-    def generate():
-        minibuf = xlsx_buf.read(4096)
-        while minibuf:
-            yield minibuf
-            minibuf = xlsx_buf.read(4096)
-
-    excel_mimetype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-
-    response = current_app.response_class(generate(), mimetype=excel_mimetype)
+    response = current_app.response_class(generate(), mimetype=mimetype)
     if download_filename is not None:
         response.headers[
             "Content-Disposition"
