@@ -1,14 +1,16 @@
 import os
-from logging import basicConfig, DEBUG
+from logging import DEBUG, basicConfig
 from unittest.mock import patch
 
-from sqlalchemy.orm import sessionmaker
 import pytest
 from passlib.context import CryptContext
+from sqlalchemy.orm import sessionmaker
 
 from csvbase import db, svc, web
-from csvbase.value_objs import DataLicence, Column, ColumnType
-from .utils import random_string, make_user
+from csvbase.userdata import PGUserdataAdapter
+from csvbase.value_objs import Column, ColumnType, DataLicence
+
+from .utils import make_user, random_string
 
 
 @pytest.fixture(scope="session")
@@ -62,7 +64,7 @@ ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
 @pytest.fixture(scope="function")
 def ten_rows(test_user, sesh):
     table_name = random_string()
-    table_uuid = svc.create_table(
+    table_uuid = PGUserdataAdapter.create_table(
         sesh,
         test_user.username,
         table_name,
@@ -79,7 +81,7 @@ def ten_rows(test_user, sesh):
     )
     column = Column(name="roman_numeral", type_=ColumnType.TEXT)
     for roman_numeral in ROMAN_NUMERALS:
-        svc.insert_row(sesh, table_uuid, {column: roman_numeral})
+        PGUserdataAdapter.insert_row(sesh, table_uuid, {column: roman_numeral})
     sesh.commit()
     return table_name
 
@@ -88,7 +90,7 @@ def ten_rows(test_user, sesh):
 def private_table(test_user, module_sesh):
     table_name = random_string()
     x_column = Column("x", type_=ColumnType.INTEGER)
-    table_uuid = svc.create_table(
+    table_uuid = PGUserdataAdapter.create_table(
         module_sesh,
         test_user.username,
         table_name,
@@ -103,6 +105,6 @@ def private_table(test_user, module_sesh):
         caption="",
         licence=DataLicence.ALL_RIGHTS_RESERVED,
     )
-    svc.insert_row(module_sesh, table_uuid, {x_column: 1})
+    PGUserdataAdapter.insert_row(module_sesh, table_uuid, {x_column: 1})
     module_sesh.commit()
     return table_name

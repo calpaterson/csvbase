@@ -1,12 +1,14 @@
-import string
-import io
 import csv
-
-from csvbase import svc
-from csvbase.value_objs import KeySet, Column, ColumnType, Page, DataLicence, PythonType
-from .utils import random_string
+import io
+import string
 
 import pytest
+
+from csvbase import svc
+from csvbase.userdata import PGUserdataAdapter
+from csvbase.value_objs import Column, ColumnType, DataLicence, KeySet, Page, PythonType
+
+from .utils import random_string
 
 
 @pytest.fixture(scope="session")
@@ -22,7 +24,9 @@ def letters_table(test_user, module_sesh):
 
     dialect, columns = svc.peek_csv(csv_buf)
     csv_buf.seek(0)
-    table_uuid = svc.create_table(module_sesh, test_user.username, table_name, columns)
+    table_uuid = PGUserdataAdapter.create_table(
+        module_sesh, test_user.username, table_name, columns
+    )
     svc.create_table_metadata(
         module_sesh,
         table_uuid,
@@ -32,12 +36,12 @@ def letters_table(test_user, module_sesh):
         "",
         DataLicence.ALL_RIGHTS_RESERVED,
     )
-    svc.insert_table_data(
+    table = svc.get_table(module_sesh, test_user.username, table_name)
+    PGUserdataAdapter.insert_table_data(
         module_sesh,
         test_user.user_uuid,
         test_user.username,
-        table_name,
-        table_uuid,
+        table,
         csv_buf,
         dialect,
         columns,
@@ -51,7 +55,7 @@ def rows_to_alist(rows):
 
 
 def test_first_page(sesh, test_user, letters_table):
-    page = svc.table_page(
+    page = PGUserdataAdapter.table_page(
         sesh,
         test_user.username,
         letters_table,
@@ -64,7 +68,7 @@ def test_first_page(sesh, test_user, letters_table):
 
 
 def test_second_page(sesh, test_user, letters_table):
-    page = svc.table_page(
+    page = PGUserdataAdapter.table_page(
         sesh,
         test_user.username,
         letters_table,
@@ -77,7 +81,7 @@ def test_second_page(sesh, test_user, letters_table):
 
 
 def test_back_to_first_page(sesh, test_user, letters_table):
-    page = svc.table_page(
+    page = PGUserdataAdapter.table_page(
         sesh,
         test_user.username,
         letters_table,
@@ -90,7 +94,7 @@ def test_back_to_first_page(sesh, test_user, letters_table):
 
 
 def test_last_page(sesh, test_user, letters_table):
-    page = svc.table_page(
+    page = PGUserdataAdapter.table_page(
         sesh,
         test_user.username,
         letters_table,
@@ -103,7 +107,7 @@ def test_last_page(sesh, test_user, letters_table):
 
 
 def test_backward_paging(sesh, test_user, letters_table):
-    page = svc.table_page(
+    page = PGUserdataAdapter.table_page(
         sesh,
         test_user.username,
         letters_table,
@@ -116,7 +120,7 @@ def test_backward_paging(sesh, test_user, letters_table):
 
 
 def test_pagination_over_the_top(sesh, test_user, letters_table):
-    page = svc.table_page(
+    page = PGUserdataAdapter.table_page(
         sesh,
         test_user.username,
         letters_table,
@@ -130,21 +134,23 @@ def test_pagination_over_the_top(sesh, test_user, letters_table):
 def test_pagination_under_the_bottom(sesh, test_user):
     table_name = random_string()
     x_column = Column("x", ColumnType.INTEGER)
-    table_uuid = svc.create_table(
+    table_uuid = PGUserdataAdapter.create_table(
         sesh, test_user.username, table_name, columns=[x_column]
     )
     svc.create_table_metadata(
         sesh, table_uuid, test_user.user_uuid, table_name, False, "", DataLicence.OGL
     )
 
-    row_ids = [svc.insert_row(sesh, table_uuid, {x_column: 1}) for _ in range(5)]
+    row_ids = [
+        PGUserdataAdapter.insert_row(sesh, table_uuid, {x_column: 1}) for _ in range(5)
+    ]
 
     for row_id in row_ids[:3]:
-        svc.delete_row(sesh, table_uuid, row_id)
+        PGUserdataAdapter.delete_row(sesh, table_uuid, row_id)
 
     table = svc.get_table(sesh, test_user.username, table_name)
 
-    page = svc.table_page(
+    page = PGUserdataAdapter.table_page(
         sesh,
         test_user.username,
         table,
@@ -158,7 +164,7 @@ def test_pagination_under_the_bottom(sesh, test_user):
 def test_paging_on_empty_table(sesh, test_user):
     table_name = random_string()
 
-    table_uuid = svc.create_table(
+    table_uuid = PGUserdataAdapter.create_table(
         sesh, test_user.username, table_name, columns=[Column("x", ColumnType.INTEGER)]
     )
     svc.create_table_metadata(
@@ -166,7 +172,7 @@ def test_paging_on_empty_table(sesh, test_user):
     )
     table = svc.get_table(sesh, test_user.username, table_name)
 
-    page = svc.table_page(
+    page = PGUserdataAdapter.table_page(
         sesh,
         test_user.username,
         table,

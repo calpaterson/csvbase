@@ -1,13 +1,16 @@
+import dataclasses
 import os
+import zipfile
 from typing import Sequence
 from uuid import UUID
-import zipfile
+
 import marko
-import dataclasses
 
 from csvbase import exc
-from csvbase.value_objs import Row, KeySet, Column, ColumnType
-from csvbase.svc import table_page, get_table, get_row, insert_row
+from csvbase.svc import get_table
+from csvbase.userdata import PGUserdataAdapter
+from csvbase.value_objs import Column, ColumnType, KeySet, Row
+
 from .value_objs import Post
 
 
@@ -41,7 +44,9 @@ def get_posts(sesh) -> Sequence[Post]:
     blog_ref = os.environ["CSVBASE_BLOG_REF"]
     username, table_name = blog_ref.split("/")
     table = get_table(sesh, username, table_name)
-    page = table_page(sesh, username, table, KeySet(n=0, op="greater_than"))
+    page = PGUserdataAdapter.table_page(
+        sesh, username, table, KeySet(n=0, op="greater_than")
+    )
     posts = []
     for row in page.rows:
         posts.append(post_from_row(row))
@@ -52,7 +57,7 @@ def get_post(sesh, post_id: int) -> Post:
     blog_ref = os.environ["CSVBASE_BLOG_REF"]
     username, table_name = blog_ref.split("/")
     table = get_table(sesh, username, table_name)
-    row = get_row(sesh, table.table_uuid, post_id)
+    row = PGUserdataAdapter.get_row(sesh, table.table_uuid, post_id)
     if row is None:
         raise exc.RowDoesNotExistException(username, table_name, post_id)
     return post_from_row(row)
@@ -63,4 +68,4 @@ def insert_post(sesh, post: Post) -> None:
     username, table_name = blog_ref.split("/")
     table = get_table(sesh, username, table_name)
     row = post_to_row(post)
-    insert_row(sesh, table.table_uuid, row)
+    PGUserdataAdapter.insert_row(sesh, table.table_uuid, row)

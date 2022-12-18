@@ -2,15 +2,16 @@ import os
 from pathlib import Path
 from unittest.mock import patch
 from uuid import UUID, uuid4
-from lxml import etree
 
 import feedparser
 import pytest
+from lxml import etree
 
 from csvbase.blog import svc as blog_svc
 from csvbase.blog.value_objs import Post
-from csvbase.svc import create_table, get_table, create_table_metadata
-from csvbase.value_objs import User, Table, Column, ColumnType, DataLicence
+from csvbase.svc import create_table_metadata, get_table
+from csvbase.userdata import PGUserdataAdapter
+from csvbase.value_objs import Column, ColumnType, DataLicence, Table, User
 
 from .utils import random_string
 
@@ -43,7 +44,9 @@ def blog_table(sesh, test_user: User):
         Column("cover_image_alt", ColumnType.TEXT),
         Column("posted", ColumnType.DATE),
     ]
-    table_uuid = create_table(sesh, test_user.username, table_name, columns)
+    table_uuid = PGUserdataAdapter.create_table(
+        sesh, test_user.username, table_name, columns
+    )
     create_table_metadata(
         sesh,
         table_uuid,

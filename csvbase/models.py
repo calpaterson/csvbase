@@ -1,18 +1,13 @@
+from typing import TYPE_CHECKING, List
 from uuid import UUID, uuid4
-from typing import List
-from typing import TYPE_CHECKING
 
-from sqlalchemy.dialects.postgresql import UUID as _PGUUID, BYTEA
-from sqlalchemy import (
-    Column,
-    ForeignKey,
-    types as satypes,
-    UniqueConstraint,
-    func,
-)
+from sqlalchemy import Column, ForeignKey, UniqueConstraint, func
+from sqlalchemy import types as satypes
+from sqlalchemy.dialects.postgresql import BYTEA
+from sqlalchemy.dialects.postgresql import UUID as _PGUUID
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.schema import CheckConstraint, MetaData, Identity  # type: ignore
 from sqlalchemy.orm import RelationshipProperty, relationship
+from sqlalchemy.schema import CheckConstraint, Identity, MetaData  # type: ignore
 
 naming_convention = {
     "ix": "ix_%(column_0_label)s",

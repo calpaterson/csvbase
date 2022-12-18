@@ -1,63 +1,61 @@
-from uuid import UUID
-import json
-from datetime import date, timedelta
-import io
-import shutil
 import codecs
-from logging import getLogger
-from typing import Optional, Any, Dict, List, Tuple, Sequence, Union, Mapping, cast
-from os import environ
-from urllib.parse import urlsplit, urlunsplit
+import io
+import json
 import secrets
+import shutil
+from datetime import date, timedelta
+from logging import getLogger
+from os import environ
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union, cast
+from urllib.parse import urlsplit, urlunsplit
+from uuid import UUID
 
-from typing_extensions import Literal
-from flask_babel import Babel
-from cchardet import UniversalDetector
-from werkzeug.wrappers.response import Response
-from werkzeug.routing import BaseConverter
-from flask.wrappers import Response as FlaskResponse
-from flask import (
-    g,
-    session as flask_session,
-    Flask,
-    request,
-    make_response,
-    render_template,
-    redirect,
-    url_for,
-    Blueprint,
-    current_app,
-    flash,
-    jsonify,
-)
-from flask_cors import cross_origin
-from passlib.context import CryptContext
-from sqlalchemy.orm import sessionmaker, Session
-from flask_sqlalchemy_session import flask_scoped_session
 import marko
 import werkzeug.http
-
-from .value_objs import (
-    Page,
-    Table,
-    KeySet,
-    ColumnType,
-    Column,
-    User,
-    DataLicence,
-    ContentType,
-    UserSubmittedCSVData,
-    UserSubmittedBytes,
-    Row,
-    ROW_ID_COLUMN,
+from cchardet import UniversalDetector
+from flask import (
+    Blueprint,
+    Flask,
+    current_app,
+    flash,
+    g,
+    jsonify,
+    make_response,
+    redirect,
+    render_template,
+    request,
 )
-from . import svc
-from . import db
-from . import exc
-from . import blog
-from .sesh import get_sesh
+from flask import session as flask_session
+from flask import url_for
+from flask.wrappers import Response as FlaskResponse
+from flask_babel import Babel
+from flask_cors import cross_origin
+from flask_sqlalchemy_session import flask_scoped_session
+from passlib.context import CryptContext
+from sqlalchemy.orm import Session, sessionmaker
+from typing_extensions import Literal
+from werkzeug.routing import BaseConverter
+from werkzeug.wrappers.response import Response
+
+from . import blog, db, exc, svc
 from .logging import configure_logging
 from .sentry import configure_sentry
+from .sesh import get_sesh
+from .userdata import PGUserdataAdapter
+from .value_objs import (
+    ROW_ID_COLUMN,
+    Column,
+    ColumnType,
+    ContentType,
+    DataLicence,
+    KeySet,
+    Page,
+    Row,
+    Table,
+    User,
+    UserSubmittedBytes,
+    UserSubmittedCSVData,
+)
 
 logger = getLogger(__name__)
 
@@ -252,7 +250,10 @@ def new_table_form_submission() -> Response:
     data_licence = DataLicence(request.form.get("data-licence", type=int))
     dialect, columns = svc.peek_csv(csv_buf)
     csv_buf.seek(0)
-    table_uuid = svc.create_table(sesh, g.current_user.username, table_name, columns)
+    table_uuid = PGUserdataAdapter.create_table(
+        sesh, g.current_user.username, table_name, columns
+    )
+    table = svc.get_table(sesh, user.username, table_name)
     svc.create_table_metadata(
         sesh,
         table_uuid,
@@ -263,12 +264,11 @@ def new_table_form_submission() -> Response:
         data_licence,
     )
     # FIXME: what happens if this fails?
-    svc.insert_table_data(
+    PGUserdataAdapter.insert_table_data(
         sesh,
         g.current_user.user_uuid,
         g.current_user.username,
-        table_name,
-        table_uuid,
+        table,
         csv_buf,
         dialect,
         columns,
@@ -341,7 +341,9 @@ def blank_table_form_post() -> Response:
     else:
         is_public = True
 
-    table_uuid = svc.create_table(sesh, g.current_user.username, table_name, cols)
+    table_uuid = PGUserdataAdapter.create_table(
+        sesh, g.current_user.username, table_name, cols
+    )
     svc.create_table_metadata(
         sesh,
         table_uuid,
@@ -400,7 +402,7 @@ def table_view_with_extension(
 def make_table_view_response(sesh, user, content_type, table):
     if content_type is ContentType.HTML:
         keyset = keyset_from_request_args()
-        page = svc.table_page(sesh, user.username, table, keyset)
+        page = PGUserdataAdapter.table_page(sesh, user.username, table, keyset)
         return make_response(
             render_template(
                 "table_view.html",
@@ -414,7 +416,7 @@ def make_table_view_response(sesh, user, content_type, table):
         )
     elif content_type is ContentType.JSON:
         keyset = keyset_from_request_args()
-        page = svc.table_page(sesh, user.username, table, keyset)
+        page = PGUserdataAdapter.table_page(sesh, user.username, table, keyset)
         return jsonify(table_to_json_dict(table, page))
     elif content_type is ContentType.PARQUET:
         return make_streaming_response(
@@ -463,7 +465,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
     owner = svc.user_by_name(sesh, username)
 
     made_up_row = svc.get_a_made_up_row(sesh, table.table_uuid)
-    sample_row = svc.get_a_sample_row(sesh, table.table_uuid)
+    sample_row = PGUserdataAdapter.get_a_sample_row(sesh, table.table_uuid)
     sample_page = Page(has_less=False, has_more=True, rows=[sample_row])
 
     return render_template(
@@ -709,7 +711,7 @@ def create_row(username: str, table_name: str) -> Response:
             [ContentType.JSON, ContentType.HTML_FORM], request.mimetype
         )
 
-    row_id = svc.insert_row(sesh, table.table_uuid, row)
+    row_id = PGUserdataAdapter.insert_row(sesh, table.table_uuid, row)
     sesh.commit()
 
     row[ROW_ID_COLUMN] = row_id
@@ -742,7 +744,7 @@ def get_row(username: str, table_name: str, row_id: int) -> Response:
     if not svc.is_public(sesh, username, table_name) and not am_user(username):
         raise exc.TableDoesNotExistException(username, table_name)
     table = svc.get_table(sesh, username, table_name)
-    row = svc.get_row(sesh, table.table_uuid, row_id)
+    row = PGUserdataAdapter.get_row(sesh, table.table_uuid, row_id)
     if row is None:
         raise exc.RowDoesNotExistException(username, table_name, row_id)
     if is_browser():
@@ -789,7 +791,7 @@ def row_delete_check(username: str, table_name: str, row_id: int) -> Response:
     if not svc.is_public(sesh, username, table_name) and not am_user(username):
         raise exc.TableDoesNotExistException(username, table_name)
     table = svc.get_table(sesh, username, table_name)
-    row = svc.get_row(sesh, table.table_uuid, row_id)
+    row = PGUserdataAdapter.get_row(sesh, table.table_uuid, row_id)
     if row is None:
         raise exc.RowDoesNotExistException(username, table_name, row_id)
 
@@ -820,7 +822,7 @@ def update_row(username: str, table_name: str, row_id: int) -> Response:
     }
     row[table.row_id_column()] = row_id
 
-    if not svc.update_row(sesh, table.table_uuid, row_id, row):
+    if not PGUserdataAdapter.update_row(sesh, table.table_uuid, row_id, row):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
     sesh.commit()
     return jsonify(body)
@@ -832,7 +834,7 @@ def delete_row(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     table = svc.get_table(sesh, username, table_name)
-    if not svc.delete_row(sesh, table.table_uuid, row_id):
+    if not PGUserdataAdapter.delete_row(sesh, table.table_uuid, row_id):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
     sesh.commit()
     response = make_response()
@@ -850,7 +852,7 @@ def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Resp
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
     table = svc.get_table(sesh, username, table_name)
-    if not svc.delete_row(sesh, table.table_uuid, row_id):
+    if not PGUserdataAdapter.delete_row(sesh, table.table_uuid, row_id):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
     sesh.commit()
     flash(f"Deleted row {row_id}")
@@ -869,7 +871,7 @@ def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Resp
         c: c.type_.from_html_form_to_python(request.form.get(c.name))
         for c in table.columns
     }
-    svc.update_row(sesh, table.table_uuid, row_id, row)
+    PGUserdataAdapter.update_row(sesh, table.table_uuid, row_id, row)
     sesh.commit()
     flash(f"Updated row {row_id}")
     return redirect(
@@ -893,7 +895,7 @@ def upsert_table(username: str, table_name: str) -> Response:
     table = svc.get_table(sesh, username, table_name)
 
     str_buf.seek(0)
-    svc.upsert_table_data(
+    PGUserdataAdapter.upsert_table_data(
         sesh,
         table,
         str_buf,
