@@ -20,6 +20,9 @@ csvbase/static/codehilite.css: .venv/touchfile
 serve: .venv csvbase/static/bootstrap.min.css csvbase/static/codehilite.css
 	. .venv/bin/activate; flask run -p 6001
 
+serve-gunicorn: .venv csvbase/static/bootstrap.min.css csvbase/static/codehilite.css
+	. .venv/bin/activate; gunicorn -w 1 'csvbase.web:init_app()' --access-logfile=- -t 30 -b :6001
+
 tox:
 	tox
 
