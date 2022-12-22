@@ -1,5 +1,5 @@
 from uuid import uuid4
-import dataclasses
+from datetime import date
 import os
 import zipfile
 from typing import Sequence
@@ -50,7 +50,7 @@ def get_posts(sesh) -> Sequence[Post]:
     posts = []
     for row in page.rows:
         posts.append(post_from_row(row))
-    return posts
+    return sorted(posts, key=lambda p: p.posted or date(1970, 1, 1), reverse=True)
 
 
 def get_post(sesh, post_id: int) -> Post:
