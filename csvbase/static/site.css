@@ -54,3 +54,11 @@
 #explain-alert p:last-child {
     margin-bottom: 0;
 }
+
+.blog-post-description {
+    max-width: 30rem;
+    font-style: oblique;
+    margin: auto;
+    text-align: center;
+    margin-bottom: 2em;
+}
