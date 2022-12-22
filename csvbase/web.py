@@ -10,7 +10,6 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union, c
 from urllib.parse import urlsplit, urlunsplit
 from uuid import UUID
 
-import marko
 import werkzeug.http
 from cchardet import UniversalDetector
 from flask import (
@@ -38,6 +37,7 @@ from werkzeug.routing import BaseConverter
 from werkzeug.wrappers.response import Response
 
 from . import blog, db, exc, svc
+from .markdown import render_markdown
 from .logging import configure_logging
 from .sentry import configure_sentry
 from .sesh import get_sesh
@@ -441,7 +441,7 @@ def table_readme(username: str, table_name: str) -> Response:
 
     readme_markdown = svc.get_readme_markdown(sesh, user.user_uuid, table_name)
     if readme_markdown is not None:
-        readme_html = marko.convert(readme_markdown)
+        readme_html = render_markdown(readme_markdown)
     else:
         readme_html = "(no readme set)"
 

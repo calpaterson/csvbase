@@ -25,6 +25,16 @@
       </table>
 {% endmacro %}
 
+{% macro html_type(col) %}
+  {% if col.type_.name == "BOOLEAN" %}
+    "checkbox"
+  {% elif col.type_.name == "DATE" %}
+    "date"
+  {% else %}
+    "text"
+  {% endif %}
+{% endmacro %}
+
 {% macro column_value_input(col, val) %}
   {% if col.type_.name == "TEXT" and "\n" in val %}
     <textarea
@@ -39,7 +49,7 @@
         class="form-check-input"
         id="{{col.name}}-input"
         type="checkbox"
-        type="{{ col.type_.html_type() }}"
+        type="{{ html_type(col) }}"
         name="{{ col.name }}"
         {% if val %}
           checked
@@ -50,7 +60,7 @@
         class="form-control"
       {% if col.name == "csvbase_row_id" %}readonly{% endif %}
       id="{{col.name}}-input"
-      type="{{ col.type_.html_type() }}"
+      type="{{ html_type(col) }}"
       name="{{ col.name }}"
       value="{{ val }}"
       >

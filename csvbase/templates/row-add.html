@@ -1,6 +1,8 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "base.html" %}
 
+{% import 'row_macros.html' as row_macros %}
+
 {% block main %}
   <div class="container">
     <h1>Add a new row to <a href="{{ url_for('csvbase.user', username=table.username) }}"
@@ -21,7 +23,7 @@
           <div class="col-auto">
             <input
               id="{{col.name}}-input"
-              type="{{ col.type_.html_type() }}"
+              type="{{ row_macros.html_type(col) }}"
               name="{{ col.name }}" value="">
           </div>
         </div>

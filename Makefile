@@ -11,10 +11,13 @@ default: tox
 
 .venv/touchfile: setup.py
 	test -d .venv || virtualenv .venv --python=python3
-	. .venv/bin/activate; python -m pip install .[blog]
+	. .venv/bin/activate; python -m pip install .
 	touch $@
 
-serve: .venv csvbase/static/bootstrap.min.css
+csvbase/static/codehilite.css: .venv/touchfile
+	. .venv/bin/activate; pygmentize -S default -f html -a .highlight > $@
+
+serve: .venv csvbase/static/bootstrap.min.css csvbase/static/codehilite.css
 	. .venv/bin/activate; flask run -p 6001
 
 tox:
@@ -31,6 +34,6 @@ dump-schema:
 
 release: dist/csvbase-$VERSION-py3-none-any.whl
 
-dist/csvbase-$VERSION-py3-none-any.whl: csvbase/static/bootstrap.min.css
+dist/csvbase-$VERSION-py3-none-any.whl: csvbase/static/bootstrap.min.css csvbase/static/codehilite.css
 	. .venv/bin/activate; python -m pip install build==0.7.0
 	. .venv/bin/activate; python -m build

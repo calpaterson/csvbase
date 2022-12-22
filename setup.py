@@ -35,7 +35,7 @@ setup(
         "flask==2.0.2",
         "gunicorn==20.1.0",
         "inflect==5.6.0",
-        "marko==1.2.1",
+        "marko[codehilite]==1.2.1",
         "passlib==1.7.4",
         "pgcopy==1.5.0",
         "psycopg2==2.9.2",
@@ -53,6 +53,7 @@ setup(
     entry_points={
         "console_scripts": [
             "csvbase-make-tables=csvbase.cli:make_tables",
+            "csvbase-make-blog-table=csvbase.blog.cli:make_blog_table",
             "csvbase-load-prohibited-usernames=csvbase.cli:load_prohibited_usernames",
         ]
     },

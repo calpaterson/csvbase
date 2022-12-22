@@ -6,13 +6,13 @@ from dataclasses import dataclass
 
 from feedgen.feed import FeedGenerator
 from flask import Blueprint, render_template, Response, url_for, make_response, request
-import marko
 from sqlalchemy.orm import Session
 
 from .value_objs import Post
 from . import svc as blog_svc
 from .. import exc
 from csvbase.sesh import get_sesh
+from csvbase.markdown import render_markdown
 
 bp = Blueprint("blog", __name__)
 
@@ -38,7 +38,7 @@ def post(post_id: int) -> Response:
         response = make_response(not_found_message)
         response.status_code = 404
         return response
-    md = render_md(post_obj.markdown)
+    md = render_markdown(post_obj.markdown)
     post_url = url_for("blog.post", post_id=post_id, _external=True)
     ld_json = make_ld_json(post_obj, post_url)
     return make_response(
@@ -79,10 +79,6 @@ def make_feed(sesh: Session, feed_url: str) -> str:
         fe.link(href=url_for("blog.post", post_id=post.id, _external=True))
 
     return fg.rss_str(pretty=True)
-
-
-def render_md(markdown: str) -> str:
-    return marko.convert(markdown)
 
 
 def make_ld_json(post: Post, post_url: str) -> str:

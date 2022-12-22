@@ -3,8 +3,6 @@ from typing import Optional
 from uuid import UUID
 from dataclasses import dataclass
 
-import marko
-
 
 @dataclass
 class Post:
