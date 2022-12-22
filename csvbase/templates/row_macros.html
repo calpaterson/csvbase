@@ -25,6 +25,14 @@
       </table>
 {% endmacro %}
 
+{% macro render_cell(value) %}
+  {% if value == None %}
+    <span class="text-muted"><abbr title="No data/blank" class="initialism">&lt;NA&gt;</abbr></span>
+  {% else %}
+    {{ value }}
+  {% endif %}
+{% endmacro %}
+
 {% macro html_type(col) %}
   {% if col.type_.name == "BOOLEAN" %}
     "checkbox"

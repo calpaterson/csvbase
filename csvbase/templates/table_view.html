@@ -1,6 +1,8 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "table.html" %}
 
+{% import 'row_macros.html' as row_macros %}
+
 {% block tab_contents %}
   <div class="container">
     <div class="table-responsive">
@@ -24,9 +26,9 @@
               {% if loop.index == 1 %}
                 <td><a
                       href="{{ url_for('csvbase.get_row', username=table.username, table_name=table.table_name, row_id=row[col]) }}"
-                      >{{row[col]}}</a></td>
+                      >{{row_macros.render_cell(row[col])}}</a></td>
                     {% else %}
-                      <td>{{row[col]}}</td>
+                      <td>{{row_macros.render_cell(row[col])}}</td>
                     {% endif %}
                   {% endfor %}
           </tr>
