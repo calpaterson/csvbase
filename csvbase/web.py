@@ -235,6 +235,7 @@ def new_table_form_submission() -> Response:
         flash("Account registered")
     else:
         am_a_user_or_400()
+        user = g.current_user
 
     table_name = request.form["table-name"]
     textarea = request.form.get("csv-textarea")
@@ -253,7 +254,6 @@ def new_table_form_submission() -> Response:
     table_uuid = PGUserdataAdapter.create_table(
         sesh, g.current_user.username, table_name, columns
     )
-    table = svc.get_table(sesh, user.username, table_name)
     svc.create_table_metadata(
         sesh,
         table_uuid,
@@ -263,6 +263,7 @@ def new_table_form_submission() -> Response:
         "",
         data_licence,
     )
+    table = svc.get_table(sesh, user.username, table_name)
     # FIXME: what happens if this fails?
     PGUserdataAdapter.insert_table_data(
         sesh,
@@ -906,7 +907,7 @@ def upsert_table(username: str, table_name: str) -> Response:
 
 
 @bp.route("/<username>", methods=["GET"])
-def user(username: str):
+def user(username: str) -> Response:
     sesh = get_sesh()
     include_private = False
     if "current_user" in g and g.current_user.username == username:
