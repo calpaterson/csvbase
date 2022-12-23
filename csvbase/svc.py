@@ -12,6 +12,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
+    Set,
     Iterable,
     List,
     Optional,
@@ -102,24 +103,27 @@ def peek_csv(
     # down, switch out "YES" for "YES (but only <...>)"
     reader = csv.reader(csv_buf, dialect)
     headers = next(reader)
-    first_few = zip(*(row for row, _ in zip(reader, range(100))))
-    as_dict = dict(zip(headers, first_few))
-    rv = []
+    first_few = zip(*(row for row, _ in zip(reader, range(1000))))
+    as_dict: Dict[str, Set[str]] = dict(zip(headers, (set(v) for v in first_few)))
+    cols = []
     # Don't try to infer ints here, just too hard to tell them apart from floats
+    ic = conv.IntegerConverter()
     dc = conv.DateConverter()
     fc = conv.FloatConverter()
     bc = conv.BooleanConverter()
     for key, values in as_dict.items():
-        if fc.sniff(values):
-            rv.append(Column(key, ColumnType.FLOAT))
+        if ic.sniff(values):
+            cols.append(Column(key, ColumnType.INTEGER))
+        elif fc.sniff(values):
+            cols.append(Column(key, ColumnType.FLOAT))
         elif bc.sniff(values):
-            rv.append(Column(key, ColumnType.BOOLEAN))
+            cols.append(Column(key, ColumnType.BOOLEAN))
         elif dc.sniff(values):
-            rv.append(Column(key, ColumnType.DATE))
+            cols.append(Column(key, ColumnType.DATE))
         else:
-            rv.append(Column(key, ColumnType.TEXT))
-    logger.info("inferred: %s", rv)
-    return dialect, rv
+            cols.append(Column(key, ColumnType.TEXT))
+    logger.info("inferred: %s", cols)
+    return dialect, cols
 
 
 def user_by_name(sesh: Session, username: str) -> User:

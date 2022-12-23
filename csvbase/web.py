@@ -56,15 +56,13 @@ from .value_objs import (
     UserSubmittedBytes,
     UserSubmittedCSVData,
 )
+from .constants import COPY_BUFFER_SIZE
 
 logger = getLogger(__name__)
 
 bp = Blueprint("csvbase", __name__)
 
 CORS_EXPIRY = timedelta(hours=8)
-
-# 128KB, a reasonable size for buffers
-COPY_BUFFER_SIZE = 128 * 1024
 
 EXCEPTION_MESSAGE_CODE_MAP = {
     exc.UserDoesNotExistException: ("that user does not exist", 404),
