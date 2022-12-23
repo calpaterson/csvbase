@@ -418,16 +418,12 @@ def make_table_view_response(sesh, user, content_type, table):
         page = PGUserdataAdapter.table_page(sesh, user.username, table, keyset)
         return jsonify(table_to_json_dict(table, page))
     elif content_type is ContentType.PARQUET:
-        return make_streaming_response(
-            svc.table_as_parquet(sesh, table.table_uuid), "application/octet-stream"
-        )
+        return make_streaming_response(svc.table_as_parquet(sesh, table.table_uuid))
     elif content_type is ContentType.JSON_LINES:
-        return make_streaming_response(
-            svc.table_as_jsonlines(sesh, table.table_uuid), "text/plain"
-        )
+        return make_streaming_response(svc.table_as_jsonlines(sesh, table.table_uuid))
     else:
         return make_streaming_response(
-            svc.table_as_csv(sesh, table.table_uuid), ContentType.CSV.value
+            svc.table_as_csv(sesh, table.table_uuid), ContentType.CSV
         )
 
 
@@ -618,7 +614,7 @@ def get_table_csv(username: str, table_name: str) -> Response:
     table = svc.get_table(sesh, username, table_name)
 
     return make_streaming_response(
-        svc.table_as_csv(sesh, table.table_uuid), ContentType.CSV.value
+        svc.table_as_csv(sesh, table.table_uuid), ContentType.CSV
     )
 
 
@@ -628,16 +624,6 @@ def table_view_json(username: str, table_name: str) -> Tuple[str, int]:
 
 
 @bp.route("/<username>/<table_name:table_name>.xlsx", methods=["GET"])
-def get_table_xlsx(username: str, table_name: str) -> Response:
-    sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    table = svc.get_table(sesh, username, table_name)
-
-    return make_streaming_response(
-        svc.table_as_xlsx(sesh, table.table_uuid), ContentType.CSV.value
-    )
-
-
 @bp.route("/<username>/<table_name:table_name>/export/xlsx", methods=["GET"])
 def export_table_xlsx(username: str, table_name: str) -> Response:
     sesh = get_sesh()
@@ -647,15 +633,14 @@ def export_table_xlsx(username: str, table_name: str) -> Response:
     excel_table = "excel-table" in request.args
 
     xlsx_buf = svc.table_as_xlsx(sesh, table.table_uuid, excel_table=excel_table)
-
     return make_streaming_response(
         xlsx_buf,
+        ContentType.XLSX,
         make_download_filename(username, table_name, "xlsx"),
-        ContentType.XLSX.value,
     )
 
 
-CSV_SEPARATOR_MAP: Dict[str, str] = {"comma": ",", "tab": "\t", "vertical-bar": "|"}
+CSV_SEPARATOR_MAP: Mapping[str, str] = {"comma": ",", "tab": "\t", "vertical-bar": "|"}
 
 
 @bp.route("/<username>/<table_name:table_name>/export/csv", methods=["GET"])
@@ -679,8 +664,8 @@ def export_table_csv(username: str, table_name: str) -> Response:
     extension = "tsv" if separator == "tab" else "csv"
     return make_streaming_response(
         csv_buf,
+        ContentType.CSV,
         make_download_filename(username, table_name, extension),
-        ContentType.CSV.value,
     )
 
 
@@ -1054,16 +1039,19 @@ def make_download_filename(username: str, table_name: str, extension: str) -> st
 
 
 def make_streaming_response(
-    parquet_buf: Union[io.BytesIO, io.StringIO],
-    mimetype: str,
+    response_buf: Union[io.BytesIO, io.StringIO],
+    content_type: Optional[ContentType] = None,
     download_filename: Optional[str] = None,
 ) -> Response:
     def generate():
-        minibuf = parquet_buf.read(COPY_BUFFER_SIZE)
+        minibuf = response_buf.read(COPY_BUFFER_SIZE)
         while minibuf:
             yield minibuf
-            minibuf = parquet_buf.read(COPY_BUFFER_SIZE)
+            minibuf = response_buf.read(COPY_BUFFER_SIZE)
 
+    mimetype: str = (
+        "application/octet-stream" if content_type is None else content_type.value
+    )
     response = current_app.response_class(generate(), mimetype=mimetype)
     if download_filename is not None:
         response.headers[
