@@ -24,7 +24,7 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
     - name: Set up Python 3.7
       uses: actions/setup-python@v1
       with:
@@ -34,7 +34,7 @@ jobs:
     - name: Create schemas
       run: psql -h localhost -d csvbase -U csvbase -c 'CREATE SCHEMA metadata; CREATE SCHEMA userdata;'
     - name: Use cache of pip downloads
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('setup.py') }}
@@ -43,7 +43,7 @@ jobs:
     - name: Install tox
       run: pip install tox
     - name: Use cache of tox
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: .tox
         key: ${{ runner.os }}-tox
