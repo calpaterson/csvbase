@@ -48,17 +48,27 @@
 
 /* reducing bottom margin off the explain alert */
 #explain-alert {
-    margin-bottom: 0;
+    text-align: center;
+    padding: 0;
 }
 
-#explain-alert p:last-child {
-    margin-bottom: 0;
+#explain-alert > p {
+    padding: 0;
+    margin: 0;
 }
+
 
 .blog-post-description {
     max-width: 30rem;
     font-style: oblique;
     margin: auto;
     text-align: center;
-    margin-bottom: 2em;
+    margin-bottom: 1em;
+}
+
+.blog-post-blockquote {
+    margin: 1em;
+    border-left: 0.2em solid grey;
+    padding-left: 1em;
+    font-style: oblique;
 }

@@ -21,7 +21,7 @@
 {% block explainer %}
   {% if "current_user" not in g %}
     <div class="container">
-      <div id='explain-alert' class="alert alert-light" role="alert" style="text-align: center; padding-top: 0; padding-bottom: 0">
+      <div id='explain-alert' class="alert alert-light" role="alert">
         {% if table %}
           <p>csvbase is a website for <mark>hosting table data</mark>. Exporting this table to pandas is dead easy, run:</p>
 
