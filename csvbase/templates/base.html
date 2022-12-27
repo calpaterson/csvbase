@@ -34,6 +34,9 @@
           </button>
 
           <div class="collapse navbar-collapse" id="navbar-collapse">
+
+            {% block navbar_elements %}
+
             <ul class="navbar-nav me-auto">
               <li class="nav-item">
                 <a class="nav-link {% if request.endpoint == 'csvbase.paste' %}active{% endif %}"
@@ -53,37 +56,13 @@
               </li>
             </ul>
 
-            <ul class="navbar-nav ms-auto">
-              <li class="nav-item">
-                {% if g.current_user %}
-                  <a
-                    class="nav-link {% if request.path == url_for('csvbase.user', username=g.current_username) %}active{% endif %}"
-                    href="{{ url_for('csvbase.user', username=g.current_username) }}">{{g.current_username}}
-                  </a>
-                {% else %}
-                  <a class="nav-link"
-                     href="{{ url_for('csvbase.sign_in') }}"
-                     >Sign in</a>
-                   {% endif %}
-            </ul>
+            {% endblock %}
+
           </div>
         </div>
       </nav>
 
       {% block explainer %}
-        {% if "current_user" not in g %}
-          <div class="container">
-            <div id='explain-alert' class="alert alert-light" role="alert" style="text-align: center; padding-top: 0; padding-bottom: 0">
-              {% if table %}
-                <p>csvbase is a website for <mark>hosting table data</mark>. Exporting this table to pandas is dead easy, run:</p>
-
-                <p><code>import pandas as pd; {{table.table_name|snake_case}} = pd.read_csv("{{url_for('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True)}}")</code></p>
-              {% else %}
-                <p>csvbase is a website for <mark>hosting table data</mark>.  For more details see the <a href="{{ url_for('csvbase.about') }}">about page.</a>
-              {% endif %}
-            </div>
-          </div>
-        {% endif %}
       {% endblock %}
 
       {% with messages = get_flashed_messages() %}
