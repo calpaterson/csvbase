@@ -1,11 +1,12 @@
 import json
 from typing import Optional
 from uuid import UUID
-from datetime import date
+from datetime import date, timedelta
 from dataclasses import dataclass
 
 from feedgen.feed import FeedGenerator
 from flask import Blueprint, render_template, Response, url_for, make_response, request
+from flask.wrappers import Response as FlaskResponse
 from sqlalchemy.orm import Session
 
 from .value_objs import Post
@@ -16,12 +17,20 @@ from csvbase.markdown import render_markdown
 
 bp = Blueprint("blog", __name__)
 
+# just under one calendar month
+CACHE_TTL = int(timedelta(days=27).total_seconds())
+
 
 @bp.route("/blog")
-def blog_index() -> str:
+def blog_index() -> Response:
     sesh = get_sesh()
     posts = [post for post in blog_svc.get_posts(sesh) if not post.draft]
-    return render_template("blog.html", posts=posts, page_title="The csvbase blog")
+    response = make_response(
+        render_template("blog.html", posts=posts, page_title="The csvbase blog")
+    )
+    cc = response.cache_control
+    cc.max_age = CACHE_TTL
+    return response
 
 
 @bp.route("/blog/<int:post_id>", methods=["GET"])
@@ -41,7 +50,7 @@ def post(post_id: int) -> Response:
     md = render_markdown(post_obj.markdown)
     post_url = url_for("blog.post", post_id=post_id, _external=True)
     ld_json = make_ld_json(post_obj, post_url)
-    return make_response(
+    response = make_response(
         render_template(
             "post.html",
             post=post_obj,
@@ -51,6 +60,12 @@ def post(post_id: int) -> Response:
             canonical_url=post_url,
         )
     )
+    cc = response.cache_control
+    if post_obj.draft:
+        cc.no_store = True
+    else:
+        cc.max_age = CACHE_TTL
+    return response
 
 
 @bp.route("/blog/posts.rss")
@@ -58,6 +73,9 @@ def rss() -> Response:
     sesh = get_sesh()
     feed = make_feed(sesh, url_for("blog.rss", _external=True))
     response = Response(feed, mimetype="application/rss+xml")
+    cc = response.cache_control
+    # RSS feed updates need to be picked up in reasonable period of time
+    cc.max_age = int(timedelta(days=1).total_seconds())
     return response
 
 

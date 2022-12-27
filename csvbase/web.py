@@ -31,7 +31,7 @@ from flask_babel import Babel
 from flask_cors import cross_origin
 from flask_sqlalchemy_session import flask_scoped_session
 from passlib.context import CryptContext
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 from typing_extensions import Literal
 from werkzeug.routing import BaseConverter
 from werkzeug.wrappers.response import Response
