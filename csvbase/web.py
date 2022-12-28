@@ -25,7 +25,7 @@ from flask import (
     request,
 )
 from flask import session as flask_session
-from flask import url_for
+from flask import url_for, Flask
 from flask.wrappers import Response as FlaskResponse
 from flask_babel import Babel
 from flask_cors import cross_origin
@@ -79,7 +79,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
 }
 
 
-def init_app():
+def init_app() -> Flask:
     configure_logging()
     configure_sentry()
     app = Flask(__name__)
@@ -106,11 +106,7 @@ def init_app():
         app.register_blueprint(blog.bp)
 
     @app.context_processor
-    def inject_heroku():
-        return dict(HEROKU="HEROKU" in environ)
-
-    @app.context_processor
-    def inject_blueprints():
+    def inject_blueprints() -> Dict:
         return dict(blueprints=app.blueprints.keys())
 
     app.jinja_env.filters["snake_case"] = snake_case
@@ -398,7 +394,9 @@ def table_view_with_extension(
     return make_table_view_response(sesh, user, content_type, table)
 
 
-def make_table_view_response(sesh, user, content_type, table):
+def make_table_view_response(
+    sesh, user: User, content_type: ContentType, table: Table
+) -> Response:
     if content_type is ContentType.HTML:
         keyset = keyset_from_request_args()
         page = PGUserdataAdapter.table_page(sesh, user.username, table, keyset)
@@ -945,7 +943,11 @@ def sitemap() -> Response:
 @bp.route("/register", methods=["GET", "POST"])
 def register() -> Response:
     if request.method == "GET":
-        return make_response(render_template("register.html", whence=request.referrer))
+        response = make_response(
+            render_template("register.html", whence=request.referrer)
+        )
+        response.cache_control.max_age = int(timedelta(minutes=30).total_seconds())
+        return response
     else:
         sesh = get_sesh()
         user = svc.create_user(
@@ -967,7 +969,11 @@ def register() -> Response:
 @bp.route("/sign-in", methods=["GET", "POST"])
 def sign_in() -> Response:
     if request.method == "GET":
-        return make_response(render_template("sign_in.html", whence=request.referrer))
+        response = make_response(
+            render_template("sign_in.html", whence=request.referrer)
+        )
+        response.cache_control.max_age = int(timedelta(minutes=30).total_seconds())
+        return response
     else:
         sesh = get_sesh()
         username = request.form["username"]

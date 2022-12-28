@@ -4,17 +4,25 @@
 {% block navbar_elements %}
   {{ super() }}
   <ul class="navbar-nav ms-auto">
-    <li class="nav-item">
-      {% if g.current_user %}
+    {% if g.current_user %}
+      <li class="nav-item">
         <a
           class="nav-link {% if request.path == url_for('csvbase.user', username=g.current_username) %}active{% endif %}"
           href="{{ url_for('csvbase.user', username=g.current_username) }}">{{g.current_username}}
         </a>
+      </li>
       {% else %}
-        <a class="nav-link"
-           href="{{ url_for('csvbase.sign_in') }}"
-           >Sign in</a>
-         {% endif %}
+        <li class="nav-item">
+          <a class="nav-link"
+             href="{{ url_for('csvbase.sign_in') }}"
+             >Sign in</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link"
+             href="{{ url_for('csvbase.register') }}"
+             >Register</a>
+        </li>
+      {% endif %}
   </ul>
 {% endblock %}
 

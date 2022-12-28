@@ -1,6 +1,12 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "base.html" %}
 
+{% block head %}
+  {{ super() }}
+  <link rel="alternate" type="application/rss+xml" title="csvbase blog"
+        href="{{ url_for('blog.rss', _external=True) }}">
+{% endblock %}
+
 {% block explainer %}
 <div class="container">
   <div id='explain-alert' class="alert alert-light" role="alert" style="text-align: center; padding-top: 0; padding-bottom: 0">

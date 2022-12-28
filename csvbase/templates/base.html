@@ -16,7 +16,7 @@
   <body>
     {% block body %}
 
-      <nav id="csvbase-nav" class="navbar navbar-expand navbar-light">
+      <nav id="csvbase-nav" class="navbar navbar-expand-sm navbar-light">
         <div class="container">
           <a class="navbar-brand" href="{{ url_for('csvbase.index') }}">
             <img src="/static/logo/192x192.png" alt=" " width="32" height="32" class="d-inline-block align-text">
@@ -26,18 +26,15 @@
           <button class="navbar-toggler"
                   type="button"
                   data-bs-toggle="collapse"
-                  data-bs-target="#navbar-collapse"
-                  aria-controls="navbar-collapse"
-                  aria-expanded="false"
-                  aria-label="Toggle navigation">
-                  <span class="navbar-toggler-icon"></span>
+                  data-bs-target="#navbar-collapse">
+            <span class="navbar-toggler-icon"></span>
           </button>
 
           <div class="collapse navbar-collapse" id="navbar-collapse">
 
             {% block navbar_elements %}
 
-            <ul class="navbar-nav me-auto">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
               <li class="nav-item">
                 <a class="nav-link {% if request.endpoint == 'csvbase.paste' %}active{% endif %}"
                    href="{{ url_for('csvbase.paste') }}">Paste</a>
@@ -94,6 +91,8 @@
         </ul>
       </footer>
     </div>
+
+    <script src="{{ url_for('static', filename='bootstrap.bundle.js' ) }}" integrity="sha384-8fq7CZc5BnER+jVlJI2Jafpbn4A9320TKhNJfYP33nneHep7sUg/OD30x7fK09pS"></script>
 
   </body>
 </html>
