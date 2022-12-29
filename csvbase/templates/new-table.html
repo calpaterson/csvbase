@@ -47,7 +47,7 @@
       {% block form_section %}
       {% if method == 'paste' %}
         <div class="mb-3">
-          <textarea name="csv-textarea" class="form-control" rows="10" cols="50" autofocus></textarea>
+          <textarea name="csv-textarea" class="form-control csv-paste-textarea" rows="10" cols="50" autofocus></textarea>
           <div class="form-text">Either CSV or TSV works but be sure to include the header row</div>
         </div>
       {% endif %}
@@ -97,7 +97,7 @@
     {% endif %}
 
     <div class="mb-3">
-        <input type="submit" class="btn btn-primary" value="Create my API!">
+        <input type="submit" class="btn btn-primary" value="Create table">
     </div>
     </form>
   </div>

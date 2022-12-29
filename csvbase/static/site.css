@@ -81,3 +81,7 @@
 .blog-rss {
     font-style: oblique;
 }
+
+.csv-paste-textarea {
+    resize: both;
+}
