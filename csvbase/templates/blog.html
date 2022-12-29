@@ -10,8 +10,12 @@
 
         {% for post in posts %}
           <p><a href="{{ url_for('blog.post', post_id=post.id) }}">{{ post.title }}</a>
-            <span style="float: right">{{ post.render_posted() }}</span></p>
-          {% endfor %}
+            <span style="float: right">{{ post.render_posted() }}</span>
+          </p>
+        {% endfor %}
+        {% if not posts %}
+          <p>No posts yet!</p>
+        {% endif %}
       </div>
     </div>
   </div>

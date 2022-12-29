@@ -40,6 +40,12 @@
 
         <h1 class="py-2">{{ post.title }}</h1>
         <p class="blog-post-description">{{ post.description }}</p>
+        <p class="blog-post-description">{{ post.render_posted() }}</p>
+        {# FIXME: this should come from the post object somehow #}
+        <p class="blog-post-description">by <a href="https://calpaterson.com">Cal Paterson</a></p>
+        {% if post.draft %}
+          <p class="blog-post-draft">DRAFT</p>
+        {% endif %}
 
         {{ rendered|safe }}
       </div>
