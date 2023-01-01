@@ -16,7 +16,7 @@
              href="{{ url_for('csvbase.upload_file') }}">Upload file</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'csvbase.blank_table' %}active{%endif%}"
+          <a class="nav-link {% if request.endpoint == 'csvbase.blank_table' %}active{%endif%} disabled"
              href="{{ url_for('csvbase.blank_table') }}">Blank table</a>
         </li>
       </ul>
