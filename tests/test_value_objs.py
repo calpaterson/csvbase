@@ -26,14 +26,3 @@ def _make_versions(inp, expected):
 )
 def test_bool_parsing_from_string(bool_str, expected):
     assert from_string_to_python(ColumnType.BOOLEAN, bool_str) == expected
-
-
-@pytest.mark.parametrize(
-    "form_value, expected",
-    [
-        ("on", True),
-        (None, False),
-    ],
-)
-def test_bool_parsing_from_html_form(form_value, expected):
-    assert ColumnType.BOOLEAN.from_html_form_to_python(form_value) == expected

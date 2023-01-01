@@ -42,6 +42,7 @@ from .logging import configure_logging
 from .sentry import configure_sentry
 from .sesh import get_sesh
 from .userdata import PGUserdataAdapter
+from .conv import DateConverter
 from .value_objs import (
     ROW_ID_COLUMN,
     Column,
@@ -50,6 +51,7 @@ from .value_objs import (
     DataLicence,
     KeySet,
     Page,
+    PythonType,
     Row,
     Table,
     User,
@@ -661,7 +663,7 @@ def create_row(username: str, table_name: str) -> Response:
         row = {c: row_as_dict[c.name] for c in table.user_columns()}
     elif request.mimetype == ContentType.HTML_FORM.value:
         row = {
-            c: c.type_.from_html_form_to_python(request.form.get(c.name))
+            c: from_html_form_to_python(c.type_, request.form.get(c.name))
             for c in table.user_columns()
         }
     else:
@@ -826,7 +828,7 @@ def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Resp
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
     row: Row = {
-        c: c.type_.from_html_form_to_python(request.form.get(c.name))
+        c: from_html_form_to_python(c.type_, request.form.get(c.name))
         for c in table.columns
     }
     PGUserdataAdapter.update_row(sesh, table.table_uuid, row_id, row)
@@ -1223,3 +1225,17 @@ def get_praise_id_if_exists(table: Table) -> Optional[int]:
         return svc.is_praised(sesh, g.current_user.user_uuid, table.table_uuid)
     else:
         return None
+
+
+def from_html_form_to_python(
+    column_type: ColumnType, form_value: Optional[str]
+) -> Optional["PythonType"]:
+    """Parses values from HTML forms into Python objects, according to ColumnType."""
+    if column_type is ColumnType.BOOLEAN:
+        return True if form_value == "on" else False
+    elif form_value is None:
+        return None
+    elif column_type is ColumnType.DATE:
+        return DateConverter().convert(form_value)
+    else:
+        return column_type.python_type()(form_value)

@@ -164,19 +164,6 @@ class ColumnType(enum.Enum):
         else:
             return value
 
-    def from_html_form_to_python(
-        self, form_value: Optional[str]
-    ) -> Optional["PythonType"]:
-        """Parses values from HTML forms into Python objects, according to ColumnType."""
-        if self is ColumnType.BOOLEAN:
-            return True if form_value == "on" else False
-        elif form_value is None:
-            return None
-        elif self is ColumnType.DATE:
-            return date.fromisoformat(form_value)
-        else:
-            return self.python_type()(form_value)
-
     def from_json_to_python(self, json_value: Any) -> Optional["PythonType"]:
         if self is ColumnType.BOOLEAN:
             return json_value
