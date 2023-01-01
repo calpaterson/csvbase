@@ -23,9 +23,9 @@ from flask import (
     redirect,
     render_template,
     request,
+    url_for,
 )
 from flask import session as flask_session
-from flask import url_for, Flask
 from flask.wrappers import Response as FlaskResponse
 from flask_babel import Babel
 from flask_cors import cross_origin
@@ -605,22 +605,6 @@ def praise_table(username: str, table_name: str) -> Response:
     return redirect(whence)
 
 
-@bp.route("/<username>/<table_name:table_name>.csv", methods=["GET"])
-def get_table_csv(username: str, table_name: str) -> Response:
-    sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    table = svc.get_table(sesh, username, table_name)
-
-    return make_streaming_response(
-        svc.table_as_csv(sesh, table.table_uuid), ContentType.CSV
-    )
-
-
-@bp.route("/<username>/<table_name:table_name>.json", methods=["GET"])
-def table_view_json(username: str, table_name: str) -> Tuple[str, int]:
-    return "not implemented", 501
-
-
 @bp.route("/<username>/<table_name:table_name>.xlsx", methods=["GET"])
 @bp.route("/<username>/<table_name:table_name>/export/xlsx", methods=["GET"])
 def export_table_xlsx(username: str, table_name: str) -> Response:
@@ -1121,7 +1105,7 @@ def set_current_user_for_session(user: User, session: Optional[Any] = None) -> N
     session.permanent = True
 
 
-def set_current_user(user: User):
+def set_current_user(user: User) -> None:
     g.current_user = user
 
     # This is duplication but very convenient for jinja templates

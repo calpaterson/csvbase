@@ -96,7 +96,7 @@
     </p>
 
     <p>
-      <code>{{ url_for_with_auth('csvbase.table_view_json', username=table.username, table_name=table.table_name, _external=True) }}</code>
+      <code>{{ url_for_with_auth('csvbase.table_view_with_extension', username=table.username, table_name=table.table_name, extension="json", _external=True) }}</code>
     </p>
 
     <p>
