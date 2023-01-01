@@ -1,5 +1,5 @@
 import csv
-from typing import TYPE_CHECKING, Iterable, List, Optional, Sequence, Tuple, Type
+from typing import TYPE_CHECKING, Iterable, List, Optional, Sequence, Type, Collection
 from uuid import UUID, uuid4
 
 from pgcopy import CopyManager
@@ -142,9 +142,7 @@ class PGUserdataAdapter:
         return result.rowcount > 0
 
     @classmethod
-    def table_page(
-        cls, sesh: Session, username: str, table: Table, keyset: KeySet
-    ) -> Page:
+    def table_page(cls, sesh: Session, table: Table, keyset: KeySet) -> Page:
         """Get a page from a table based on the provided KeySet"""
         # FIXME: this doesn't handle empty tables
         table_clause = cls.get_userdata_tableclause(sesh, table.table_uuid)
@@ -199,7 +197,7 @@ class PGUserdataAdapter:
         cls,
         sesh: Session,
         table_uuid: UUID,
-    ) -> Iterable[Tuple[PythonType]]:
+    ) -> Iterable[Collection[PythonType]]:
         table_clause = cls.get_userdata_tableclause(sesh, table_uuid)
         columns = cls.get_columns(sesh, table_uuid)
         q = select([getattr(table_clause.c, c.name) for c in columns]).order_by(
@@ -211,8 +209,6 @@ class PGUserdataAdapter:
     def insert_table_data(
         cls,
         sesh: Session,
-        user_uuid: UUID,
-        username: str,
         table: Table,
         csv_buf: UserSubmittedCSVData,
         dialect: Type[csv.Dialect],
@@ -248,9 +244,7 @@ class PGUserdataAdapter:
         sesh.execute(DropTable(sa_table))  # type: ignore
 
     @classmethod
-    def create_table(
-        cls, sesh: Session, username: str, table_name: str, columns: Iterable[Column]
-    ) -> UUID:
+    def create_table(cls, sesh: Session, columns: Iterable[Column]) -> UUID:
         table_uuid = uuid4()
         cols: List[SAColumn] = [
             SAColumn(

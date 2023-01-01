@@ -44,9 +44,7 @@ def blog_table(sesh, test_user: User):
         Column("cover_image_alt", ColumnType.TEXT),
         Column("posted", ColumnType.DATE),
     ]
-    table_uuid = PGUserdataAdapter.create_table(
-        sesh, test_user.username, table_name, columns
-    )
+    table_uuid = PGUserdataAdapter.create_table(sesh, columns)
     create_table_metadata(
         sesh,
         table_uuid,

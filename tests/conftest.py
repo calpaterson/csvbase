@@ -66,8 +66,6 @@ def ten_rows(test_user, sesh):
     table_name = random_string()
     table_uuid = PGUserdataAdapter.create_table(
         sesh,
-        test_user.username,
-        table_name,
         [Column("roman_numeral", type_=ColumnType.TEXT)],
     )
     svc.create_table_metadata(
@@ -92,8 +90,6 @@ def private_table(test_user, module_sesh):
     x_column = Column("x", type_=ColumnType.INTEGER)
     table_uuid = PGUserdataAdapter.create_table(
         module_sesh,
-        test_user.username,
-        table_name,
         [x_column],
     )
     svc.create_table_metadata(

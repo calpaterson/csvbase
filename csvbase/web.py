@@ -245,9 +245,7 @@ def new_table_form_submission() -> Response:
     data_licence = DataLicence(request.form.get("data-licence", type=int))
     dialect, columns = svc.peek_csv(csv_buf)
     csv_buf.seek(0)
-    table_uuid = PGUserdataAdapter.create_table(
-        sesh, g.current_user.username, table_name, columns
-    )
+    table_uuid = PGUserdataAdapter.create_table(sesh, columns)
     svc.create_table_metadata(
         sesh,
         table_uuid,
@@ -261,8 +259,6 @@ def new_table_form_submission() -> Response:
     # FIXME: what happens if this fails?
     PGUserdataAdapter.insert_table_data(
         sesh,
-        g.current_user.user_uuid,
-        g.current_user.username,
         table,
         csv_buf,
         dialect,
@@ -336,9 +332,7 @@ def blank_table_form_post() -> Response:
     else:
         is_public = True
 
-    table_uuid = PGUserdataAdapter.create_table(
-        sesh, g.current_user.username, table_name, cols
-    )
+    table_uuid = PGUserdataAdapter.create_table(sesh, cols)
     svc.create_table_metadata(
         sesh,
         table_uuid,
@@ -372,7 +366,7 @@ def table_view(username: str, table_name: str) -> Response:
 
     table = svc.get_table(sesh, username, table_name)
 
-    return make_table_view_response(sesh, user, content_type, table)
+    return make_table_view_response(sesh, content_type, table)
 
 
 @bp.route("/<username>/<table_name:table_name>.<extension>", methods=["GET"])
@@ -391,19 +385,17 @@ def table_view_with_extension(
 
     table = svc.get_table(sesh, username, table_name)
 
-    return make_table_view_response(sesh, user, content_type, table)
+    return make_table_view_response(sesh, content_type, table)
 
 
-def make_table_view_response(
-    sesh, user: User, content_type: ContentType, table: Table
-) -> Response:
+def make_table_view_response(sesh, content_type: ContentType, table: Table) -> Response:
     if content_type is ContentType.HTML:
         keyset = keyset_from_request_args()
-        page = PGUserdataAdapter.table_page(sesh, user.username, table, keyset)
+        page = PGUserdataAdapter.table_page(sesh, table, keyset)
         return make_response(
             render_template(
                 "table_view.html",
-                page_title=f"{user.username}/{table.table_name}",
+                page_title=f"{table.username}/{table.table_name}",
                 table=table,
                 page=page,
                 keyset=keyset,
@@ -413,7 +405,7 @@ def make_table_view_response(
         )
     elif content_type is ContentType.JSON:
         keyset = keyset_from_request_args()
-        page = PGUserdataAdapter.table_page(sesh, user.username, table, keyset)
+        page = PGUserdataAdapter.table_page(sesh, table, keyset)
         return jsonify(table_to_json_dict(table, page))
     elif content_type is ContentType.PARQUET:
         return make_streaming_response(svc.table_as_parquet(sesh, table.table_uuid))
