@@ -33,13 +33,13 @@ if TYPE_CHECKING:
 
 class PGUserdataAdapter:
     @staticmethod
-    def make_temp_table_name() -> str:
+    def _make_temp_table_name() -> str:
         # FIXME: this name should probably include the date and some other helpful
         # info for debugging
         return f"temp_{uuid4().hex}"
 
     @staticmethod
-    def get_tableclause(
+    def _get_tableclause(
         table_name: str, columns: Sequence[Column], schema: Optional[str] = None
     ) -> TableClause:
         return satable(  # type: ignore
@@ -48,8 +48,14 @@ class PGUserdataAdapter:
             schema=schema,
         )
 
+    @classmethod
+    def _get_userdata_tableclause(cls, sesh: Session, table_uuid: UUID) -> TableClause:
+        columns = cls.get_columns(sesh, table_uuid)
+        table_name = cls._make_userdata_table_name(table_uuid)
+        return cls._get_tableclause(table_name, columns, schema="userdata")
+
     @staticmethod
-    def make_userdata_table_name(table_uuid: UUID, with_schema=False) -> str:
+    def _make_userdata_table_name(table_uuid: UUID, with_schema=False) -> str:
         if with_schema:
             return f"userdata.table_{table_uuid.hex}"
         else:
@@ -58,7 +64,7 @@ class PGUserdataAdapter:
     @classmethod
     def get_columns(cls, sesh: Session, table_uuid: UUID) -> List["Column"]:
         # lifted from https://dba.stackexchange.com/a/22420/28877
-        attrelid = cls.make_userdata_table_name(table_uuid, with_schema=True)
+        attrelid = cls._make_userdata_table_name(table_uuid, with_schema=True)
         stmt = text(
             """
         SELECT attname AS column_name, atttypid::regtype AS sql_type
@@ -76,15 +82,9 @@ class PGUserdataAdapter:
         return rv
 
     @classmethod
-    def get_userdata_tableclause(cls, sesh: Session, table_uuid: UUID) -> TableClause:
-        columns = cls.get_columns(sesh, table_uuid)
-        table_name = cls.make_userdata_table_name(table_uuid)
-        return cls.get_tableclause(table_name, columns, schema="userdata")
-
-    @classmethod
     def get_row(cls, sesh: Session, table_uuid: UUID, row_id: int) -> Optional[Row]:
         columns = cls.get_columns(sesh, table_uuid)
-        table_clause = cls.get_userdata_tableclause(sesh, table_uuid)
+        table_clause = cls._get_userdata_tableclause(sesh, table_uuid)
         cursor = sesh.execute(
             table_clause.select().where(table_clause.c.csvbase_row_id == row_id)
         )
@@ -101,7 +101,7 @@ class PGUserdataAdapter:
         If none exist, a made-up row is returned.  This function is for
         example/documentation purposes only."""
         columns = cls.get_columns(sesh, table_uuid)
-        table_clause = cls.get_userdata_tableclause(sesh, table_uuid)
+        table_clause = cls._get_userdata_tableclause(sesh, table_uuid)
         cursor = sesh.execute(table_clause.select().order_by("csvbase_row_id").limit(1))
         row = cursor.fetchone()
         if row is None:
@@ -112,7 +112,7 @@ class PGUserdataAdapter:
 
     @classmethod
     def insert_row(cls, sesh: Session, table_uuid: UUID, row: Row) -> int:
-        table = cls.get_userdata_tableclause(sesh, table_uuid)
+        table = cls._get_userdata_tableclause(sesh, table_uuid)
         values = {c.name: v for c, v in row.items()}
         return sesh.execute(
             table.insert().values(values).returning(table.c.csvbase_row_id)
@@ -127,7 +127,7 @@ class PGUserdataAdapter:
         row: Row,
     ) -> bool:
         """Update a given row, returning True if it existed (and was updated) and False otherwise."""
-        table = cls.get_userdata_tableclause(sesh, table_uuid)
+        table = cls._get_userdata_tableclause(sesh, table_uuid)
         values = {c.name: v for c, v in row.items()}
         result = sesh.execute(
             table.update().where(table.c.csvbase_row_id == row_id).values(values)
@@ -137,7 +137,7 @@ class PGUserdataAdapter:
     @classmethod
     def delete_row(cls, sesh: Session, table_uuid: UUID, row_id: int) -> bool:
         """Update a given row, returning True if it existed (and was updated) and False otherwise."""
-        table = cls.get_userdata_tableclause(sesh, table_uuid)
+        table = cls._get_userdata_tableclause(sesh, table_uuid)
         result = sesh.execute(table.delete().where(table.c.csvbase_row_id == row_id))
         return result.rowcount > 0
 
@@ -145,7 +145,7 @@ class PGUserdataAdapter:
     def table_page(cls, sesh: Session, table: Table, keyset: KeySet) -> Page:
         """Get a page from a table based on the provided KeySet"""
         # FIXME: this doesn't handle empty tables
-        table_clause = cls.get_userdata_tableclause(sesh, table.table_uuid)
+        table_clause = cls._get_userdata_tableclause(sesh, table.table_uuid)
         if keyset.op == "greater_than":
             where_cond = table_clause.c.csvbase_row_id > keyset.n
         else:
@@ -198,7 +198,7 @@ class PGUserdataAdapter:
         sesh: Session,
         table_uuid: UUID,
     ) -> Iterable[Collection[PythonType]]:
-        table_clause = cls.get_userdata_tableclause(sesh, table_uuid)
+        table_clause = cls._get_userdata_tableclause(sesh, table_uuid)
         columns = cls.get_columns(sesh, table_uuid)
         q = select([getattr(table_clause.c, c.name) for c in columns]).order_by(
             table_clause.c.csvbase_row_id
@@ -226,7 +226,7 @@ class PGUserdataAdapter:
         cols = [c.name for c in table.user_columns()]
         copy_manager = CopyManager(
             raw_conn,
-            cls.make_userdata_table_name(table.table_uuid, with_schema=True),
+            cls._make_userdata_table_name(table.table_uuid, with_schema=True),
             cols,
         )
         copy_manager.copy(row_gen)
@@ -234,13 +234,13 @@ class PGUserdataAdapter:
     @classmethod
     def drop_table(cls, sesh: Session, table_uuid: UUID) -> None:
         # FIXME: dead code
-        # FIXME: get_userdata_tableclause ?
+        # FIXME: _get_userdata_tableclause ?
         # sa_table = SATable(
-        #     make_userdata_table_name(table_uuid),
+        #     _make_userdata_table_name(table_uuid),
         #     MetaData(bind=engine),
         #     schema="userdata",
         # )
-        sa_table = cls.get_userdata_tableclause(sesh, table_uuid)
+        sa_table = cls._get_userdata_tableclause(sesh, table_uuid)
         sesh.execute(DropTable(sa_table))  # type: ignore
 
     @classmethod
@@ -269,19 +269,13 @@ class PGUserdataAdapter:
         for col in columns:
             cols.append(SAColumn(col.name, type_=col.type_.sqla_type()))
         table = SATable(
-            cls.make_userdata_table_name(table_uuid),
+            cls._make_userdata_table_name(table_uuid),
             MetaData(bind=engine),
             *cols,
             schema="userdata",
         )
         sesh.execute(CreateTable(table))
         return table_uuid
-
-    @classmethod
-    def make_drop_table_ddl(cls, sesh: Session, table_uuid: UUID) -> DropTable:
-        sqla_table = cls.get_userdata_tableclause(sesh, table_uuid)
-        # sqlalchemy-stubs doesn't match sqla 1.4
-        return DropTable(sqla_table)  # type: ignore
 
     @classmethod
     def upsert_table_data(
@@ -307,8 +301,8 @@ class PGUserdataAdapter:
         )
 
         # Then make a temp table and COPY the new rows into it
-        temp_table_name = cls.make_temp_table_name()
-        main_table_name = cls.make_userdata_table_name(
+        temp_table_name = cls._make_temp_table_name()
+        main_table_name = cls._make_userdata_table_name(
             table.table_uuid, with_schema=True
         )
 
@@ -332,8 +326,8 @@ class PGUserdataAdapter:
         copy_manager.copy(row_gen)
 
         # Next selectively use the temp table to update the 'main' one
-        main_tableclause = cls.get_userdata_tableclause(sesh, table.table_uuid)
-        temp_tableclause = cls.get_tableclause(temp_table_name, table.columns)
+        main_tableclause = cls._get_userdata_tableclause(sesh, table.table_uuid)
+        temp_tableclause = cls._get_tableclause(temp_table_name, table.columns)
 
         # 1. for removals
         remove_stmt = main_tableclause.delete().where(
