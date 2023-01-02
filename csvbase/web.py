@@ -341,7 +341,7 @@ def blank_table_form_post() -> Response:
             break
         index += 1
     table_name = request.form["table-name"]
-    licence = DataLicence(request.form.get("licence", type=int))
+    licence = DataLicence(request.form.get("data-licence", type=int))
     if "private" in request.form:
         is_public = False
     else:
