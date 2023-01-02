@@ -67,3 +67,8 @@ class UnconvertableValueException(CSVBaseException):
     def __init__(self, expected_type: ColumnType, string: str):
         self.expected_type = expected_type
         self.string = string
+
+
+class CSVException(CSVBaseException):
+    def __init__(self, message: str):
+        self.message = message

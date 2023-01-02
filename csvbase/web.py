@@ -1,4 +1,3 @@
-import codecs
 import io
 import json
 import secrets
@@ -6,12 +5,23 @@ import shutil
 from datetime import date, timedelta
 from logging import getLogger
 from os import environ
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union, cast
+from typing import (
+    Any,
+    Dict,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+    Iterator,
+)
 from urllib.parse import urlsplit, urlunsplit
 from uuid import UUID
 
 import werkzeug.http
-from cchardet import UniversalDetector
+
 from flask import (
     Blueprint,
     Flask,
@@ -36,7 +46,7 @@ from typing_extensions import Literal
 from werkzeug.routing import BaseConverter
 from werkzeug.wrappers.response import Response
 
-from . import blog, db, exc, svc
+from . import blog, db, exc, svc, streams
 from .markdown import render_markdown
 from .logging import configure_logging
 from .sentry import configure_sentry
@@ -55,6 +65,8 @@ from .value_objs import (
     Row,
     Table,
     User,
+)
+from .streams import (
     UserSubmittedBytes,
     UserSubmittedCSVData,
 )
@@ -78,6 +90,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
     exc.CantNegotiateContentType: ("can't agree with you on a content type", 406),
     exc.WrongContentType: ("you sent the wrong content type", 400),
     exc.ProhibitedUsernameException: ("that username is not allowed", 400),
+    exc.CSVException: ("Unable to parse that csv file", 400),
 }
 
 
@@ -239,13 +252,13 @@ def new_table_form_submission() -> Response:
     if textarea:
         csv_buf = io.StringIO(textarea)
     else:
-        csv_buf = byte_buf_to_str_buf(request.files["csv-file"])
+        csv_buf = streams.byte_buf_to_str_buf(request.files["csv-file"])
     if "private" in request.form:
         is_public = False
     else:
         is_public = True
     data_licence = DataLicence(request.form.get("data-licence", type=int))
-    dialect, columns = svc.peek_csv(csv_buf)
+    dialect, columns = streams.peek_csv(csv_buf)
     csv_buf.seek(0)
     table_uuid = PGUserdataAdapter.create_table(sesh, columns)
     svc.create_table_metadata(
@@ -850,8 +863,8 @@ def upsert_table(username: str, table_name: str) -> Response:
     # FIXME: add checking for forms here
     byte_buf = io.BytesIO()
     shutil.copyfileobj(request.stream, byte_buf)
-    str_buf = byte_buf_to_str_buf(byte_buf)
-    dialect, _ = svc.sniff_csv(str_buf)
+    str_buf = streams.byte_buf_to_str_buf(byte_buf)
+    dialect, _ = streams.sniff_csv(str_buf)
     table = svc.get_table(sesh, username, table_name)
 
     str_buf.seek(0)
@@ -1027,7 +1040,7 @@ def make_streaming_response(
     content_type: Optional[ContentType] = None,
     download_filename: Optional[str] = None,
 ) -> Response:
-    def generate():
+    def generate() -> Union[Iterator[bytes], Iterator[str]]:
         minibuf = response_buf.read(COPY_BUFFER_SIZE)
         while minibuf:
             yield minibuf
@@ -1063,29 +1076,6 @@ def negotiate_content_type(
         raise exc.CantNegotiateContentType(supported_mediatypes)
     else:
         return ContentType(best)
-
-
-def byte_buf_to_str_buf(byte_buf: UserSubmittedBytes) -> codecs.StreamReader:
-    """Convert a readable byte buffer into a readable str buffer.
-
-    Tries to detect the character set along the way, falling back to utf-8."""
-    detector = UniversalDetector()
-    for line in byte_buf.readlines():
-        detector.feed(line)
-        if detector.done:
-            break
-        if byte_buf.tell() > 1_000_000:
-            logger.warning("unable to detect after 1mb, giving up")
-            break
-    logger.info("detected: %s after %d bytes", detector.result, byte_buf.tell())
-    byte_buf.seek(0)
-    if detector.result["encoding"] is not None:
-        encoding = detector.result["encoding"]
-    else:
-        logger.warning("unable to detect charset, assuming utf-8")
-        encoding = "utf-8"
-    Reader = codecs.getreader(encoding)
-    return Reader(byte_buf)
 
 
 def set_current_user_for_session(user: User, session: Optional[Any] = None) -> None:

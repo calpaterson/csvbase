@@ -24,8 +24,8 @@ from .value_objs import (
     PythonType,
     Row,
     Table,
-    UserSubmittedCSVData,
 )
+from .streams import UserSubmittedCSVData
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import RowProxy

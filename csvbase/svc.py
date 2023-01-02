@@ -53,8 +53,8 @@ from .value_objs import (
     Row,
     Table,
     User,
-    UserSubmittedCSVData,
 )
+from .streams import UserSubmittedCSVData
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import RowProxy
@@ -64,66 +64,6 @@ logger = getLogger(__name__)
 FLOAT_REGEX = re.compile(r"^(\d+\.)|(\.\d+)|(\d+\.\d?)$")
 
 BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
-
-
-def sniff_csv(
-    csv_buf: UserSubmittedCSVData, sample_size_hint: int = 2**13
-) -> Tuple[Type[csv.Dialect], bool]:
-    """Return csv dialect and a boolean indicating a guess at whether there is
-    a header."""
-    sniffer = csv.Sniffer()
-    sample = "".join(csv_buf.readlines(sample_size_hint))
-
-    try:
-        dialect = csv.Sniffer().sniff(sample)
-    except csv.Error:
-        logger.warning("unable to sniff dialect, falling back to excel")
-        dialect = csv.excel
-    logger.info("sniffed dialect: %s", dialect)
-
-    has_header = sniffer.has_header(sample)
-    logger.info("has_header = %s", has_header)
-
-    csv_buf.seek(0)
-
-    return dialect, has_header
-
-
-def peek_csv(
-    csv_buf: UserSubmittedCSVData,
-) -> Tuple[Type[csv.Dialect], List[Column]]:
-    """Infer the csv dialect (usually: excel) and the column names/types) by
-    looking at the top of it.
-
-    """
-    dialect, _ = sniff_csv(csv_buf)
-
-    # FIXME: it's probably best that this consider the entire CSV file rather
-    # than just the start of it.  there are many, many csv files that, halfway
-    # down, switch out "YES" for "YES (but only <...>)"
-    reader = csv.reader(csv_buf, dialect)
-    headers = next(reader)
-    first_few = zip(*(row for row, _ in zip(reader, range(1000))))
-    as_dict: Dict[str, Set[str]] = dict(zip(headers, (set(v) for v in first_few)))
-    cols = []
-    # Don't try to infer ints here, just too hard to tell them apart from floats
-    ic = conv.IntegerConverter()
-    dc = conv.DateConverter()
-    fc = conv.FloatConverter()
-    bc = conv.BooleanConverter()
-    for key, values in as_dict.items():
-        if ic.sniff(values):
-            cols.append(Column(key, ColumnType.INTEGER))
-        elif fc.sniff(values):
-            cols.append(Column(key, ColumnType.FLOAT))
-        elif bc.sniff(values):
-            cols.append(Column(key, ColumnType.BOOLEAN))
-        elif dc.sniff(values):
-            cols.append(Column(key, ColumnType.DATE))
-        else:
-            cols.append(Column(key, ColumnType.TEXT))
-    logger.info("inferred: %s", cols)
-    return dialect, cols
 
 
 def user_by_name(sesh: Session, username: str) -> User:

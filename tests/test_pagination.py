@@ -4,7 +4,7 @@ import string
 
 import pytest
 
-from csvbase import svc
+from csvbase import svc, streams
 from csvbase.userdata import PGUserdataAdapter
 from csvbase.value_objs import (
     Column,
@@ -30,7 +30,7 @@ def letters_table(test_user, module_sesh) -> Table:
         writer.writerow(char)
     csv_buf.seek(0)
 
-    dialect, columns = svc.peek_csv(csv_buf)
+    dialect, columns = streams.peek_csv(csv_buf)
     csv_buf.seek(0)
     table_uuid = PGUserdataAdapter.create_table(module_sesh, columns)
     svc.create_table_metadata(
