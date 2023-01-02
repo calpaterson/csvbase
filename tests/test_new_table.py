@@ -33,6 +33,7 @@ def test_new_blank_table(client, query, kwargs):
     template_kwargs.pop("ColumnType")
     template_kwargs.pop("action_url")
     template_kwargs.pop("DataLicence")
+    template_kwargs.pop("table_name")
     assert template_kwargs == kwargs
 
 

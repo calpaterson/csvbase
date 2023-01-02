@@ -316,6 +316,7 @@ def blank_table() -> str:
         return cols
 
     cols = build_cols(request.args)
+    table_name = request.args.get("table-name", "")
 
     return render_template(
         "new-blank-table.html",
@@ -323,6 +324,7 @@ def blank_table() -> str:
         DataLicence=DataLicence,
         cols=cols,
         ColumnType=ColumnType,
+        table_name=table_name,
     )
 
 

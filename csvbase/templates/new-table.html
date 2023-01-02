@@ -33,6 +33,9 @@
                  class="form-control"
                  name="table-name"
                  required
+                 {% if table_name %}
+                 value="{{ table_name }}"
+                 {% endif %}
                  pattern="^[A-z][-A-z0-9]+$"
                  title="Letters, numbers and dashes only.  Must start with a letter">
         </div>
