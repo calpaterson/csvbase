@@ -33,15 +33,15 @@
   {% endif %}
 {% endmacro %}
 
-{% macro form_type(col) %}
-  {% if col.type_.name == "BOOLEAN" %}
-    "checkbox"
-  {% elif col.type_.name == "DATE" %}
-    "date"
-  {% else %}
-    "text"
-  {% endif %}
-{% endmacro %}
+{%- macro form_type(col) -%}
+  {%- if col.type_.name == "BOOLEAN" -%}
+    checkbox
+  {%- elif col.type_.name == "DATE" -%}
+    date
+  {%- else -%}
+    text
+  {%- endif -%}
+{%- endmacro -%}
 
 {% macro form_text(val) %}
   {%- if val != None -%}
