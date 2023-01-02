@@ -52,7 +52,7 @@ from .logging import configure_logging
 from .sentry import configure_sentry
 from .sesh import get_sesh
 from .userdata import PGUserdataAdapter
-from .conv import DateConverter
+from .conv import DateConverter, IntegerConverter, FloatConverter
 from .value_objs import (
     ROW_ID_COLUMN,
     Column,
@@ -1223,9 +1223,16 @@ def from_html_form_to_python(
     """Parses values from HTML forms into Python objects, according to ColumnType."""
     if column_type is ColumnType.BOOLEAN:
         return True if form_value == "on" else False
-    elif form_value is None:
-        return None
     elif column_type is ColumnType.DATE:
-        return DateConverter().convert(form_value)
+        return DateConverter().convert(form_value or "")
+    elif column_type is ColumnType.INTEGER:
+        return IntegerConverter().convert(form_value or "")
+    elif column_type is ColumnType.FLOAT:
+        return FloatConverter().convert(form_value or "")
+    elif form_value in {None, ""}:
+        # FIXME: This is slightly odd as it returns "" when the user might mean
+        # null, but that needs a bigger fix, see:
+        # https://github.com/calpaterson/csvbase/issues/15
+        return ""
     else:
         return column_type.python_type()(form_value)

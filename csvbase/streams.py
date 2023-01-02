@@ -96,7 +96,6 @@ def peek_csv(
     first_few = zip(*(row for row, _ in zip(reader, range(1000))))
     as_dict: Dict[str, Set[str]] = dict(zip(headers, (set(v) for v in first_few)))
     cols = []
-    # Don't try to infer ints here, just too hard to tell them apart from floats
     ic = conv.IntegerConverter()
     dc = conv.DateConverter()
     fc = conv.FloatConverter()

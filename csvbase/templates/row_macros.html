@@ -18,7 +18,7 @@
                 <td>{{ col.name }}</td>
               {% endif %}
               <td>{{ col.type_.pretty_type() }}</td>
-              <td>{{ v }}</td>
+              <td>{{ render_cell(v) }}</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -33,7 +33,7 @@
   {% endif %}
 {% endmacro %}
 
-{% macro html_type(col) %}
+{% macro form_type(col) %}
   {% if col.type_.name == "BOOLEAN" %}
     "checkbox"
   {% elif col.type_.name == "DATE" %}
@@ -43,21 +43,28 @@
   {% endif %}
 {% endmacro %}
 
+{% macro form_text(val) %}
+  {%- if val != None -%}
+    {{ val }}
+  {%- endif -%}
+{% endmacro %}
+
+
 {% macro column_value_input(col, val) %}
-  {% if col.type_.name == "TEXT" and "\n" in val %}
+  {% if col.type_.name == "TEXT" and val != None and "\n" in val %}
     <textarea
       class="form-control"
       id="{{col.name}}-textarea"
       name="{{ col.name }}"
       style="resize: both"
-      >{{val}}</textarea>
+      >{{ form_text(val) }}</textarea>
   {% elif col.type_.name == "BOOLEAN" %}
     <div class="form-check">
       <input
         class="form-check-input"
         id="{{col.name}}-input"
         type="checkbox"
-        type="{{ html_type(col) }}"
+        type="{{ form_type(col) }}"
         name="{{ col.name }}"
         {% if val %}
           checked
@@ -68,9 +75,9 @@
         class="form-control"
       {% if col.name == "csvbase_row_id" %}readonly{% endif %}
       id="{{col.name}}-input"
-      type="{{ html_type(col) }}"
+      type="{{ form_type(col) }}"
       name="{{ col.name }}"
-      value="{{ val }}"
+      value="{{ form_text(val) }}"
       >
     {% endif %}
 {% endmacro %}
