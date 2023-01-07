@@ -155,24 +155,6 @@ class ColumnType(enum.Enum):
         """The equivalent SQLAlchemy type"""
         return _SQLA_TYPE_MAP[self]
 
-    def value_to_json(self, value: Optional["PythonType"]) -> Union[str, int, float, bool, None]:
-        if isinstance(value, date):
-            return value.isoformat()
-        else:
-            return value
-
-    def from_json_to_python(self, json_value: Any) -> Optional["PythonType"]:
-        if self is ColumnType.BOOLEAN:
-            return json_value
-        elif self is ColumnType.INTEGER:
-            return int(json_value)
-        elif self is ColumnType.FLOAT:
-            return json_value
-        elif self is ColumnType.DATE:
-            return date.fromisoformat(json_value)
-        else:
-            return json_value
-
     def pretty_name(self) -> str:
         return self.name.capitalize()
 

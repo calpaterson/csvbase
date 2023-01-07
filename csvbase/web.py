@@ -47,6 +47,7 @@ from werkzeug.routing import BaseConverter
 from werkzeug.wrappers.response import Response
 
 from . import blog, db, exc, svc, streams
+from .json import value_to_json, json_to_value
 from .markdown import render_markdown
 from .logging import configure_logging
 from .sentry import configure_sentry
@@ -791,10 +792,7 @@ def update_row(username: str, table_name: str, row_id: int) -> Response:
     body = json_or_400()
     if body["row_id"] != row_id:
         raise exc.InvalidRequest("can't change row ids via an update")
-    row = {
-        c: c.type_.from_json_to_python(body["row"][c.name])
-        for c in table.user_columns()
-    }
+    row = {c: json_to_value(c.type_, body["row"][c.name]) for c in table.user_columns()}
     row[table.row_id_column()] = row_id
 
     if not PGUserdataAdapter.update_row(sesh, table.table_uuid, row_id, row):
@@ -1128,8 +1126,7 @@ def row_to_json_dict(table: Table, row: Row, omit_row_id=False) -> Dict[str, Any
     row_without_row_id = (c for c in row.items() if c[0].name != "csvbase_row_id")
     json_dict: Dict = {
         "row": {
-            column.name: column.type_.value_to_json(value)
-            for column, value in row_without_row_id
+            column.name: value_to_json(value) for column, value in row_without_row_id
         },
     }
     if not omit_row_id:
