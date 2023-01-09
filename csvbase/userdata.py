@@ -3,16 +3,17 @@ from typing import TYPE_CHECKING, Iterable, List, Optional, Sequence, Type, Coll
 from uuid import UUID, uuid4
 
 from pgcopy import CopyManager
-from sqlalchemy import column as sacolumn
+from sqlalchemy import column as sacolumn, text as satext
 from sqlalchemy import func
 from sqlalchemy import types as satypes
 from sqlalchemy.orm import Session
-from sqlalchemy.schema import Column as SAColumn
+from sqlalchemy.schema import Column as SAColumn, DDLElement
 from sqlalchemy.schema import CreateTable, DropTable, MetaData, Identity  # type: ignore
 from sqlalchemy.schema import Table as SATable
 from sqlalchemy.sql.expression import TableClause, select
 from sqlalchemy.sql.expression import table as satable
 from sqlalchemy.sql.expression import text
+from sqlalchemy.ext.compiler import compiles
 
 from . import conv
 from .db import engine
@@ -33,10 +34,10 @@ if TYPE_CHECKING:
 
 class PGUserdataAdapter:
     @staticmethod
-    def _make_temp_table_name() -> str:
+    def _make_temp_table_name(prefix: str) -> str:
         # FIXME: this name should probably include the date and some other helpful
         # info for debugging
-        return f"temp_{uuid4().hex}"
+        return f"{prefix}_{uuid4().hex}"
 
     @staticmethod
     def _get_tableclause(
@@ -222,24 +223,12 @@ class PGUserdataAdapter:
             for line in reader
         )
 
-        temp_table_name = cls._make_temp_table_name()
+        temp_table_name = cls._make_temp_table_name(prefix="insert")
         main_table_name = cls._make_userdata_table_name(
             table.table_uuid, with_schema=True
         )
-        # The below 'nosec' location and fmt pragma are hacks to work around
-        # https://github.com/PyCQA/bandit/issues/658
-        # This only works on bandit 1.6.3
-        # fmt: off
-        """# nosec"""; create_temp_table_ddl = text(f"""
-    CREATE temp TABLE "{temp_table_name}" ON COMMIT DROP AS
-    SELECT
-        *
-    FROM
-        {main_table_name}
-    LIMIT 0;
-    """)
-        # fmt: on
-        sesh.execute(create_temp_table_ddl)
+        main_tableclause = cls._get_userdata_tableclause(sesh, table.table_uuid)
+        sesh.execute(CreateTempTableLike(satable(temp_table_name), main_tableclause))
 
         raw_conn = sesh.connection().connection
         column_names = [c.name for c in columns]
@@ -250,24 +239,14 @@ class PGUserdataAdapter:
         )
         copy_manager.copy(row_gen)
 
-        main_tableclause = cls._get_userdata_tableclause(sesh, table.table_uuid)
         temp_tableclause = cls._get_tableclause(temp_table_name, table.columns)
 
         add_stmt_select_columns = [getattr(temp_tableclause.c, c) for c in column_names]
         add_stmt_no_blanks = main_tableclause.insert().from_select(
             column_names,
-            select(*add_stmt_select_columns)  # type: ignore
-            .select_from(
-                temp_tableclause.outerjoin(
-                    main_tableclause,
-                    main_tableclause.c.csvbase_row_id
-                    == temp_tableclause.c.csvbase_row_id,
-                )
-            )
-            .where(
-                main_tableclause.c.csvbase_row_id.is_(None),
-                temp_tableclause.c.csvbase_row_id.is_not(None),  # type: ignore
-            ),
+            select(*add_stmt_select_columns)
+            .select_from(temp_tableclause)
+            .where(temp_tableclause.c.csvbase_row_id.is_not(None)),  # type: ignore
         )
 
         reset_serial_stmt = select(
@@ -289,16 +268,9 @@ class PGUserdataAdapter:
         ]
         add_stmt_blanks = main_tableclause.insert().from_select(
             [c.name for c in table.columns],
-            select(*select_columns)  # type: ignore
-            .select_from(
-                temp_tableclause.outerjoin(
-                    main_tableclause,
-                    main_tableclause.c.csvbase_row_id
-                    == temp_tableclause.c.csvbase_row_id,
-                )
-            )
+            select(*select_columns)
+            .select_from(temp_tableclause)
             .where(
-                main_tableclause.c.csvbase_row_id.is_(None),
                 temp_tableclause.c.csvbase_row_id.is_(None),
             ),
         )
@@ -373,32 +345,18 @@ class PGUserdataAdapter:
         )
 
         # Then make a temp table and COPY the new rows into it
-        temp_table_name = cls._make_temp_table_name()
+        temp_table_name = cls._make_temp_table_name(prefix="insert")
         main_table_name = cls._make_userdata_table_name(
             table.table_uuid, with_schema=True
         )
-
-        # The below 'nosec' location and fmt pragma are hacks to work around
-        # https://github.com/PyCQA/bandit/issues/658
-        # This only works on bandit 1.6.3
-        # fmt: off
-        """# nosec"""; create_temp_table_ddl = text(f"""
-    CREATE temp TABLE "{temp_table_name}" ON COMMIT DROP AS
-    SELECT
-        *
-    FROM
-        {main_table_name}
-    LIMIT 0;
-    """)
-        # fmt: on
-        sesh.execute(create_temp_table_ddl)
+        main_tableclause = cls._get_userdata_tableclause(sesh, table.table_uuid)
+        sesh.execute(CreateTempTableLike(satable(temp_table_name), main_tableclause))
         raw_conn = sesh.connection().connection
         column_names = [c.name for c in table.columns]
         copy_manager = CopyManager(raw_conn, temp_table_name, column_names)
         copy_manager.copy(row_gen)
 
         # Next selectively use the temp table to update the 'main' one
-        main_tableclause = cls._get_userdata_tableclause(sesh, table.table_uuid)
         temp_tableclause = cls._get_tableclause(temp_table_name, table.columns)
 
         # 1. for removals
@@ -481,3 +439,23 @@ class PGUserdataAdapter:
         sesh.execute(add_stmt_no_blanks)
         sesh.execute(reset_serial_stmt)
         sesh.execute(add_stmt_blanks)
+
+
+class CreateTempTableLike(DDLElement):
+    inherit_cache = False
+
+    def __init__(self, temp_table: TableClause, like_table: TableClause):
+        self.temp_table = temp_table
+        self.like_table = like_table
+
+
+@compiles(CreateTempTableLike, "postgresql")
+def visit_create_temp_table(element, compiler, **kw):
+    # We use CREATE TABLE AS instead of CREATE TABLE LIKE because the latter
+    # always copies not null constraints, which prevents us from autogenerating
+    # csvbase_row_ids where necessary
+    stmt = "CREATE TEMP TABLE %s ON COMMIT DROP AS SELECT * FROM %s LIMIT 0"
+    return stmt % (
+        element.temp_table,
+        element.like_table,
+    )
