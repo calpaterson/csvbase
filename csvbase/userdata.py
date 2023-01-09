@@ -222,24 +222,93 @@ class PGUserdataAdapter:
             for line in reader
         )
 
+        temp_table_name = cls._make_temp_table_name()
+        main_table_name = cls._make_userdata_table_name(
+            table.table_uuid, with_schema=True
+        )
+        # The below 'nosec' location and fmt pragma are hacks to work around
+        # https://github.com/PyCQA/bandit/issues/658
+        # This only works on bandit 1.6.3
+        # fmt: off
+        """# nosec"""; create_temp_table_ddl = text(f"""
+    CREATE temp TABLE "{temp_table_name}" ON COMMIT DROP AS
+    SELECT
+        *
+    FROM
+        {main_table_name}
+    LIMIT 0;
+    """)
+        # fmt: on
+        sesh.execute(create_temp_table_ddl)
+
         raw_conn = sesh.connection().connection
-        cols = [c.name for c in table.user_columns()]
+        column_names = [c.name for c in columns]
         copy_manager = CopyManager(
             raw_conn,
-            cls._make_userdata_table_name(table.table_uuid, with_schema=True),
-            cols,
+            temp_table_name,
+            column_names,
         )
         copy_manager.copy(row_gen)
 
+        main_tableclause = cls._get_userdata_tableclause(sesh, table.table_uuid)
+        temp_tableclause = cls._get_tableclause(temp_table_name, table.columns)
+
+        add_stmt_select_columns = [getattr(temp_tableclause.c, c) for c in column_names]
+        add_stmt_no_blanks = main_tableclause.insert().from_select(
+            column_names,
+            select(*add_stmt_select_columns)  # type: ignore
+            .select_from(
+                temp_tableclause.outerjoin(
+                    main_tableclause,
+                    main_tableclause.c.csvbase_row_id
+                    == temp_tableclause.c.csvbase_row_id,
+                )
+            )
+            .where(
+                main_tableclause.c.csvbase_row_id.is_(None),
+                temp_tableclause.c.csvbase_row_id.is_not(None),  # type: ignore
+            ),
+        )
+
+        reset_serial_stmt = select(
+            func.setval(
+                func.pg_get_serial_sequence(main_table_name, "csvbase_row_id"),
+                func.max(main_tableclause.c.csvbase_row_id),
+            )
+        )
+
+        select_columns = [
+            func.coalesce(
+                func.nextval(
+                    func.pg_get_serial_sequence(main_table_name, "csvbase_row_id")
+                )
+            )
+        ]
+        select_columns += [
+            getattr(temp_tableclause.c, c.name) for c in table.user_columns()
+        ]
+        add_stmt_blanks = main_tableclause.insert().from_select(
+            [c.name for c in table.columns],
+            select(*select_columns)  # type: ignore
+            .select_from(
+                temp_tableclause.outerjoin(
+                    main_tableclause,
+                    main_tableclause.c.csvbase_row_id
+                    == temp_tableclause.c.csvbase_row_id,
+                )
+            )
+            .where(
+                main_tableclause.c.csvbase_row_id.is_(None),
+                temp_tableclause.c.csvbase_row_id.is_(None),
+            ),
+        )
+
+        sesh.execute(add_stmt_no_blanks)
+        sesh.execute(reset_serial_stmt)
+        sesh.execute(add_stmt_blanks)
+
     @classmethod
     def drop_table(cls, sesh: Session, table_uuid: UUID) -> None:
-        # FIXME: dead code
-        # FIXME: _get_userdata_tableclause ?
-        # sa_table = SATable(
-        #     _make_userdata_table_name(table_uuid),
-        #     MetaData(bind=engine),
-        #     schema="userdata",
-        # )
         sa_table = cls._get_userdata_tableclause(sesh, table_uuid)
         sesh.execute(DropTable(sa_table))  # type: ignore
 
@@ -267,7 +336,10 @@ class PGUserdataAdapter:
             # ),
         ]
         for col in columns:
-            cols.append(SAColumn(col.name, type_=col.type_.sqla_type()))
+            # Don't create 'csvbase_'-prefixed columns from user data, we
+            # control those.
+            if not col.name.startswith("csvbase_"):
+                cols.append(SAColumn(col.name, type_=col.type_.sqla_type()))
         table = SATable(
             cls._make_userdata_table_name(table_uuid),
             MetaData(bind=engine),

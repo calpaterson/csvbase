@@ -1,6 +1,9 @@
 import random
 import string
 from os import path
+from io import StringIO
+
+import pandas as pd
 
 from csvbase import svc
 from .value_objs import ExtendedUser
@@ -23,4 +26,11 @@ def make_user(sesh, crypt_context):
         registered=user.registered,
         api_key=user.api_key,
         email=user.email,
+    )
+
+
+def get_df_as_csv(client, url) -> pd.DataFrame:
+    get_resp = client.get(url)
+    return pd.read_csv(
+        StringIO(get_resp.data.decode("utf-8")), index_col="csvbase_row_id"
     )

@@ -6,14 +6,7 @@ from pandas.testing import assert_frame_equal
 from flask import url_for
 import pytest
 
-from .utils import test_data_path, random_string
-
-
-def get_df_as_csv(client, url) -> pd.DataFrame:
-    get_resp = client.get(url)
-    return pd.read_csv(
-        StringIO(get_resp.data.decode("utf-8")), index_col="csvbase_row_id"
-    )
+from .utils import test_data_path, random_string, get_df_as_csv
 
 
 def get_df_as_parquet(client, url) -> pd.DataFrame:
