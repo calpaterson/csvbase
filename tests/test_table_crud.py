@@ -5,6 +5,7 @@ import pytest
 from csvbase.value_objs import ContentType
 
 from .conftest import ROMAN_NUMERALS
+from . import utils
 
 
 @pytest.fixture(scope="module", params=[ContentType.JSON, ContentType.HTML])
@@ -87,3 +88,21 @@ def test_read__is_private_am_authed(client, private_table, test_user):
     )
     assert resp.status_code == 200, resp.data
     assert resp.json == {"row_id": 1, "row": {"x": 1}}
+
+
+def test_read__empty_table(sesh, client, test_user, content_type):
+    table = utils.create_table(sesh, test_user, [])
+    sesh.commit()
+    resp = client.get(f"/{test_user.username}/{table.table_name}")
+    assert resp.status_code == 200, resp.data
+
+
+def test_read__paging_over_the_top(client, test_user, ten_rows, content_type):
+    resp = client.get(
+        f"/{test_user.username}/{ten_rows}",
+        query_string={"op": "gt", "n": "10"},
+        headers={"Accept": content_type.value},
+    )
+    assert resp.status_code == 404, resp.data
+    if content_type is ContentType.JSON:
+        assert resp.json == {"error": "that row does not exist"}

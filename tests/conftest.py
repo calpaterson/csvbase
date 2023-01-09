@@ -10,7 +10,7 @@ from csvbase import db, svc, web
 from csvbase.userdata import PGUserdataAdapter
 from csvbase.value_objs import Column, ColumnType, DataLicence
 
-from .utils import make_user, random_string
+from .utils import make_user, random_string, create_table
 
 
 @pytest.fixture(scope="session")
@@ -63,44 +63,18 @@ ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
 
 @pytest.fixture(scope="function")
 def ten_rows(test_user, sesh):
-    table_name = random_string()
-    table_uuid = PGUserdataAdapter.create_table(
-        sesh,
-        [Column("roman_numeral", type_=ColumnType.TEXT)],
-    )
-    svc.create_table_metadata(
-        sesh,
-        table_uuid,
-        test_user.user_uuid,
-        table_name,
-        is_public=True,
-        caption="Roman numerals",
-        licence=DataLicence.ALL_RIGHTS_RESERVED,
-    )
     column = Column(name="roman_numeral", type_=ColumnType.TEXT)
+    table = create_table(sesh, test_user, [column], caption="Roman numerals")
     for roman_numeral in ROMAN_NUMERALS:
-        PGUserdataAdapter.insert_row(sesh, table_uuid, {column: roman_numeral})
+        PGUserdataAdapter.insert_row(sesh, table.table_uuid, {column: roman_numeral})
     sesh.commit()
-    return table_name
+    return table.table_name
 
 
 @pytest.fixture(scope="module")
 def private_table(test_user, module_sesh):
-    table_name = random_string()
     x_column = Column("x", type_=ColumnType.INTEGER)
-    table_uuid = PGUserdataAdapter.create_table(
-        module_sesh,
-        [x_column],
-    )
-    svc.create_table_metadata(
-        module_sesh,
-        table_uuid,
-        test_user.user_uuid,
-        table_name,
-        is_public=False,
-        caption="",
-        licence=DataLicence.ALL_RIGHTS_RESERVED,
-    )
-    PGUserdataAdapter.insert_row(module_sesh, table_uuid, {x_column: 1})
+    table = create_table(module_sesh, test_user, [x_column], is_public=False)
+    PGUserdataAdapter.insert_row(module_sesh, table.table_uuid, {x_column: 1})
     module_sesh.commit()
-    return table_name
+    return table.table_name

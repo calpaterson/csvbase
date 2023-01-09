@@ -406,25 +406,39 @@ def table_view_with_extension(
     return make_table_view_response(sesh, content_type, table)
 
 
+def ensure_not_over_the_top(table: Table, keyset: KeySet, page: Page) -> None:
+    """Raise an exception if this page is either over the top or under the
+    bottom - but not if it's just an empty table.
+
+    This is used to detect when someone has paged too far, usually by url-editing.
+
+    """
+    if (page.has_less or page.has_more) and len(page.rows) == 0:
+        row_id = keyset.n + (1 if keyset.op == "greater_then" else -1)
+        # FIXME: possibly this should be some kind of different exception
+        # class, but this will do for now
+        raise exc.RowDoesNotExistException(table.username, table.table_name, row_id)
+
+
 def make_table_view_response(sesh, content_type: ContentType, table: Table) -> Response:
-    if content_type is ContentType.HTML:
+    if content_type in {ContentType.HTML, ContentType.JSON}:
         keyset = keyset_from_request_args()
         page = PGUserdataAdapter.table_page(sesh, table, keyset)
-        return make_response(
-            render_template(
-                "table_view.html",
-                page_title=f"{table.username}/{table.table_name}",
-                table=table,
-                page=page,
-                keyset=keyset,
-                ROW_ID_COLUMN=ROW_ID_COLUMN,
-                praise_id=get_praise_id_if_exists(table),
+        ensure_not_over_the_top(table, keyset, page)
+        if content_type is ContentType.HTML:
+            return make_response(
+                render_template(
+                    "table_view.html",
+                    page_title=f"{table.username}/{table.table_name}",
+                    table=table,
+                    page=page,
+                    keyset=keyset,
+                    ROW_ID_COLUMN=ROW_ID_COLUMN,
+                    praise_id=get_praise_id_if_exists(table),
+                )
             )
-        )
-    elif content_type is ContentType.JSON:
-        keyset = keyset_from_request_args()
-        page = PGUserdataAdapter.table_page(sesh, table, keyset)
-        return jsonify(table_to_json_dict(table, page))
+        else:
+            return jsonify(table_to_json_dict(table, page))
     elif content_type is ContentType.PARQUET:
         return make_streaming_response(svc.table_as_parquet(sesh, table.table_uuid))
     elif content_type is ContentType.JSON_LINES:
