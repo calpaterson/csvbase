@@ -1,12 +1,8 @@
 import json
-from typing import Optional
-from uuid import UUID
-from datetime import date, timedelta
-from dataclasses import dataclass
+from datetime import timedelta
 
 from feedgen.feed import FeedGenerator
 from flask import Blueprint, render_template, Response, url_for, make_response, request
-from flask.wrappers import Response as FlaskResponse
 from sqlalchemy.orm import Session
 
 from .value_objs import Post
@@ -17,8 +13,8 @@ from csvbase.markdown import render_markdown
 
 bp = Blueprint("blog", __name__)
 
-# just under one calendar month
-CACHE_TTL = int(timedelta(days=27).total_seconds())
+# a shortish time initially, increase this once confidence grows
+CACHE_TTL = int(timedelta(hours=1).total_seconds())
 
 
 @bp.route("/blog")
