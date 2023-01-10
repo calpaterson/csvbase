@@ -303,7 +303,8 @@ def table_as_xlsx(
 
     rows = PGUserdataAdapter.table_as_rows(sesh, table_uuid)
 
-    workbook_args = {}
+    # FIXME: Perhaps this should change based on the user's locale
+    workbook_args: Dict = {"default_date_format": "yyyy-mm-dd"}
     if not excel_table:
         workbook_args["constant_memory"] = True
 
