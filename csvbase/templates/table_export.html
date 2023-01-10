@@ -53,7 +53,7 @@
         requests.get(
             "{{table_url}}",
             stream=True
-        ).raw
+        ).raw,
         index_col="csvbase_row_id"
 )
 </pre>
