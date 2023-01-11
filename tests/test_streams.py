@@ -19,7 +19,18 @@ test_data = Path(__file__).resolve().parent / "test-data"
                 Column("b", ColumnType.INTEGER),
                 Column("c", ColumnType.FLOAT),
             ],
-        )
+        ),
+        (
+            "blank-headers.csv",
+            [
+                Column("col1", ColumnType.INTEGER),
+                Column("a", ColumnType.INTEGER),
+                Column("col3", ColumnType.INTEGER),
+                Column("b", ColumnType.INTEGER),
+                Column("c", ColumnType.INTEGER),
+                Column("col6", ColumnType.INTEGER),
+            ],
+        ),
     ],
 )
 def test_peek_csv(input_filename, expected_columns):

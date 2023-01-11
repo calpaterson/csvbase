@@ -92,7 +92,7 @@ def peek_csv(
     # than just the start of it.  there are many, many csv files that, halfway
     # down, switch out "YES" for "YES (but only <...>)"
     reader = csv.reader(csv_buf, dialect)
-    headers = next(reader)
+    headers = [header or f"col{i}" for i, header in enumerate(next(reader), start=1)]
     first_few = zip(*(row for row, _ in zip(reader, range(1000))))
     as_dict: Dict[str, Set[str]] = dict(zip(headers, (set(v) for v in first_few)))
     cols = []
