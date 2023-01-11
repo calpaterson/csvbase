@@ -39,14 +39,13 @@ from flask import session as flask_session
 from flask.wrappers import Response as FlaskResponse
 from flask_babel import Babel
 from flask_cors import cross_origin
-from flask_sqlalchemy_session import flask_scoped_session
 from passlib.context import CryptContext
-from sqlalchemy.orm import sessionmaker
 from typing_extensions import Literal
 from werkzeug.routing import BaseConverter
 from werkzeug.wrappers.response import Response
 
-from . import blog, db, exc, svc, streams
+from . import blog, exc, svc, streams
+from .db import db, get_db_url
 from .json import value_to_json, json_to_value
 from .markdown import render_markdown
 from .logging import configure_logging
@@ -128,8 +127,9 @@ def init_app() -> Flask:
     app.jinja_env.filters["snake_case"] = snake_case
     app.jinja_env.filters["ppjson"] = ppjson
 
-    sesh = flask_scoped_session(sessionmaker(bind=db.engine))
-    sesh.init_app(app)
+    app.config["SQLALCHEMY_DATABASE_URI"] = get_db_url()
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    db.init_app(app)
 
     # typing for errorhandler is apparently tricky...
     # https://github.com/pallets/flask/blob/bd56d19b167822a9a23e2e9e2a07ccccc36baa8d/src/flask/typing.py#L49

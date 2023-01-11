@@ -16,7 +16,6 @@ from sqlalchemy.sql.expression import text
 from sqlalchemy.ext.compiler import compiles
 
 from . import conv
-from .db import engine
 from .value_objs import (
     Column,
     ColumnType,
@@ -314,7 +313,7 @@ class PGUserdataAdapter:
                 cols.append(SAColumn(col.name, type_=col.type_.sqla_type()))
         table = SATable(
             cls._make_userdata_table_name(table_uuid),
-            MetaData(bind=engine),
+            MetaData(),
             *cols,
             schema="userdata",
         )

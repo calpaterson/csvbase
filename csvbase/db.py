@@ -1,5 +1,9 @@
 from os import environ
 
-from sqlalchemy import create_engine
+from flask_sqlalchemy import SQLAlchemy
 
-engine = create_engine(environ.get("CSVBASE_DB_URL", "postgresql:///csvbase"))
+db = SQLAlchemy()
+
+
+def get_db_url() -> str:
+    return environ.get("CSVBASE_DB_URL", "postgresql:///csvbase")

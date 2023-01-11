@@ -30,7 +30,7 @@ setup(
         "cchardet==2.1.7",
         "feedgen==0.9.0",
         "flask-cors==3.0.10",
-        "flask-sqlalchemy-session==1.1",
+        "flask-sqlalchemy==2.5.1",
         "flask-babel==2.0",
         "flask==2.0.2",
         "gunicorn==20.1.0",

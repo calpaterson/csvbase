@@ -41,7 +41,6 @@ from sqlalchemy.sql.expression import table as satable
 from sqlalchemy.sql.expression import text
 
 from . import conv, data, exc, models
-from .db import engine
 from .userdata import PGUserdataAdapter
 from .value_objs import (
     Column,

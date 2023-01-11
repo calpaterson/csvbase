@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
-from flask import current_app
+
+from .db import db
 
 
 def get_sesh() -> Session:
-    return current_app.scoped_session  # type: ignore
+    return db.session

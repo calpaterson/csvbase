@@ -5,8 +5,10 @@ from unittest.mock import patch
 import pytest
 from passlib.context import CryptContext
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
 
-from csvbase import db, svc, web
+from csvbase import svc, web
+from csvbase.db import db, get_db_url
 from csvbase.userdata import PGUserdataAdapter
 from csvbase.value_objs import Column, ColumnType, DataLicence
 
@@ -26,7 +28,7 @@ def app():
 
 @pytest.fixture(scope="session")
 def session_cls():
-    return sessionmaker(bind=db.engine)
+    return sessionmaker(create_engine(get_db_url()))
 
 
 @pytest.fixture(scope="session")
