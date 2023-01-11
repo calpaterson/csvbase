@@ -20,7 +20,7 @@ test_data = Path(__file__).resolve().parent / "test-data"
                 Column("c", ColumnType.FLOAT),
             ],
         ),
-        pytest.param(
+        (
             "blank-headers.csv",
             [
                 Column("col1", ColumnType.INTEGER),
@@ -30,7 +30,6 @@ test_data = Path(__file__).resolve().parent / "test-data"
                 Column("c", ColumnType.INTEGER),
                 Column("col6", ColumnType.INTEGER),
             ],
-            marks=pytest.mark.xfail(reason="Blank column headers are not supported"),
         ),
     ],
 )
