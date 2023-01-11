@@ -10,7 +10,7 @@ default: tox
 .venv: .venv/touchfile
 
 .venv/touchfile: setup.py
-	test -d .venv || virtualenv .venv --python=python3
+	test -d .venv || python3 -m venv .venv
 	. .venv/bin/activate; python -m pip install .
 	touch $@
 
