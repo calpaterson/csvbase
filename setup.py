@@ -30,9 +30,9 @@ setup(
         "cchardet==2.1.7",
         "feedgen==0.9.0",
         "flask-cors==3.0.10",
-        "flask-sqlalchemy==2.5.1",
+        "flask-sqlalchemy==3.0.2",
         "flask-babel==2.0",
-        "flask==2.0.2",
+        "flask==2.2.2",
         "gunicorn==20.1.0",
         "inflect==5.6.0",
         "marko[codehilite]==1.2.1",
@@ -44,9 +44,7 @@ setup(
         "sqlalchemy==1.4.27",
         "systemd-python==234",
         "typing-extensions==4.0.1",
-        # werkzeug 2.1.0 broke flask-sqlalchemy-session:
-        # https://github.com/dtheodor/flask-sqlalchemy-session/issues/14
-        "werkzeug<2.1.0",
+        "werkzeug==2.2.2",
         "xlsxwriter==3.0.3",
     ],
     extras_require={"tests": test_reqs},

@@ -55,7 +55,7 @@ def test_uploading_a_table_when_not_logged_in(client):
         content_type="multipart/form-data",
     )
     assert resp.status_code == 302
-    assert resp.headers["Location"] == f"http://localhost/{username}/{table_name}"
+    assert resp.headers["Location"] == f"/{username}/{table_name}"
 
 
 def test_uploading_a_table(client, test_user):
@@ -71,10 +71,7 @@ def test_uploading_a_table(client, test_user):
         content_type="multipart/form-data",
     )
     assert resp.status_code == 302
-    assert (
-        resp.headers["Location"]
-        == f"http://localhost/{test_user.username}/{table_name}"
-    )
+    assert resp.headers["Location"] == f"/{test_user.username}/{table_name}"
 
 
 def test_uploading_a_table_with_csvbase_row_ids(client, test_user, ten_rows):

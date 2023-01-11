@@ -101,7 +101,7 @@ def init_app() -> Flask:
     app.config["CRYPT_CONTEXT"] = CryptContext(["argon2"])
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_NAME"] = "csvbase_websesh"
-    app.config["JSONIFY_PRETTYPRINT_REGULAR"] = True
+    app.json.compact = False  # type: ignore
     if "CSVBASE_SECRET_KEY" in environ:
         app.config["SECRET_KEY"] = environ["CSVBASE_SECRET_KEY"]
     else:
@@ -133,7 +133,7 @@ def init_app() -> Flask:
 
     # typing for errorhandler is apparently tricky...
     # https://github.com/pallets/flask/blob/bd56d19b167822a9a23e2e9e2a07ccccc36baa8d/src/flask/typing.py#L49
-    @app.errorhandler(exc.CSVBaseException)  # type: ignore
+    @app.errorhandler(exc.CSVBaseException)
     def handle_csvbase_exceptions(e: exc.CSVBaseException) -> Response:
         try:
             message, http_code = EXCEPTION_MESSAGE_CODE_MAP[e.__class__]
