@@ -25,7 +25,7 @@ setup(
     zip_safe=False,
     install_requires=[
         "alembic[tz]==1.7.7",
-        "argon2-cffi==21.1.0",
+        "argon2-cffi==21.3.0",
         "bleach==5.0.1",
         "cchardet==2.1.7",
         "feedgen==0.9.0",
@@ -41,11 +41,11 @@ setup(
         "psycopg2==2.9.5",
         "pyarrow==10.0.1",
         "sentry-sdk[flask]==1.12.1",
-        "sqlalchemy==1.4.27",
+        "sqlalchemy==1.4.46",
         "systemd-python==234",
         "typing-extensions==4.0.1",
         "werkzeug==2.2.2",
-        "xlsxwriter==3.0.3",
+        "xlsxwriter==3.0.6",
     ],
     extras_require={"tests": test_reqs},
     entry_points={
