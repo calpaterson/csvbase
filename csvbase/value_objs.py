@@ -61,6 +61,15 @@ class Page:
 
 
 @dataclass
+class RowCount:
+    exact: Optional[int]
+    approx: int
+
+    def best(self):
+        return self.exact or self.approx
+
+
+@dataclass
 class Table:
     table_uuid: UUID
     username: str
@@ -70,6 +79,7 @@ class Table:
     data_licence: "DataLicence"
     columns: Sequence["Column"]
     created: datetime
+    row_count: RowCount
 
     def has_caption(self) -> bool:
         return len(self.caption.strip()) > 0

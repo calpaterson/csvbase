@@ -1202,6 +1202,7 @@ def table_to_json_dict(table: Table, page: Page) -> Dict[str, Any]:
             for column in table.columns
         ],
         "page": page_to_json_dict(table, page),
+        "approx_size": table.row_count.best(),
     }
     return rv
 

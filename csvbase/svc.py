@@ -52,6 +52,7 @@ from .value_objs import (
     Row,
     Table,
     User,
+    RowCount,
 )
 from .streams import UserSubmittedCSVData
 
@@ -142,7 +143,8 @@ def get_table(sesh: Session, username: str, table_name: str) -> Table:
     if table_model is None:
         raise exc.TableDoesNotExistException(user.username, table_name)
     columns = PGUserdataAdapter.get_columns(sesh, table_model.table_uuid)
-    return _table_model_and_columns_to_table(user.username, table_model, columns)
+    row_count = PGUserdataAdapter.count(sesh, table_model.table_uuid)
+    return _make_table(user.username, table_model, columns, row_count)
 
 
 def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> None:
@@ -429,11 +431,15 @@ def tables_for_user(
         rp = rp.filter(models.Table.public)
     for table_model, username in rp:
         columns = PGUserdataAdapter.get_columns(sesh, table_model.table_uuid)
-        yield _table_model_and_columns_to_table(username, table_model, columns)
+        row_count = PGUserdataAdapter.count(sesh, table_model.table_uuid)
+        yield _make_table(username, table_model, columns, row_count)
 
 
-def _table_model_and_columns_to_table(
-    username: str, table_model: models.Table, columns: Sequence[Column]
+def _make_table(
+    username: str,
+    table_model: models.Table,
+    columns: Sequence[Column],
+    row_count: RowCount,
 ) -> Table:
     return Table(
         table_uuid=table_model.table_uuid,
@@ -444,6 +450,7 @@ def _table_model_and_columns_to_table(
         data_licence=DataLicence(table_model.licence_id),
         columns=columns,
         created=table_model.created,
+        row_count=row_count,
     )
 
 
@@ -481,6 +488,7 @@ LIMIT :n;
             DataLicence(licence_id),
             columns,
             created,
+            PGUserdataAdapter.count(sesh, table_uuid),
         )
         yield table
 

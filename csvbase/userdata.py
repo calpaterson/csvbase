@@ -3,20 +3,24 @@ from typing import TYPE_CHECKING, Iterable, List, Optional, Sequence, Type, Coll
 from uuid import UUID, uuid4
 
 from pgcopy import CopyManager
-from sqlalchemy import column as sacolumn, text as satext
-from sqlalchemy import func
-from sqlalchemy import types as satypes
+from sqlalchemy import column as sacolumn, func, types as satypes
 from sqlalchemy.orm import Session
 from sqlalchemy.schema import Column as SAColumn, DDLElement
 from sqlalchemy.schema import CreateTable, DropTable, MetaData, Identity  # type: ignore
 from sqlalchemy.schema import Table as SATable
-from sqlalchemy.sql.expression import TableClause, select
-from sqlalchemy.sql.expression import table as satable
-from sqlalchemy.sql.expression import text
+from sqlalchemy.sql.expression import (
+    TableClause,
+    select,
+    table as satable,
+    text,
+    Executable,
+    ClauseElement,
+)
 from sqlalchemy.ext.compiler import compiles
 
 from . import conv
 from .value_objs import (
+    RowCount,
     Column,
     ColumnType,
     KeySet,
@@ -60,6 +64,14 @@ class PGUserdataAdapter:
             return f"userdata.table_{table_uuid.hex}"
         else:
             return f"table_{table_uuid.hex}"
+
+    @classmethod
+    def count(cls, sesh: Session, table_uuid: UUID) -> RowCount:
+        """Count the rows."""
+        # we don't need the columns here, just a table
+        tableclause = satable(cls._make_userdata_table_name(table_uuid), *[], schema="userdata")  # type: ignore
+        exact, approx = sesh.execute(RowCountStatement(tableclause)).fetchone()
+        return RowCount(exact, approx)
 
     @classmethod
     def get_columns(cls, sesh: Session, table_uuid: UUID) -> List["Column"]:
@@ -458,3 +470,18 @@ def visit_create_temp_table(element, compiler, **kw):
         element.temp_table,
         element.like_table,
     )
+
+
+class RowCountStatement(Executable, ClauseElement):
+    inherit_cache = False
+
+    def __init__(self, table: TableClause):
+        self.table = table
+
+
+@compiles(RowCountStatement, "postgresql")
+def visit_rowcount(element, compiler, **kw):
+    # In PG, exact counts are slow, so for bigger tables, do an approximate
+    # count.
+    stmt = "SELECT count(*), count(*) from %s"
+    return stmt % compiler.process(element.table, asfrom=True, **kw)

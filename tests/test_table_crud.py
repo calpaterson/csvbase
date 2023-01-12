@@ -46,8 +46,8 @@ def test_read__happy(client, ten_rows, test_user, content_type):
                     "type": "string",
                 },
             ],
-            # FIXME: this needs to be a proper assertion
             "page": expected_page_dict,
+            "approx_size": 10,
         }
 
 
