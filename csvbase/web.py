@@ -600,6 +600,7 @@ def post_table_settings(username: str, table_name: str) -> Response:
     svc.set_readme_markdown(sesh, g.current_user.user_uuid, table_name, readme_markdown)
 
     svc.update_table_metadata(sesh, table.table_uuid, is_public, caption, data_licence)
+    svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()
 
     flash(f"Saved settings for {username}/{table_name}")
