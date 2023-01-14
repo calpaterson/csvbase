@@ -78,7 +78,7 @@ def user_by_name(sesh: Session, username: str) -> User:
         .join(models.APIKey)
         .outerjoin(models.UserEmail)
         .filter(models.User.username == username)
-        .first()
+        .one_or_none()
     )
     if rp is None:
         raise exc.UserDoesNotExistException(username)
