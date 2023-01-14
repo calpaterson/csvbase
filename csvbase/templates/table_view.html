@@ -59,7 +59,7 @@
 
       <li class="page-item active">
         {% if page.rows %}
-          <a class="page-link" href="#">Rows {{ page.rows[0][ROW_ID_COLUMN] }} to {{ page.rows[-1][ROW_ID_COLUMN] }}</a>
+          <a class="page-link" href="#">Rows {{ page.rows[0][ROW_ID_COLUMN] }} to {{ page.rows[-1][ROW_ID_COLUMN] }} (of {{ table_macros.render_row_count(table) }})</a>
         {% else %}
           <a class="page-link" href="#">Row {{keyset.n + 1}} onwards</a>
         {% endif %}

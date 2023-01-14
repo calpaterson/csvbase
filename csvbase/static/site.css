@@ -85,3 +85,11 @@
 .csv-paste-textarea {
     resize: both;
 }
+
+.table-topline {
+    font-size: large;
+}
+
+.table-caption {
+    font-style: oblique;
+}

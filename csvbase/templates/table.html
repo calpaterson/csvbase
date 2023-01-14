@@ -28,11 +28,15 @@
       >{{ table.table_name }}</a> {{ data_licence_badge(table.data_licence) }} {{ privacy_badge(table) }}</h1>
 
     <div class="row">
-      {% if table.has_caption() %}
-        <div class="col-auto">
-          <blockquote class="blockquote">{{table.caption}}</blockquote>
-        </div>
-      {% endif %}
+      <div class="col-auto">
+        <p class="table-topline">
+          {% if table.has_caption() %}
+            <span class="table-caption">{{table.caption}}</span> &mdash; {{ table_macros.render_row_count(table) }} rows
+          {% else %}
+            <span class="table-caption">No caption provided</span>, {{ table_macros.render_row_count(table) }} rows
+          {% endif %}
+        </p>
+      </div>
       <div class="col-auto">
         {{ table_macros.praise_button(table, praise_id) }}
       </div>

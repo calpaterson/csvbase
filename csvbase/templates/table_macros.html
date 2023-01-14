@@ -38,3 +38,11 @@
     </div>
   </div>
 {% endmacro %}
+
+{%- macro render_row_count(table) -%}
+  {%- if table.row_count.exact -%}
+    {{ table.row_count.exact }}
+  {%- else -%}
+    about {{ table.row_count.approx }}
+  {%- endif -%}
+{%- endmacro -%}
