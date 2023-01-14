@@ -27,8 +27,7 @@ import bleach
 import pyarrow as pa
 import pyarrow.parquet as pq
 import xlsxwriter
-from sqlalchemy import column as sacolumn
-from sqlalchemy import types as satypes
+from sqlalchemy import column as sacolumn, func, update, types as satypes
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import table as satable
@@ -167,10 +166,10 @@ def create_table_metadata(
     table_obj = models.Table(
         table_uuid=table_uuid, table_name=table_name, user_uuid=user_uuid
     )
-    sesh.add(table_obj)
     table_obj.public = is_public
     table_obj.caption = caption
     table_obj.licence_id = licence.value
+    sesh.add(table_obj)
 
 
 def update_table_metadata(
@@ -589,3 +588,11 @@ RETURNING
     sesh.commit()
     logger.info("removed the following prohibited usernames: %s", removed)
     logger.info("added the following prohibited usernames: %s", added)
+
+
+def mark_table_changed(sesh: Session, table_uuid: UUID) -> None:
+    sesh.execute(
+        update(models.Table)  # type: ignore
+        .where(models.Table.table_uuid == table_uuid)
+        .values(last_changed=func.now())
+    )

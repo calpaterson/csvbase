@@ -105,6 +105,9 @@ class Table(Base):
         satypes.String,
         nullable=False,
     )
+    last_changed = Column(
+        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    )
 
     readme_obj: "RelationshipProperty[TableReadme]" = relationship(
         "TableReadme", uselist=False, backref="table"
@@ -160,16 +163,3 @@ class ProhibitedUsername(Base):
     __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
 
     username = Column(satypes.String, nullable=False, primary_key=True)
-
-
-# FIXME: implement this!
-# class LastChanged(Base):
-#     __tablename__ = "last_changed"
-#     __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
-
-#     table_uuid = Column(
-#         PGUUID, ForeignKey("metadata.tables.table_uuid"), primary_key=True
-#     )
-#     last_changed = Column(
-#         satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
-#     )

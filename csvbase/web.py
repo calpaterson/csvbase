@@ -281,6 +281,7 @@ def new_table_form_submission() -> Response:
         dialect,
         columns,
     )
+    svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()
     return redirect(
         url_for(
@@ -700,6 +701,7 @@ def create_row(username: str, table_name: str) -> Response:
         )
 
     row_id = PGUserdataAdapter.insert_row(sesh, table.table_uuid, row)
+    svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()
 
     row[ROW_ID_COLUMN] = row_id
@@ -809,6 +811,7 @@ def update_row(username: str, table_name: str, row_id: int) -> Response:
 
     if not PGUserdataAdapter.update_row(sesh, table.table_uuid, row_id, row):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
+    svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()
     return jsonify(body)
 
@@ -821,6 +824,7 @@ def delete_row(username: str, table_name: str, row_id: int) -> Response:
     table = svc.get_table(sesh, username, table_name)
     if not PGUserdataAdapter.delete_row(sesh, table.table_uuid, row_id):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
+    svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()
     response = make_response()
     response.status_code = 204
@@ -839,6 +843,7 @@ def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Resp
     table = svc.get_table(sesh, username, table_name)
     if not PGUserdataAdapter.delete_row(sesh, table.table_uuid, row_id):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
+    svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()
     flash(f"Deleted row {row_id}")
     return redirect(
@@ -857,6 +862,7 @@ def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Resp
         for c in table.columns
     }
     PGUserdataAdapter.update_row(sesh, table.table_uuid, row_id, row)
+    svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()
     flash(f"Updated row {row_id}")
     return redirect(
@@ -886,6 +892,7 @@ def upsert_table(username: str, table_name: str) -> Response:
         str_buf,
         dialect,
     )
+    svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()
     return make_text_response(f"upserted {username}/{table_name}")
 
