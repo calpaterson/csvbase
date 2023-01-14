@@ -58,11 +58,19 @@ def rows_to_alist(rows):
     return [tuple(row.values()) for row in rows]
 
 
+csvbase_row_id_col = Column("csvbase_row_id", ColumnType.INTEGER)
+
+
 def test_first_page(sesh, test_user, letters_table):
     page = PGUserdataAdapter.table_page(
         sesh,
         letters_table,
-        keyset=KeySet(n=0, op="greater_than", size=3),
+        keyset=KeySet(
+            columns=[csvbase_row_id_col],
+            values=(0,),
+            op="greater_than",
+            size=3,
+        ),
     )
 
     assert page.has_less == False
@@ -74,7 +82,7 @@ def test_second_page(sesh, test_user, letters_table):
     page = PGUserdataAdapter.table_page(
         sesh,
         letters_table,
-        keyset=KeySet(n=3, op="greater_than", size=3),
+        keyset=KeySet([csvbase_row_id_col], (3,), op="greater_than", size=3),
     )
 
     assert page.has_less == True
@@ -86,7 +94,7 @@ def test_back_to_first_page(sesh, test_user, letters_table):
     page = PGUserdataAdapter.table_page(
         sesh,
         letters_table,
-        keyset=KeySet(n=4, op="less_than", size=3),
+        keyset=KeySet([csvbase_row_id_col], values=(4,), op="less_than", size=3),
     )
 
     assert not page.has_less
@@ -98,7 +106,7 @@ def test_last_page(sesh, test_user, letters_table):
     page = PGUserdataAdapter.table_page(
         sesh,
         letters_table,
-        keyset=KeySet(n=23, op="greater_than", size=10),
+        keyset=KeySet([csvbase_row_id_col], values=(23,), op="greater_than", size=10),
     )
 
     assert page.has_less == True
@@ -110,7 +118,7 @@ def test_backward_paging(sesh, test_user, letters_table):
     page = PGUserdataAdapter.table_page(
         sesh,
         letters_table,
-        keyset=KeySet(n=23, op="less_than", size=3),
+        keyset=KeySet([csvbase_row_id_col], values=(23,), op="less_than", size=3),
     )
 
     assert page.has_less == True
@@ -122,7 +130,7 @@ def test_pagination_over_the_top(sesh, test_user, letters_table):
     page = PGUserdataAdapter.table_page(
         sesh,
         letters_table,
-        keyset=KeySet(n=50, op="greater_than", size=3),
+        keyset=KeySet([csvbase_row_id_col], values=(50,), op="greater_than", size=3),
     )
     assert page.has_less
     assert rows_to_alist(page.rows) == []
@@ -149,7 +157,7 @@ def test_pagination_under_the_bottom(sesh, test_user):
     page = PGUserdataAdapter.table_page(
         sesh,
         table,
-        keyset=KeySet(n=3, op="less_than", size=3),
+        keyset=KeySet([csvbase_row_id_col], (3,), op="less_than", size=3),
     )
     assert page.has_more
     assert rows_to_alist(page.rows) == []
@@ -170,7 +178,7 @@ def test_paging_on_empty_table(sesh, test_user):
     page = PGUserdataAdapter.table_page(
         sesh,
         table,
-        keyset=KeySet(n=0, op="greater_than"),
+        keyset=KeySet([csvbase_row_id_col], values=(0,), op="greater_than"),
     )
 
     assert page == Page(rows=[], has_less=False, has_more=False)

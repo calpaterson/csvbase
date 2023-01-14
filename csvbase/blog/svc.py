@@ -44,7 +44,11 @@ def get_posts(sesh) -> Sequence[Post]:
     blog_ref = os.environ["CSVBASE_BLOG_REF"]
     username, table_name = blog_ref.split("/")
     table = get_table(sesh, username, table_name)
-    page = PGUserdataAdapter.table_page(sesh, table, KeySet(n=0, op="greater_than"))
+    page = PGUserdataAdapter.table_page(
+        sesh,
+        table,
+        KeySet([Column("csvbase_row_id", ColumnType.INTEGER)], (0,), op="greater_than"),
+    )
     posts = []
     for row in page.rows:
         posts.append(post_from_row(row))

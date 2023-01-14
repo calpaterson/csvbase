@@ -1,6 +1,6 @@
 from typing import Optional
 
-from .value_objs import ColumnType
+from .value_objs import ColumnType, KeySet
 
 
 class CSVBaseException(Exception):
@@ -26,6 +26,14 @@ class RowDoesNotExistException(CSVBaseException):
         self.username = username
         self.row_id = row_id
         super().__init__((username, table_name, row_id))
+
+
+class PageDoesNotExistException(CSVBaseException):
+    def __init__(self, username: str, table_name, keyset: KeySet):
+        self.table_name = table_name
+        self.username = username
+        self.keyset = keyset
+        super().__init__((username, table_name, keyset))
 
 
 class NotAuthenticatedException(CSVBaseException):

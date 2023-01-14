@@ -81,6 +81,7 @@ CORS_EXPIRY = timedelta(hours=8)
 EXCEPTION_MESSAGE_CODE_MAP = {
     exc.UserDoesNotExistException: ("that user does not exist", 404),
     exc.RowDoesNotExistException: ("that row does not exist", 404),
+    exc.PageDoesNotExistException: ("that page does not exist", 404),
     exc.TableDoesNotExistException: ("that table does not exist", 404),
     exc.NotAuthenticatedException: ("you need to sign in to do that", 401),
     exc.NotAllowedException: ("that's not allowed", 403),
@@ -414,10 +415,7 @@ def ensure_not_over_the_top(table: Table, keyset: KeySet, page: Page) -> None:
 
     """
     if (page.has_less or page.has_more) and len(page.rows) == 0:
-        row_id = keyset.n + (1 if keyset.op == "greater_then" else -1)
-        # FIXME: possibly this should be some kind of different exception
-        # class, but this will do for now
-        raise exc.RowDoesNotExistException(table.username, table.table_name, row_id)
+        raise exc.PageDoesNotExistException(table.username, table.table_name, keyset)
 
 
 def make_table_view_response(sesh, content_type: ContentType, table: Table) -> Response:
@@ -1131,7 +1129,7 @@ def keyset_from_request_args() -> KeySet:
     op: Literal["greater_than", "less_than"] = (
         "greater_than" if request.args.get("op", default="gt") == "gt" else "less_than"
     )
-    keyset = KeySet(n=n, op=op)
+    keyset = KeySet([Column("csvbase_row_id", ColumnType.INTEGER)], (n,), op=op)
     return keyset
 
 

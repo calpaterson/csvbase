@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Iterable, List, Optional, Sequence, Type, Coll
 from uuid import UUID, uuid4
 
 from pgcopy import CopyManager
-from sqlalchemy import column as sacolumn, func, types as satypes
+from sqlalchemy import column as sacolumn, func, types as satypes, tuple_ as satuple
 from sqlalchemy.orm import Session
 from sqlalchemy.schema import Column as SAColumn, DDLElement
 from sqlalchemy.schema import CreateTable, DropTable, MetaData, Identity  # type: ignore
@@ -156,43 +156,56 @@ class PGUserdataAdapter:
     @classmethod
     def table_page(cls, sesh: Session, table: Table, keyset: KeySet) -> Page:
         """Get a page from a table based on the provided KeySet"""
-        # FIXME: this doesn't handle empty tables
         table_clause = cls._get_userdata_tableclause(sesh, table.table_uuid)
+        key_names = [col.name for col in keyset.columns]
+        table_vals = satuple(
+            table_clause.c.csvbase_row_id,
+        )
+        keyset_vals = satuple(*keyset.values)
         if keyset.op == "greater_than":
-            where_cond = table_clause.c.csvbase_row_id > keyset.n
+            where_cond = table_vals > keyset_vals
         else:
-            where_cond = table_clause.c.csvbase_row_id < keyset.n
+            where_cond = table_vals < keyset_vals
 
         keyset_page = table_clause.select().where(where_cond).limit(keyset.size)
 
         if keyset.op == "greater_than":
-            keyset_page = keyset_page.order_by(table_clause.c.csvbase_row_id)
+            keyset_page = keyset_page.order_by(table_vals)
         else:
             # if we're going backwards we need to reverse the order via a subquery
-            keyset_page = keyset_page.order_by(table_clause.c.csvbase_row_id.desc())
+            keyset_page = keyset_page.order_by(table_vals.desc())
             keyset_sub = select(keyset_page.alias())  # type: ignore
-            keyset_page = keyset_sub.order_by("csvbase_row_id")
+            keyset_page = keyset_sub.order_by(*key_names)
 
         row_tuples: List[RowProxy] = list(sesh.execute(keyset_page))
 
         if len(row_tuples) > 1:
+            first_row = row_tuples[0]
+            last_row = row_tuples[-1]
+
+            has_more_vals = satuple(
+                *[getattr(last_row, colname) for colname in key_names]
+            )
             has_more_q = (
-                table_clause.select().where(table_clause.c.csvbase_row_id > row_tuples[-1].csvbase_row_id).exists()  # type: ignore
+                table_clause.select().where(table_vals > has_more_vals).exists()  # type: ignore
             )
             has_more = sesh.query(has_more_q).scalar()
+            has_less_vals = satuple(
+                *[getattr(first_row, colname) for colname in key_names]
+            )
             has_less_q = (
-                table_clause.select().where(table_clause.c.csvbase_row_id < row_tuples[0].csvbase_row_id).exists()  # type: ignore
+                table_clause.select().where(table_vals < has_less_vals).exists()  # type: ignore
             )
             has_less = sesh.query(has_less_q).scalar()
         else:
             if keyset.op == "greater_than":
                 has_more = False
                 has_less = sesh.query(
-                    table_clause.select().where(table_clause.c.csvbase_row_id < keyset.n).exists()  # type: ignore
+                    table_clause.select().where(table_vals < keyset_vals).exists()  # type: ignore
                 ).scalar()
             else:
                 has_more = sesh.query(
-                    table_clause.select().where(table_clause.c.csvbase_row_id > keyset.n).exists()  # type: ignore
+                    table_clause.select().where(table_vals > keyset_vals).exists()  # type: ignore
                 ).scalar()
                 has_less = False
 

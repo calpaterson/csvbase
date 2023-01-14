@@ -105,4 +105,4 @@ def test_read__paging_over_the_top(client, test_user, ten_rows, content_type):
     )
     assert resp.status_code == 404, resp.data
     if content_type is ContentType.JSON:
-        assert resp.json == {"error": "that row does not exist"}
+        assert resp.json == {"error": "that page does not exist"}

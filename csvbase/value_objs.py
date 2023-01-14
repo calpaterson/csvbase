@@ -9,6 +9,8 @@ from typing import (
     Dict,
     Union,
     Mapping,
+    List,
+    Tuple,
 )
 from typing_extensions import Literal
 from uuid import UUID
@@ -46,7 +48,8 @@ class KeySet:
 
     """
 
-    n: int
+    columns: List["Column"]
+    values: Tuple
     op: Literal["greater_than", "less_than"]
     size: int = 10
 
