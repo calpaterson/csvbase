@@ -629,6 +629,8 @@ def praise_table(username: str, table_name: str) -> Response:
     return redirect(whence)
 
 
+# FIXME: These two endpoints should be folded into table_view_with_extension
+# and deleted
 @bp.route("/<username>/<table_name:table_name>.xlsx", methods=["GET"])
 @bp.route("/<username>/<table_name:table_name>/export/xlsx", methods=["GET"])
 def export_table_xlsx(username: str, table_name: str) -> Response:
