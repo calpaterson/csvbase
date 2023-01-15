@@ -938,13 +938,16 @@ def sitemap() -> Response:
     table_names = svc.get_public_table_names(sesh)
     # FIXME: include blog urls
     table_urls = (
-        url_for(
-            "csvbase.table_view",
-            username=username,
-            table_name=table_name,
-            _external=True,
+        (
+            url_for(
+                "csvbase.table_view",
+                username=username,
+                table_name=table_name,
+                _external=True,
+            ),
+            last_changed,
         )
-        for username, table_name in table_names
+        for username, table_name, last_changed in table_names
     )
     resp = make_response(render_template("sitemap.xml", urls=table_urls))
     resp.mimetype = "application/xml"

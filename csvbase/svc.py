@@ -6,7 +6,7 @@ import json
 import re
 import secrets
 from contextlib import closing
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from logging import getLogger
 from typing import (
     TYPE_CHECKING,
@@ -27,7 +27,7 @@ import bleach
 import pyarrow as pa
 import pyarrow.parquet as pq
 import xlsxwriter
-from sqlalchemy import column as sacolumn, func, update, types as satypes
+from sqlalchemy import column as sacolumn, func, update, types as satypes, cast
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import table as satable
@@ -484,9 +484,13 @@ LIMIT :n;
         yield table
 
 
-def get_public_table_names(sesh: Session) -> Iterable[Tuple[str, str]]:
+def get_public_table_names(sesh: Session) -> Iterable[Tuple[str, str, date]]:
     rs = (
-        sesh.query(models.User.username, models.Table.table_name)
+        sesh.query(
+            models.User.username,
+            models.Table.table_name,
+            cast(models.Table.last_changed, satypes.Date),
+        )
         .join(models.Table, models.User.user_uuid == models.Table.user_uuid)
         .filter(models.Table.public)
     )
