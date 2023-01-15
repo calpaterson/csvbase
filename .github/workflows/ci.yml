@@ -49,5 +49,5 @@ jobs:
         key: ${{ runner.os }}-tox
         restore-keys: |
           ${{ runner.os }}-pip-
-    - name: Tox
-      run: tox
+    - name: Make
+      run: make

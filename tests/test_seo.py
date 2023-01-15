@@ -1,5 +1,7 @@
 from lxml import etree
 
+from .utils import test_data_path
+
 
 def test_robots(client):
     resp = client.get("/robots.txt")
@@ -14,7 +16,11 @@ def test_sitemap(client):
     assert resp.headers["Cache-Control"] == "public, max-age=86400"
 
     # Check it's valid XML
-    root = etree.XML(resp.data)
+    with open(test_data_path + "/sitemap.xsd", "rb") as sitemap_xsd_f:
+        schema_root = etree.XML(sitemap_xsd_f.read())
+    schema = etree.XMLSchema(schema_root)
+    parser = etree.XMLParser(schema=schema)
+    root = etree.XML(resp.data, parser)
     assert root is not None
 
     # Double check this easy-to-create issue

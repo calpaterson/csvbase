@@ -23,7 +23,7 @@ serve: .venv csvbase/static/bootstrap.min.css csvbase/static/codehilite.css csvb
 serve-gunicorn: .venv csvbase/static/bootstrap.min.css csvbase/static/codehilite.css csvbase/static/bootstrap.bundle.js
 	. .venv/bin/activate; gunicorn -w 1 'csvbase.web:init_app()' --access-logfile=- -t 30 -b :6001
 
-tox:
+tox: tests/test-data/sitemap.xsd
 	tox
 
 bootstrap-5.1.3-dist.zip:
@@ -34,6 +34,9 @@ csvbase/static/bootstrap.min.css : bootstrap-5.1.3-dist.zip
 
 csvbase/static/bootstrap.bundle.js: bootstrap-5.1.3-dist.zip
 	unzip -p bootstrap-5.1.3-dist.zip bootstrap-5.1.3-dist/js/bootstrap.bundle.js > $@
+
+tests/test-data/sitemap.xsd:
+	curl -s -L https://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd > $@
 
 dump-schema:
 	pg_dump -d csvbase --schema-only --schema=metadata
