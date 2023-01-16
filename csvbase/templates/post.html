@@ -34,12 +34,11 @@
 {% block main %}
   <div class="container">
     <div class="row">
-      <div class="col-md-8 offset-md-2">
+      <div class="col-md-8 offset-md-2 blog-post blog-post-{{post.id}}">
+        <h1 class="py-2">{{ post.title }}</h1>
         <figure class="figure">
           <img class="figure-img img-fluid rounded" src="{{ post.cover_image_url}}" alt="{{ post.cover_image_alt}}">
         </figure>
-
-        <h1 class="py-2">{{ post.title }}</h1>
         <p class="blog-post-description">{{ post.description }}</p>
         <p class="blog-post-description">{{ post.render_posted() }}</p>
         {# FIXME: this should come from the post object somehow #}

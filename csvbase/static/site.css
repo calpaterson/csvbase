@@ -93,3 +93,17 @@
 .table-caption {
     font-style: oblique;
 }
+
+.blog-post img {
+    width: 100%;
+}
+
+.blog-post figure > img {
+    width: 80%;
+    display: block;
+    margin: auto;
+}
+
+.blog-post-2 pre {
+    white-space: pre-wrap;
+}
