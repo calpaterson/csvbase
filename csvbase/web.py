@@ -106,7 +106,7 @@ def init_app() -> Flask:
     if "CSVBASE_SECRET_KEY" in environ:
         app.config["SECRET_KEY"] = environ["CSVBASE_SECRET_KEY"]
     else:
-        app.logger.warning("CSVBASE_SECERT_KEY not set, using a random secret")
+        app.logger.warning("CSVBASE_SECRET_KEY not set, using a random secret")
         app.config["SECRET_KEY"] = secrets.token_hex()
 
     Babel(app, default_locale="en_GB", default_timezone="Europe/London")
