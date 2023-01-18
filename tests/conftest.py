@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 from csvbase import svc, web
 from csvbase.db import db, get_db_url
 from csvbase.userdata import PGUserdataAdapter
-from csvbase.value_objs import Column, ColumnType, DataLicence
+from csvbase.value_objs import Column, ColumnType, DataLicence, ContentType
 
 from .utils import make_user, random_string, create_table
 
@@ -80,3 +80,8 @@ def private_table(test_user, module_sesh):
     PGUserdataAdapter.insert_row(module_sesh, table.table_uuid, {x_column: 1})
     module_sesh.commit()
     return table.table_name
+
+
+@pytest.fixture(scope="module", params=[ContentType.JSON, ContentType.HTML])
+def content_type(request):
+    yield request.param

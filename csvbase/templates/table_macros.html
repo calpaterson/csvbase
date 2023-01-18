@@ -40,8 +40,10 @@
 {% endmacro %}
 
 {%- macro render_row_count(table) -%}
-  {%- if table.row_count.exact -%}
+  {%- if table.row_count.exact == None -%}
     {{ table.row_count.exact }}
+  {%- elif table.row_count.exact == 0 -%}
+    0
   {%- else -%}
     about {{ table.row_count.approx }}
   {%- endif -%}
