@@ -60,7 +60,7 @@ def test_uploading_a_table_when_not_logged_in(client):
 
 def test_uploading_a_table(client, test_user):
     table_name = f"test-table-{random_string()}"
-    web.set_current_user_for_session(test_user)
+    web.set_current_user(test_user)
     resp = client.post(
         "/new-table",
         data={
@@ -79,7 +79,7 @@ def test_uploading_a_table_with_csvbase_row_ids(client, test_user, ten_rows):
     re-upload them.
 
     """
-    web.set_current_user_for_session(test_user)
+    web.set_current_user(test_user)
 
     ten_rows_df = get_df_as_csv(client, f"/{test_user.username}/{ ten_rows }.csv")
 

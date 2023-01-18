@@ -49,7 +49,7 @@ from .db import db, get_db_url
 from .json import value_to_json, json_to_value
 from .markdown import render_markdown
 from .logging import configure_logging
-from .sentry import configure_sentry
+from . import sentry
 from .sesh import get_sesh
 from .userdata import PGUserdataAdapter
 from .conv import DateConverter, IntegerConverter, FloatConverter
@@ -97,7 +97,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
 
 def init_app() -> Flask:
     configure_logging()
-    configure_sentry()
+    sentry.configure_sentry()
     app = Flask(__name__)
     app.config["CRYPT_CONTEXT"] = CryptContext(["argon2"])
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
@@ -242,7 +242,7 @@ def new_table_form_submission() -> Response:
             request.form["password"],
             request.form.get("email"),
         )
-        set_current_user_for_session(user)
+        sign_in_user(user)
         flash("Account registered")
     else:
         am_a_user_or_400()
@@ -974,7 +974,7 @@ def register() -> Response:
             request.form.get("email"),
         )
         sesh.commit()
-        set_current_user_for_session(user)
+        sign_in_user(user)
         flash("Account registered")
         whence = request.form.get(
             "whence", url_for("csvbase.user", username=user.username)
@@ -999,7 +999,7 @@ def sign_in() -> Response:
             username,
             request.form["password"],
         ):
-            set_current_user_for_session(
+            sign_in_user(
                 svc.user_by_name(sesh, request.form["username"]),
             )
             flash(f"Signed in as {username}")
@@ -1103,8 +1103,11 @@ def negotiate_content_type(
         return ContentType(best)
 
 
-def set_current_user_for_session(user: User, session: Optional[Any] = None) -> None:
-    """Sets the current user and creates a web session."""
+def sign_in_user(user: User, session: Optional[Any] = None) -> None:
+    """Sets the current user and sets a cookie to keep them loged in across
+    requests.
+
+    """
     set_current_user(user)
 
     if session is None:
@@ -1119,6 +1122,8 @@ def set_current_user(user: User) -> None:
 
     # This is duplication but very convenient for jinja templates
     g.current_username = user.username
+
+    sentry.set_user(user)
 
 
 def json_or_400() -> Dict[str, Any]:
