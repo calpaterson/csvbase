@@ -36,4 +36,4 @@ def set_user(user: User) -> None:
     This allows knowing how many people were affected by a bug."""
     if "CSVBASE_SENTRY_DSN" in environ:
         # don't set username/email etc for privacy reasons
-        sentry_sdk.set_user({"id": user.user_uuid})
+        sentry_sdk.set_user({"id": str(user.user_uuid)})
