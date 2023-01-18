@@ -1,6 +1,6 @@
 # csvbase privacy policy
 
-This policy was last updated on 2022-05-04
+This policy was last updated on 2023-01-18
 
 ## Contact details
 
@@ -10,10 +10,16 @@ cal@calpaterson.com
 
 ## The type of personal information we collect
 
-We currently collect the following information from users who choose to
-register:
+We currently collect the following personal information from users who choose
+to register:
 
-- username (optionally) an email address
+- username
+- and, optionally, an email address
+
+If you experience a crash we collect extra, impersonal, information about your
+configuration, strictly for the purposes of debugging that crash.  That is
+shared with Sentry (https://sentry.io/) and retained for 30 days.  Personal
+information is shared with Sentry.
 
 ## How we get the personal information and why we have it
 
