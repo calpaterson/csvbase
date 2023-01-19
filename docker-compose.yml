@@ -27,6 +27,9 @@ services:
     networks:
       csvbase:
     command: ["alembic", "upgrade", "head"]
+    depends_on:
+      csvbase_postgres:
+        condition: service_healthy
 
   csvbase:
     build: .
