@@ -1,7 +1,7 @@
-version: "3.1"
+version: "3.4"
 
 services:
-  postgres:
+  csvbase_postgres:
     image: postgres:12.9
     ports:
       - "7432:5432"
@@ -10,23 +10,38 @@ services:
       POSTGRES_DB: csvbase
     networks:
       csvbase:
+    volumes:
+      - ./init-schemas.sql:/docker-entrypoint-initdb.d/init-schemas.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  csvbase_migrations:
+    build:
+      context: .
+      target: migrations
+    environment:
+      CSVBASE_DB_URL: 'postgresql://postgres:password@csvbase_postgres:5432/csvbase'
+    networks:
+      csvbase:
+    command: ["alembic", "upgrade", "head"]
+
   csvbase:
     build: .
     environment:
-      CSVBASE_DB_URL: 'postgresql://postgres:password@postgres:5432/csvbase'
+      CSVBASE_DB_URL: 'postgresql://postgres:password@csvbase_postgres:5432/csvbase'
     ports:
       - "6001:6001"
     networks:
       csvbase:
     depends_on:
-      postgres:
+      csvbase_postgres:
         condition: service_healthy
+      csvbase_migrations:
+        condition: service_completed_successfully
+
 
 networks:
   csvbase:
