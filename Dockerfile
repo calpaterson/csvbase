@@ -27,9 +27,11 @@ ENTRYPOINT ["/tini", "--"]
 CMD ["alembic", "upgrade", "head"]
 
 FROM base
+COPY --from=migrations alembic.ini .
+COPY --from=migrations migrations migrations
 ENV FLASK_APP=csvbase.web:init_app()
-ENV FLASK_ENV=production
+ENV FLASK_DEBUG=0
 EXPOSE 6001
 ENTRYPOINT ["/tini", "--"]
-CMD ["gunicorn", "csvbase.web:init_app()", "-b", ":6001"]
+CMD ["bash", "-c", "alembic upgrade head && gunicorn \"csvbase.web:init_app()\" -b \":6001\""]
 
