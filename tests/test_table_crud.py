@@ -1,3 +1,4 @@
+from datetime import date
 from unittest.mock import ANY
 
 import pytest
@@ -18,7 +19,12 @@ def test_read__happy(client, ten_rows, test_user, content_type):
         expected_page_dict = {
             "rows": [
                 {
-                    "row": {"roman_numeral": rn},
+                    "row": {
+                        "roman_numeral": rn,
+                        "is_even": (index % 2) == 0,
+                        "as_date": date(2018, 1, index).isoformat(),
+                        "as_float": index + 0.5,
+                    },
                     "row_id": index,
                     "url": f"http://localhost/{test_user.username}/{ten_rows}/rows/{index}",
                 }
@@ -28,7 +34,8 @@ def test_read__happy(client, ten_rows, test_user, content_type):
             "previous_page_url": None,
         }
 
-        assert resp.json == {
+        actual_json = resp.json
+        expected_json = {
             "name": ten_rows,
             "is_public": True,
             "caption": "Roman numerals",
@@ -40,10 +47,24 @@ def test_read__happy(client, ten_rows, test_user, content_type):
                     # FIXME: is "string" the right name?
                     "type": "string",
                 },
+                {"name": "is_even", "type": "boolean"},
+                {"name": "as_date", "type": "date"},
+                {"name": "as_float", "type": "float"},
             ],
             "page": expected_page_dict,
             "approx_size": 10,
         }
+        assert actual_json == expected_json
+
+
+def test_read__with_no_rows(sesh, client, test_user, content_type):
+    table = utils.create_table(sesh, test_user, [])
+    sesh.commit()
+    resp = client.get(
+        f"/{test_user.username}/{table.table_name}",
+        headers={"Accept": content_type.value},
+    )
+    assert resp.status_code == 200
 
 
 def test_read__table_does_not_exist(client, test_user, content_type):

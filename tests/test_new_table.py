@@ -115,4 +115,4 @@ def test_uploading_a_table_with_csvbase_row_ids(client, test_user, ten_rows):
         .sort_values(by="csvbase_row_id")
     )
     actual_df = get_df_as_csv(client, resp.headers["Location"])
-    assert_frame_equal(expected_df, actual_df)
+    assert_frame_equal(expected_df, actual_df[["roman_numeral"]])

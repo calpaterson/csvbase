@@ -6,13 +6,25 @@ from .utils import make_user
 def test_create__happy(client, ten_rows, test_user):
     expected_resource = {
         "row_id": 11,
-        "row": {"roman_numeral": "XI"},
+        "row": {
+            "roman_numeral": "XI",
+            "is_even": False,
+            "as_date": "2018-01-11",
+            "as_float": 11.5,
+        },
         "url": f"http://localhost/{test_user.username}/{ten_rows}/rows/11",
     }
 
     post_resp = client.post(
         f"/{test_user.username}/{ten_rows}/rows/",
-        json={"row": {"roman_numeral": "XI"}},
+        json={
+            "row": {
+                "roman_numeral": "XI",
+                "is_even": False,
+                "as_date": "2018-01-11",
+                "as_float": 11.5,
+            }
+        },
         headers={"Authorization": test_user.basic_auth()},
     )
     assert post_resp.status_code == 201
@@ -79,7 +91,12 @@ def test_read__happy(client, ten_rows, test_user):
     assert resp.status_code == 200, resp.data
     assert resp.json == {
         "row_id": 1,
-        "row": {"roman_numeral": "I"},
+        "row": {
+            "roman_numeral": "I",
+            "is_even": False,
+            "as_date": "2018-01-01",
+            "as_float": 1.5,
+        },
         "url": f"http://localhost/{test_user.username}/{ten_rows}/rows/1",
     }
 
@@ -125,7 +142,12 @@ def test_update__happy(client, ten_rows, test_user):
     url = f"/{test_user.username}/{ten_rows}/rows/1"
     new = {
         "row_id": 1,
-        "row": {"roman_numeral": "i"},
+        "row": {
+            "roman_numeral": "i",
+            "is_even": True,
+            "as_date": "2018-01-01",
+            "as_float": 1.5,
+        },
         "url": f"http://localhost/{test_user.username}/{ten_rows}/rows/1",
     }
     resp = client.put(url, json=new)
@@ -138,10 +160,23 @@ def test_update__happy(client, ten_rows, test_user):
 
 def test_update__row_does_not_exist(client, ten_rows, test_user):
     url = f"/{test_user.username}/{ten_rows}/rows/11"
-    new = {"row_id": 11, "row": {"roman_numeral": "XI"}}
+    new = {
+        "row_id": 11,
+        "row": {
+            "roman_numeral": "XI",
+            "is_even": True,
+            "as_date": "2018-01-01",
+            "as_float": 1.5,
+        },
+    }
     resp = client.put(url, json=new)
     assert resp.status_code == 404, resp.data
     assert resp.json == {"error": "that row does not exist"}
+
+
+@pytest.mark.xfail(reason="test (and functionality!) not implemented")
+def test_update__row_does_not_match():
+    """Test that where the row columns are wrong you get some kind of 4xx error"""
 
 
 def test_update__row_id_does_not_match(client, ten_rows, test_user):

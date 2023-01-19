@@ -43,9 +43,10 @@ def test_csvs_in_and_out(test_user, sesh, client, ten_rows):
     url = f"/{test_user.username}/{ten_rows}"
 
     df = get_df_as_csv(client, url)
+    # df = df.assign(as_date=pd.to_datetime(df["as_date"]))
     df.drop(labels=2, axis="index", inplace=True)  # removed data
-    df.loc[11] = "XI"  # added data
-    df.loc[5] = "FIVE"  # changed data
+    df.loc[11] = ("XI", False, "2018-01-11", 11.5)  # added data
+    df.loc[5].roman_numeral = "FIVE"  # changed data
 
     buf = StringIO()
     df.to_csv(buf)
@@ -60,9 +61,9 @@ def test_get_jsonlines(test_user, sesh, client, ten_rows):
     url = f"/{test_user.username}/{ten_rows}"
     df_from_csv = get_df_as_csv(client, url)
 
-    df_from_parquet = get_df_as_jsonlines(client, url)
+    df_from_jsonlines = get_df_as_jsonlines(client, url)
 
-    assert_frame_equal(df_from_csv, df_from_parquet)
+    assert_frame_equal(df_from_csv, df_from_jsonlines)
 
 
 def test_get_unknown_extension(test_user, client, ten_rows):
@@ -74,8 +75,15 @@ def test_get_unknown_extension(test_user, client, ten_rows):
 def test_get_parquet(test_user, sesh, client, ten_rows):
     url = f"/{test_user.username}/{ten_rows}"
     df_from_csv = get_df_as_csv(client, url)
+    df_from_csv = df_from_csv.assign(as_date=pd.to_datetime(df_from_csv["as_date"]))
 
     df_from_parquet = get_df_as_parquet(client, url)
+
+    # pandas mangles the date32 because it doesn't have a date type:
+    # https://github.com/pandas-dev/pandas/issues/20089
+    df_from_parquet = df_from_parquet.assign(
+        as_date=pd.to_datetime(df_from_parquet["as_date"])
+    )
 
     assert_frame_equal(df_from_csv, df_from_parquet)
 

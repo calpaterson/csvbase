@@ -1,5 +1,6 @@
 import os
 from logging import DEBUG, basicConfig
+from datetime import date
 from unittest.mock import patch
 
 import pytest
@@ -65,10 +66,20 @@ ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
 
 @pytest.fixture(scope="function")
 def ten_rows(test_user, sesh):
-    column = Column(name="roman_numeral", type_=ColumnType.TEXT)
-    table = create_table(sesh, test_user, [column], caption="Roman numerals")
-    for roman_numeral in ROMAN_NUMERALS:
-        PGUserdataAdapter.insert_row(sesh, table.table_uuid, {column: roman_numeral})
+    data = [
+        (numeral, (index % 2) == 0, date(2018, 1, index), index + 0.5)
+        for index, numeral in enumerate(ROMAN_NUMERALS, start=1)
+    ]
+    columns = [
+        Column(name="roman_numeral", type_=ColumnType.TEXT),
+        Column(name="is_even", type_=ColumnType.BOOLEAN),
+        Column(name="as_date", type_=ColumnType.DATE),
+        Column(name="as_float", type_=ColumnType.FLOAT),
+    ]
+
+    table = create_table(sesh, test_user, columns, caption="Roman numerals")
+    for row in data:
+        PGUserdataAdapter.insert_row(sesh, table.table_uuid, dict(zip(columns, row)))
     sesh.commit()
     return table.table_name
 
@@ -82,6 +93,8 @@ def private_table(test_user, module_sesh):
     return table.table_name
 
 
-@pytest.fixture(scope="module", params=[ContentType.JSON, ContentType.HTML])
+@pytest.fixture(
+    scope="module", params=[ContentType.JSON, ContentType.HTML, ContentType.JSON]
+)
 def content_type(request):
     yield request.param

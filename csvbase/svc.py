@@ -20,6 +20,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    Mapping,
 )
 from uuid import UUID, uuid4
 
@@ -46,6 +47,7 @@ from .value_objs import (
     User,
     RowCount,
 )
+from .json import value_to_json
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import RowProxy
@@ -255,28 +257,42 @@ def table_as_csv(
 def table_as_jsonlines(sesh: Session, table_uuid: UUID) -> io.StringIO:
     jl_buf = io.StringIO()
 
-    columns = [c.name for c in PGUserdataAdapter.get_columns(sesh, table_uuid)]
+    column_names = [c.name for c in PGUserdataAdapter.get_columns(sesh, table_uuid)]
     for row in PGUserdataAdapter.table_as_rows(sesh, table_uuid):
-        json.dump(dict(zip(columns, row)), jl_buf)
+        json.dump(dict(zip(column_names, (value_to_json(v) for v in row))), jl_buf)
         jl_buf.write("\n")
     jl_buf.seek(0)
     return jl_buf
+
+
+PARQUET_TYPE_MAP: Mapping[ColumnType, pa.lib.DataType] = {
+    ColumnType.TEXT: pa.string(),
+    ColumnType.INTEGER: pa.int64(),
+    ColumnType.FLOAT: pa.float64(),
+    ColumnType.BOOLEAN: pa.bool_(),
+    ColumnType.DATE: pa.date32(),
+}
 
 
 def table_as_parquet(
     sesh: Session,
     table_uuid: UUID,
 ) -> io.BytesIO:
-    columns = [c.name for c in PGUserdataAdapter.get_columns(sesh, table_uuid)]
+    columns = PGUserdataAdapter.get_columns(sesh, table_uuid)
+    column_names = [c.name for c in columns]
     mapping = [
-        dict(zip(columns, row))
+        dict(zip(column_names, row))
         for row in PGUserdataAdapter.table_as_rows(sesh, table_uuid)
     ]
+
+    # necessary to supply a schema in our case because pyarrow does not infer a
+    # type for dates
+    schema = pa.schema([pa.field(c.name, PARQUET_TYPE_MAP[c.type_]) for c in columns])
 
     # FIXME: it is extremely annoying that pyarrow.Tables add a numeric index
     # that ends up in the final parquet.  Doesn't look like there is any way to
     # remove this at this point.
-    pa_table = pa.Table.from_pylist(mapping)
+    pa_table = pa.Table.from_pylist(mapping, schema=schema)
     parquet_buf = io.BytesIO()
     pq.write_table(pa_table, parquet_buf)
     parquet_buf.seek(0)
