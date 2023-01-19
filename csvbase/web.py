@@ -132,6 +132,12 @@ def init_app() -> Flask:
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
 
+    # Currently the toolbar is broken (and I wouldn't want to enable it by
+    # default anyway - too dangerous) but it can be used if you downgrade to
+    # 'flask-sqlalchemy<3'
+    # from flask_debugtoolbar import DebugToolbarExtension
+    # DebugToolbarExtension(app)
+
     # typing for errorhandler is apparently tricky...
     # https://github.com/pallets/flask/blob/bd56d19b167822a9a23e2e9e2a07ccccc36baa8d/src/flask/typing.py#L49
     @app.errorhandler(exc.CSVBaseException)
