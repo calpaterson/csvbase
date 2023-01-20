@@ -66,6 +66,11 @@ class WrongContentType(CSVBaseException):
         super().__init__((supported, recieved))
 
 
+class UsernameAlreadyExistsException(CSVBaseException):
+    def __init__(self, username: str):
+        self.username = username
+
+
 class ProhibitedUsernameException(CSVBaseException):
     pass
 

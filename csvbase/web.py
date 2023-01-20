@@ -91,6 +91,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
     exc.CantNegotiateContentType: ("can't agree with you on a content type", 406),
     exc.WrongContentType: ("you sent the wrong content type", 400),
     exc.ProhibitedUsernameException: ("that username is not allowed", 400),
+    exc.UsernameAlreadyExistsException: ("that username is taken", 400),
     exc.CSVException: ("Unable to parse that csv file", 400),
 }
 
@@ -972,10 +973,14 @@ def register() -> Response:
         return response
     else:
         sesh = get_sesh()
+        username = request.form["username"]
+        if svc.username_exists(sesh, username):
+            raise exc.UsernameAlreadyExistsException(username)
+
         user = svc.create_user(
             sesh,
             current_app.config["CRYPT_CONTEXT"],
-            request.form["username"],
+            username,
             request.form["password"],
             request.form.get("email"),
         )

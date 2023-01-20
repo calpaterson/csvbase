@@ -98,3 +98,9 @@ def private_table(test_user, module_sesh):
 )
 def content_type(request):
     yield request.param
+
+
+@pytest.fixture(scope="session", autouse=True)
+def load_prohibited_usernames(module_sesh, app):
+    svc.load_prohibited_usernames(module_sesh)
+    module_sesh.commit()

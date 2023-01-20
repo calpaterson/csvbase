@@ -59,6 +59,13 @@ FLOAT_REGEX = re.compile(r"^(\d+\.)|(\.\d+)|(\d+\.\d?)$")
 BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
 
 
+def username_exists(sesh: Session, username: str) -> bool:
+    """Whether the given username exists."""
+    return sesh.query(
+        sesh.query(models.User).filter(models.User.username == username).exists()
+    ).scalar()
+
+
 def user_by_name(sesh: Session, username: str) -> User:
     # FIXME: This is quite a hot function, needs some caching
     rp = (
@@ -394,7 +401,7 @@ def create_user(
 
 def check_username_is_allowed(sesh: Session, username: str) -> None:
     is_prohibited: bool = sesh.query(
-        exists().where(models.ProhibitedUsername.username == username)
+        exists().where(models.ProhibitedUsername.username == username.lower())
     ).scalar()
     if is_prohibited:
         logger.warning("username prohibited: %s", username)
