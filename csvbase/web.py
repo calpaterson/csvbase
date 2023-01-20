@@ -92,6 +92,10 @@ EXCEPTION_MESSAGE_CODE_MAP = {
     exc.WrongContentType: ("you sent the wrong content type", 400),
     exc.ProhibitedUsernameException: ("that username is not allowed", 400),
     exc.UsernameAlreadyExistsException: ("that username is taken", 400),
+    exc.UsernameAlreadyExistsInDifferentCaseException: (
+        "that username is taken (in a different case)",
+        400,
+    ),
     exc.CSVException: ("Unable to parse that csv file", 400),
 }
 
@@ -976,6 +980,8 @@ def register() -> Response:
         username = request.form["username"]
         if svc.username_exists(sesh, username):
             raise exc.UsernameAlreadyExistsException(username)
+        if svc.username_exists_insensitive(sesh, username):
+            raise exc.UsernameAlreadyExistsInDifferentCaseException(username)
 
         user = svc.create_user(
             sesh,

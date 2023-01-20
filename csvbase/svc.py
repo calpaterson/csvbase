@@ -66,6 +66,20 @@ def username_exists(sesh: Session, username: str) -> bool:
     ).scalar()
 
 
+def username_exists_insensitive(sesh: Session, username: str) -> bool:
+    """Whether the given username exists.
+
+    Used to give a more helpful error message on registration.
+
+    """
+    # FIXME: add a functional index if users tables gets big
+    return sesh.query(
+        sesh.query(models.User)
+        .filter(func.upper(models.User.username) == func.upper(username))
+        .exists()
+    ).scalar()
+
+
 def user_by_name(sesh: Session, username: str) -> User:
     # FIXME: This is quite a hot function, needs some caching
     rp = (

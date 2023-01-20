@@ -71,6 +71,10 @@ class UsernameAlreadyExistsException(CSVBaseException):
         self.username = username
 
 
+class UsernameAlreadyExistsInDifferentCaseException(UsernameAlreadyExistsException):
+    pass
+
+
 class ProhibitedUsernameException(CSVBaseException):
     pass
 
