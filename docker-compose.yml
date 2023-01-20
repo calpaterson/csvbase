@@ -21,7 +21,6 @@ services:
   csvbase_migrations:
     build:
       context: .
-      target: migrations
     environment:
       CSVBASE_DB_URL: 'postgresql://postgres:password@csvbase_postgres:5432/csvbase'
     networks:
