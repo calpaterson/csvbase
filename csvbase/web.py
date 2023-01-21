@@ -896,7 +896,7 @@ def upsert_table(username: str, table_name: str) -> Response:
     byte_buf = io.BytesIO()
     shutil.copyfileobj(request.stream, byte_buf)
     str_buf = streams.byte_buf_to_str_buf(byte_buf)
-    dialect, _ = streams.sniff_csv(str_buf)
+    dialect = streams.sniff_csv(str_buf)
     table = svc.get_table(sesh, username, table_name)
 
     str_buf.seek(0)

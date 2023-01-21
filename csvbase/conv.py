@@ -1,6 +1,7 @@
 import re
 from datetime import date
 from typing import Iterable, Optional, Pattern
+import functools
 
 from . import exc, conv
 from .value_objs import ColumnType, PythonType
@@ -124,6 +125,7 @@ class BooleanConverter:
         raise exc.UnconvertableValueException(ColumnType.BOOLEAN, value)
 
 
+@functools.lru_cache(maxsize=1024)
 def from_string_to_python(
     column_type: ColumnType, as_string: str
 ) -> Optional["PythonType"]:

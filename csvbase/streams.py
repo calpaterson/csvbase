@@ -1,5 +1,6 @@
 """Functions and types for dealing with text and byte streams"""
 
+import os
 from logging import getLogger
 from typing import Union, Tuple, Type, List, Dict, Set
 import codecs
@@ -53,30 +54,22 @@ def byte_buf_to_str_buf(byte_buf: UserSubmittedBytes) -> codecs.StreamReader:
 
 
 def sniff_csv(
-    csv_buf: UserSubmittedCSVData, sample_size_hint: int = 2**13
-) -> Tuple[Type[csv.Dialect], bool]:
+    csv_buf: UserSubmittedCSVData, sample_size_hint=8192
+) -> Type[csv.Dialect]:
     """Return csv dialect and a boolean indicating a guess at whether there is
     a header."""
     sniffer = csv.Sniffer()
-    sample = "".join(csv_buf.readlines(sample_size_hint))
 
     try:
-        dialect = sniffer.sniff(sample)
+        dialect = sniffer.sniff(csv_buf.read(sample_size_hint))
+        logger.info("sniffed dialect: %s", dialect)
     except csv.Error:
         logger.warning("unable to sniff dialect, falling back to excel")
         dialect = csv.excel
-    logger.info("sniffed dialect: %s", dialect)
-
-    try:
-        has_header = sniffer.has_header(sample)
-    except csv.Error as e:
-        logger.warning("unable to parse header, original args: %s", e.args)
-        raise exc.CSVException("unable to parse header")
-    logger.info("has_header = %s", has_header)
 
     csv_buf.seek(0)
 
-    return dialect, has_header
+    return dialect
 
 
 def peek_csv(
@@ -86,7 +79,13 @@ def peek_csv(
     looking at the top of it.
 
     """
-    dialect, _ = sniff_csv(csv_buf)
+    # FIXME: this should be part of a more robust way to check the size of files
+    csv_buf.seek(0, os.SEEK_END)
+    size = csv_buf.tell()
+    if size == 0:
+        raise exc.CSVException("empty file!")
+
+    dialect = sniff_csv(csv_buf)
 
     # FIXME: it's probably best that this consider the entire CSV file rather
     # than just the start of it.  there are many, many csv files that, halfway

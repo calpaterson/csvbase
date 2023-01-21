@@ -243,7 +243,7 @@ class PGUserdataAdapter:
         reader = csv.reader(csv_buf, dialect)
         csv_buf.readline()  # pop the header, which is not useful
         row_gen = (
-            [conv.from_string_to_python(col.type_, v) for col, v in zip(columns, line)]
+            (conv.from_string_to_python(col.type_, v) for col, v in zip(columns, line))
             for line in reader
         )
 
