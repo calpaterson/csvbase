@@ -236,13 +236,16 @@ class ContentType(enum.Enum):
     CSV = "text/csv"
     JSON = "application/json"
     PARQUET = "application/parquet"  # this is unofficial, but convenient
-    JSON_LINES = ("applicate/x-jsonlines",)  # no consensus
+    JSON_LINES = "application/x-jsonlines"  # no consensus
     HTML_FORM = "application/x-www-form-urlencoded"
     XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
     @classmethod
     def from_file_extension(cls, file_extension: str) -> Optional["ContentType"]:
         return EXTENSION_MAP.get(file_extension)
+
+    def pretty_name(self) -> str:
+        return PRETTY_NAME_MAP[self]
 
 
 EXTENSION_MAP: Mapping[str, ContentType] = {
@@ -252,4 +255,13 @@ EXTENSION_MAP: Mapping[str, ContentType] = {
     "json": ContentType.JSON,
     "jsonl": ContentType.JSON_LINES,
     "xlsx": ContentType.XLSX,
+}
+
+PRETTY_NAME_MAP: Mapping[ContentType, str] = {
+    ContentType.HTML: "HTML",
+    ContentType.CSV: "CSV",
+    ContentType.PARQUET: "Parquet",
+    ContentType.JSON: "JSON",
+    ContentType.JSON_LINES: "JSON lines",
+    ContentType.XLSX: "MS Excel",
 }

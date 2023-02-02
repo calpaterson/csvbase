@@ -35,6 +35,7 @@ from flask import (
     request,
     url_for,
 )
+from flask.views import MethodView
 from flask import session as flask_session
 from flask.wrappers import Response as FlaskResponse
 from flask_babel import Babel
@@ -220,6 +221,23 @@ def index() -> str:
 @bp.route("/about")
 def about() -> str:
     return render_template("about.html")
+
+
+class ConvertForm(MethodView):
+    def get(self):
+        return render_template(
+            "convert.html",
+            input_formats=[ContentType.CSV],
+            output_formats=[
+                ContentType.PARQUET,
+                ContentType.XLSX,
+                ContentType.JSON_LINES,
+            ],
+            default_output_format=ContentType.PARQUET,
+        )
+
+
+bp.add_url_rule("/convert", view_func=ConvertForm.as_view("convert-form"))
 
 
 @bp.route("/new-table/paste")

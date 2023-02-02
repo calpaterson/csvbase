@@ -3,6 +3,7 @@
 # when loaded
 about
 api
+archive
 articles
 blog
 blog-static
@@ -10,6 +11,8 @@ column
 column-type
 content
 content-type
+conversion
+convert
 cross-table
 csv
 csvbase
@@ -17,6 +20,7 @@ data
 data-licence
 dataset
 docs
+download
 export
 feed
 fk
