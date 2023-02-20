@@ -44,7 +44,7 @@ setup(
         "sqlalchemy==1.4.46",
         "systemd-python==234",
         "typing-extensions==4.0.1",
-        "werkzeug==2.2.2",
+        "werkzeug==2.2.3",
         "xlsxwriter==3.0.6",
     ],
     extras_require={"tests": test_reqs},
