@@ -94,7 +94,7 @@ def private_table(test_user, module_sesh):
 
 
 @pytest.fixture(
-    scope="module", params=[ContentType.JSON, ContentType.HTML, ContentType.JSON]
+    scope="module", params=[ContentType.JSON, ContentType.HTML, ContentType.CSV]
 )
 def content_type(request):
     yield request.param
