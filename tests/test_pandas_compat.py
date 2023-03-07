@@ -40,7 +40,7 @@ def put_df_as_csv(client, user, url, df: pd.DataFrame) -> None:
 
 def test_csvs_in_and_out(test_user, sesh, client, ten_rows):
     """Test that a csv can be pulled out, edited, and then posted back"""
-    url = f"/{test_user.username}/{ten_rows}"
+    url = f"/{test_user.username}/{ten_rows.table_name}"
 
     df = get_df_as_csv(client, url)
     # df = df.assign(as_date=pd.to_datetime(df["as_date"]))
@@ -58,7 +58,7 @@ def test_csvs_in_and_out(test_user, sesh, client, ten_rows):
 
 
 def test_get_jsonlines(test_user, sesh, client, ten_rows):
-    url = f"/{test_user.username}/{ten_rows}"
+    url = f"/{test_user.username}/{ten_rows.table_name}"
     df_from_csv = get_df_as_csv(client, url)
 
     df_from_jsonlines = get_df_as_jsonlines(client, url)
@@ -67,13 +67,13 @@ def test_get_jsonlines(test_user, sesh, client, ten_rows):
 
 
 def test_get_unknown_extension(test_user, client, ten_rows):
-    url = f"/{test_user.username}/{ten_rows}.pokemon"
+    url = f"/{test_user.username}/{ten_rows.table_name}.pokemon"
     resp = client.get(url)
     assert resp.status_code == 406
 
 
 def test_get_parquet(test_user, sesh, client, ten_rows):
-    url = f"/{test_user.username}/{ten_rows}"
+    url = f"/{test_user.username}/{ten_rows.table_name}"
     df_from_csv = get_df_as_csv(client, url)
     df_from_csv = df_from_csv.assign(as_date=pd.to_datetime(df_from_csv["as_date"]))
 
@@ -96,7 +96,7 @@ def test_putting_a_table_doesnt_break_adding_new_rows():
 
 
 def test_putting_blanks_makes_them_get_autofilled(test_user, sesh, client, ten_rows):
-    url = f"/{test_user.username}/{ten_rows}"
+    url = f"/{test_user.username}/{ten_rows.table_name}"
 
     df = get_df_as_csv(client, url).reset_index()
     df = pd.concat([df, pd.DataFrame({"roman_numeral": ["XI"]})])
@@ -113,7 +113,7 @@ def test_putting_blanks_makes_them_get_autofilled(test_user, sesh, client, ten_r
 
 
 def test_mixing_blanks_and_row_ids(test_user, sesh, client, ten_rows):
-    url = f"/{test_user.username}/{ten_rows}"
+    url = f"/{test_user.username}/{ten_rows.table_name}"
 
     df = get_df_as_csv(client, url).reset_index()
     df = pd.concat(

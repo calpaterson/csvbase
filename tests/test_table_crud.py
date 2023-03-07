@@ -11,7 +11,8 @@ from . import utils
 
 def test_read__happy(client, ten_rows, test_user, content_type):
     resp = client.get(
-        f"/{test_user.username}/{ten_rows}", headers={"Accept": content_type.value}
+        f"/{test_user.username}/{ten_rows.table_name}",
+        headers={"Accept": content_type.value},
     )
     assert resp.status_code == 200, resp.data
     assert content_type.value in resp.headers["Content-Type"]
@@ -26,7 +27,7 @@ def test_read__happy(client, ten_rows, test_user, content_type):
                         "as_float": index + 0.5,
                     },
                     "row_id": index,
-                    "url": f"http://localhost/{test_user.username}/{ten_rows}/rows/{index}",
+                    "url": f"http://localhost/{test_user.username}/{ten_rows.table_name}/rows/{index}",
                 }
                 for index, rn in enumerate(ROMAN_NUMERALS[:11], start=1)
             ],
@@ -36,7 +37,7 @@ def test_read__happy(client, ten_rows, test_user, content_type):
 
         actual_json = resp.json
         expected_json = {
-            "name": ten_rows,
+            "name": ten_rows.table_name,
             "is_public": True,
             "caption": "Roman numerals",
             "data_licence": "All rights reserved",
@@ -115,7 +116,7 @@ def test_read__empty_table(sesh, client, test_user, content_type):
 
 def test_read__paging_over_the_top(client, test_user, ten_rows, content_type):
     resp = client.get(
-        f"/{test_user.username}/{ten_rows}",
+        f"/{test_user.username}/{ten_rows.table_name}",
         query_string={"op": "gt", "n": "10"},
         headers={"Accept": content_type.value},
     )

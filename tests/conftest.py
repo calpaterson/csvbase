@@ -81,7 +81,7 @@ def ten_rows(test_user, sesh):
     for row in data:
         PGUserdataAdapter.insert_row(sesh, table.table_uuid, dict(zip(columns, row)))
     sesh.commit()
-    return table.table_name
+    return table
 
 
 @pytest.fixture(scope="module")

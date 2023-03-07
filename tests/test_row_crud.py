@@ -12,11 +12,11 @@ def test_create__happy(client, ten_rows, test_user):
             "as_date": "2018-01-11",
             "as_float": 11.5,
         },
-        "url": f"http://localhost/{test_user.username}/{ten_rows}/rows/11",
+        "url": f"http://localhost/{test_user.username}/{ten_rows.table_name}/rows/11",
     }
 
     post_resp = client.post(
-        f"/{test_user.username}/{ten_rows}/rows/",
+        f"/{test_user.username}/{ten_rows.table_name}/rows/",
         json={
             "row": {
                 "roman_numeral": "XI",
@@ -30,7 +30,7 @@ def test_create__happy(client, ten_rows, test_user):
     assert post_resp.status_code == 201
     assert post_resp.json == expected_resource
 
-    get_resp = client.get(f"/{test_user.username}/{ten_rows}/rows/11")
+    get_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}/rows/11")
     assert get_resp.status_code == 200, get_resp.data
     assert get_resp.json == expected_resource
 
@@ -57,7 +57,7 @@ def test_create__user_does_not_exist(client, test_user):
 
 def test_create__not_authed(client, ten_rows, test_user):
     post_resp = client.post(
-        f"/{test_user.username}/{ten_rows}/rows/",
+        f"/{test_user.username}/{ten_rows.table_name}/rows/",
         json={"row": {"roman_numeral": "XI"}},
     )
     assert post_resp.status_code == 401
@@ -78,7 +78,7 @@ def test_create__wrong_user(client, ten_rows, test_user, app, sesh):
     other_user = make_user(sesh, app.config["CRYPT_CONTEXT"])
     sesh.commit()
     resp = client.post(
-        f"/{test_user.username}/{ten_rows}/rows/",
+        f"/{test_user.username}/{ten_rows.table_name}/rows/",
         json={"row": {"roman_numeral": "XI"}},
         headers={"Authorization": other_user.basic_auth()},
     )
@@ -87,7 +87,7 @@ def test_create__wrong_user(client, ten_rows, test_user, app, sesh):
 
 
 def test_read__happy(client, ten_rows, test_user):
-    resp = client.get(f"/{test_user.username}/{ten_rows}/rows/1")
+    resp = client.get(f"/{test_user.username}/{ten_rows.table_name}/rows/1")
     assert resp.status_code == 200, resp.data
     assert resp.json == {
         "row_id": 1,
@@ -97,12 +97,12 @@ def test_read__happy(client, ten_rows, test_user):
             "as_date": "2018-01-01",
             "as_float": 1.5,
         },
-        "url": f"http://localhost/{test_user.username}/{ten_rows}/rows/1",
+        "url": f"http://localhost/{test_user.username}/{ten_rows.table_name}/rows/1",
     }
 
 
 def test_read__row_does_not_exist(client, ten_rows, test_user):
-    resp = client.get(f"/{test_user.username}/{ten_rows}/rows/11")
+    resp = client.get(f"/{test_user.username}/{ten_rows.table_name}/rows/11")
     assert resp.status_code == 404, resp.data
     assert resp.json == {"error": "that row does not exist"}
 
@@ -139,7 +139,7 @@ def test_read__is_private_am_authed(client, private_table, test_user):
 
 
 def test_update__happy(client, ten_rows, test_user):
-    url = f"/{test_user.username}/{ten_rows}/rows/1"
+    url = f"/{test_user.username}/{ten_rows.table_name}/rows/1"
     new = {
         "row_id": 1,
         "row": {
@@ -148,7 +148,7 @@ def test_update__happy(client, ten_rows, test_user):
             "as_date": "2018-01-01",
             "as_float": 1.5,
         },
-        "url": f"http://localhost/{test_user.username}/{ten_rows}/rows/1",
+        "url": f"http://localhost/{test_user.username}/{ten_rows.table_name}/rows/1",
     }
     resp = client.put(url, json=new)
     assert resp.status_code == 200, resp.data
@@ -159,7 +159,7 @@ def test_update__happy(client, ten_rows, test_user):
 
 
 def test_update__row_does_not_exist(client, ten_rows, test_user):
-    url = f"/{test_user.username}/{ten_rows}/rows/11"
+    url = f"/{test_user.username}/{ten_rows.table_name}/rows/11"
     new = {
         "row_id": 11,
         "row": {
@@ -180,7 +180,7 @@ def test_update__row_does_not_match():
 
 
 def test_update__row_id_does_not_match(client, ten_rows, test_user):
-    url = f"/{test_user.username}/{ten_rows}/rows/10"
+    url = f"/{test_user.username}/{ten_rows.table_name}/rows/10"
     new = {"row_id": 11, "row": {"roman_numeral": "X+1"}}
     resp = client.put(url, json=new)
     assert resp.status_code == 400, resp.data
@@ -208,7 +208,7 @@ def test_update__is_private_am_authed(client, private_table, test_user):
 
 
 def test_delete__happy(client, ten_rows, test_user):
-    url = f"/{test_user.username}/{ten_rows}/rows/1"
+    url = f"/{test_user.username}/{ten_rows.table_name}/rows/1"
     resp = client.delete(url, headers={"Authorization": test_user.basic_auth()})
     assert resp.status_code == 204, resp.data
     assert resp.data == b""

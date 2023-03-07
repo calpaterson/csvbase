@@ -81,7 +81,9 @@ def test_uploading_a_table_with_csvbase_row_ids(client, test_user, ten_rows):
     """
     web.set_current_user(test_user)
 
-    ten_rows_df = get_df_as_csv(client, f"/{test_user.username}/{ ten_rows }.csv")
+    ten_rows_df = get_df_as_csv(
+        client, f"/{test_user.username}/{ten_rows.table_name}.csv"
+    )
 
     # non-sequential, and nulls are the next sequence item
     ten_rows_df.index = pd.Series(
