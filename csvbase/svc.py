@@ -479,6 +479,7 @@ def _make_table(
         columns=columns,
         created=table_model.created,
         row_count=row_count,
+        last_changed=table_model.last_changed,
     )
 
 
@@ -491,7 +492,8 @@ SELECT
     table_name,
     caption,
     licence_id,
-    created
+    created,
+    last_changed
 FROM
     metadata.tables AS t
     JOIN metadata.users AS u on t.user_uuid = u.user_uuid
@@ -505,7 +507,15 @@ ORDER BY
 LIMIT :n;
     """
     rp = sesh.execute(stmt, dict(n=n))
-    for table_uuid, username, table_name, caption, licence_id, created in rp:
+    for (
+        table_uuid,
+        username,
+        table_name,
+        caption,
+        licence_id,
+        created,
+        last_changed,
+    ) in rp:
         columns = PGUserdataAdapter.get_columns(sesh, table_uuid)
         table = Table(
             table_uuid,
@@ -517,6 +527,7 @@ LIMIT :n;
             columns,
             created,
             PGUserdataAdapter.count(sesh, table_uuid),
+            last_changed,
         )
         yield table
 

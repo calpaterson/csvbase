@@ -20,8 +20,8 @@ from typing import (
 from urllib.parse import urlsplit, urlunsplit
 from uuid import UUID
 
+import itsdangerous.serializer
 import werkzeug.http
-
 from flask import (
     Blueprint,
     Flask,
@@ -449,12 +449,22 @@ def ensure_not_over_the_top(table: Table, keyset: KeySet, page: Page) -> None:
 
 
 def make_table_view_response(sesh, content_type: ContentType, table: Table) -> Response:
+    keyset = keyset_from_request_args()
+    etag = make_table_view_etag(table, content_type, keyset)
+
+    if_none_match = request.headers.get("If-None-Match", None)
+    if if_none_match == etag:
+        logger.info("matched etag (%s), returning 304", etag)
+        response = Response(status=304)
+        return add_table_view_cache_headers(response, etag)
+    else:
+        logger.warning("NO MATCH")
+
     if content_type in {ContentType.HTML, ContentType.JSON}:
-        keyset = keyset_from_request_args()
         page = PGUserdataAdapter.table_page(sesh, table, keyset)
         ensure_not_over_the_top(table, keyset, page)
         if content_type is ContentType.HTML:
-            return make_response(
+            response = make_response(
                 render_template(
                     "table_view.html",
                     page_title=f"{table.username}/{table.table_name}",
@@ -465,16 +475,66 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                     praise_id=get_praise_id_if_exists(table),
                 )
             )
+            return add_table_view_cache_headers(response, etag)
         else:
-            return jsonify(table_to_json_dict(table, page))
+            return add_table_view_cache_headers(
+                jsonify(table_to_json_dict(table, page)), etag
+            )
     elif content_type is ContentType.PARQUET:
-        return make_streaming_response(svc.table_as_parquet(sesh, table.table_uuid))
-    elif content_type is ContentType.JSON_LINES:
-        return make_streaming_response(svc.table_as_jsonlines(sesh, table.table_uuid))
-    else:
-        return make_streaming_response(
-            svc.table_as_csv(sesh, table.table_uuid), ContentType.CSV
+        return add_table_view_cache_headers(
+            make_streaming_response(svc.table_as_parquet(sesh, table.table_uuid)), etag
         )
+    elif content_type is ContentType.JSON_LINES:
+        return add_table_view_cache_headers(
+            make_streaming_response(svc.table_as_jsonlines(sesh, table.table_uuid)),
+            etag,
+        )
+    else:
+        return add_table_view_cache_headers(
+            make_streaming_response(
+                svc.table_as_csv(sesh, table.table_uuid), ContentType.CSV
+            ),
+            etag,
+        )
+
+
+def keyset_to_dict(keyset: KeySet) -> Dict:
+    return {
+        "columns": [c.name for c in keyset.columns],
+        "values": keyset.values,
+        "op": keyset.op,
+        "size": keyset.size,
+    }
+
+
+def make_table_view_etag(
+    table: Table, content_type: ContentType, keyset: KeySet
+) -> str:
+    current_username = getattr(g, "current_username", "anonymous")
+
+    key = [
+        str(table.table_uuid),
+        keyset_to_dict(keyset),
+        content_type.value,
+        current_username if content_type == ContentType.HTML else "",
+    ]
+    serializer = itsdangerous.serializer.Serializer(current_app.config["SECRET_KEY"])
+    etag = "W/" + str(serializer.dumps(key))
+    # logger.debug("table view etag = %s", etag)
+    return etag
+
+
+def add_table_view_cache_headers(response: Response, etag: str) -> Response:
+    """Add HTTP cache headers that supply ETags but insist that revalidation is always done."""
+    response.headers["ETag"] = etag
+    response.cache_control.no_cache = True
+    response.cache_control.max_age = int(timedelta(days=28).total_seconds())
+    if response.mimetype == ContentType.HTML.value:
+        response.cache_control.private = True
+        response.headers["Vary"] = "Accept, Cookie"
+    else:
+        response.headers["Vary"] = "Accept"
+    return response
 
 
 @bp.route("/<username>/<table_name:table_name>/readme", methods=["GET"])
@@ -1248,6 +1308,8 @@ def table_to_json_dict(table: Table, page: Page) -> Dict[str, Any]:
         "is_public": table.is_public,
         "caption": table.caption,
         "data_licence": table.data_licence.short_render(),
+        "created": table.created.isoformat(),
+        "last_changed": table.last_changed.isoformat(),
         "columns": [
             {"name": column.name, "type": column.type_.pretty_type()}
             for column in table.columns

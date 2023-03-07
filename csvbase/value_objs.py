@@ -83,6 +83,7 @@ class Table:
     columns: Sequence["Column"]
     created: datetime
     row_count: RowCount
+    last_changed: datetime
 
     def has_caption(self) -> bool:
         return len(self.caption.strip()) > 0

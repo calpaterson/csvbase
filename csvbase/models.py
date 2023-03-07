@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING, List
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from sqlalchemy import Column, ForeignKey, UniqueConstraint, func
 from sqlalchemy import types as satypes

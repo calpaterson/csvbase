@@ -1,4 +1,5 @@
-from datetime import date
+import re
+from datetime import date, datetime
 from unittest.mock import ANY
 
 import pytest
@@ -54,8 +55,52 @@ def test_read__happy(client, ten_rows, test_user, content_type):
             ],
             "page": expected_page_dict,
             "approx_size": 10,
+            "last_changed": ANY,
+            "created": ANY,
         }
         assert actual_json == expected_json
+        assert datetime.fromisoformat(actual_json["last_changed"]) is not None
+        assert datetime.fromisoformat(actual_json["created"]) is not None
+
+
+def test_read__etag_cache_hit(client, ten_rows, test_user, content_type):
+    first_resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        headers={"Accept": content_type.value},
+    )
+    assert first_resp.status_code == 200, first_resp.data
+    assert content_type.value in first_resp.headers["Content-Type"]
+    etag = first_resp.headers["ETag"]
+
+    assert etag.startswith("W/")
+    first_cc = first_resp.cache_control
+    if content_type == ContentType.HTML:
+        assert first_cc.no_cache
+        assert first_cc.private
+    else:
+        assert first_cc.no_cache
+        assert not first_cc.private
+
+    second_resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        headers={"Accept": content_type.value, "If-None-Match": etag},
+    )
+    assert second_resp.status_code == 304
+    # You're obliged to send the ETag with the 304
+    second_etag = second_resp.headers["ETag"]
+    assert second_etag == etag
+
+
+def test_read__etag_cache_miss(client, ten_rows, test_user, content_type):
+    first_resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        headers={"Accept": content_type.value, "If-None-Match": "wrong etag"},
+    )
+    assert first_resp.status_code == 200, first_resp.data
+    assert content_type.value in first_resp.headers["Content-Type"]
+    etag = first_resp.headers["ETag"]
+
+    assert etag.startswith("W/")
 
 
 def test_read__with_no_rows(sesh, client, test_user, content_type):

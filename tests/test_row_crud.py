@@ -1,3 +1,4 @@
+from datetime import datetime
 import pytest
 
 from .utils import make_user
@@ -30,9 +31,14 @@ def test_create__happy(client, ten_rows, test_user):
     assert post_resp.status_code == 201
     assert post_resp.json == expected_resource
 
-    get_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}/rows/11")
-    assert get_resp.status_code == 200, get_resp.data
-    assert get_resp.json == expected_resource
+    row_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}/rows/11")
+    assert row_resp.status_code == 200, row_resp.data
+    assert row_resp.json == expected_resource
+
+    table_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}.json")
+    assert (
+        datetime.fromisoformat(table_resp.json["last_changed"]) > ten_rows.last_changed
+    )
 
 
 def test_create__table_does_not_exist(client, test_user):
@@ -157,6 +163,11 @@ def test_update__happy(client, ten_rows, test_user):
     resp = client.get(url)
     assert resp.json == new
 
+    table_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}.json")
+    assert (
+        datetime.fromisoformat(table_resp.json["last_changed"]) > ten_rows.last_changed
+    )
+
 
 def test_update__row_does_not_exist(client, ten_rows, test_user):
     url = f"/{test_user.username}/{ten_rows.table_name}/rows/11"
@@ -216,6 +227,11 @@ def test_delete__happy(client, ten_rows, test_user):
     resp = client.get(url)
     assert resp.status_code == 404, resp.data
     assert resp.json == {"error": "that row does not exist"}
+
+    table_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}.json")
+    assert (
+        datetime.fromisoformat(table_resp.json["last_changed"]) > ten_rows.last_changed
+    )
 
 
 @pytest.mark.xfail(reason="test not implemented")
