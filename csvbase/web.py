@@ -108,6 +108,7 @@ def init_app() -> Flask:
     app.config["CRYPT_CONTEXT"] = CryptContext(["argon2"])
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["SESSION_COOKIE_NAME"] = "csvbase_websesh"
+    app.config["SESSION_REFRESH_EACH_REQUEST"] = False
     app.json.compact = False  # type: ignore
     if "CSVBASE_SECRET_KEY" in environ:
         app.config["SECRET_KEY"] = environ["CSVBASE_SECRET_KEY"]
