@@ -15,6 +15,7 @@ test_reqs = [
     "sqlalchemy-stubs==0.4",
     "types-bleach==5.0.2",
     "types-setuptools==65.1.0",
+    "types-toml==0.10.8.5",
 ]
 
 setup(
@@ -43,6 +44,7 @@ setup(
         "sentry-sdk[flask]==1.12.1",
         "sqlalchemy==1.4.46",
         "systemd-python==234",
+        "toml==0.10.2",
         "typing-extensions==4.0.1",
         "werkzeug==2.2.3",
         "xlsxwriter==3.0.6",
@@ -53,6 +55,7 @@ setup(
             "csvbase-make-tables=csvbase.cli:make_tables",
             "csvbase-make-blog-table=csvbase.blog.cli:make_blog_table",
             "csvbase-load-prohibited-usernames=csvbase.cli:load_prohibited_usernames",
+            "csvbase-config=csvbase.cli:config_cli",
         ]
     },
 )

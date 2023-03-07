@@ -1,9 +1,17 @@
+from pathlib import Path
+from typing import Optional
+from logging import getLogger
+
 import click
 from sqlalchemy.sql.expression import text
 
 from .value_objs import DataLicence
 from .models import Base
+from .logging import configure_logging
+from .config import load_config, default_config_file
 from csvbase import svc
+
+logger = getLogger(__name__)
 
 
 @click.command(help="Load the prohibited username list into the database")
@@ -59,3 +67,20 @@ def make_tables():
            DO NOTHING;
         """
             )
+
+
+@click.command("csvbase-config")
+@click.option(
+    "-f",
+    "--config-file",
+    default=None,
+    help="Path to config file",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+)
+def config_cli(config_file: Optional[Path]):
+    configure_logging()
+
+    if config_file is None:
+        config_file = default_config_file()
+
+    logger.info(load_config(config_file))
