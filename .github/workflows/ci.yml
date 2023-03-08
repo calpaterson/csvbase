@@ -7,8 +7,6 @@ jobs:
     runs-on: ubuntu-20.04
 
     env:
-      CSVBASE_DB_URL: postgresql+psycopg2://csvbase:csvbase@localhost/csvbase
-      CSVBASE_SECRET_KEY: 'snakeoil'
       GITHUB_ACTIONS: 'yes'
       PGPASSWORD: 'csvbase'
 
@@ -25,6 +23,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Write config file
+      run: |
+        cat <<EOF > ~/.csvbase.toml
+        secret_key = "snakeoil"
+        db_url = "postgresql+psycopg2://csvbase:csvbase@localhost/csvbase"
+        EOF
     - name: Set up Python 3.7
       uses: actions/setup-python@v1
       with:
