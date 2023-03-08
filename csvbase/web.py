@@ -126,6 +126,10 @@ def init_app() -> Flask:
 
     app.register_blueprint(bp)
 
+    from . import billing
+
+    billing.init_blueprint(app)
+
     if config.blog_ref is not None:
         app.register_blueprint(blog.bp)
 

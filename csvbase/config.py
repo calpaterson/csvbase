@@ -15,6 +15,8 @@ class Config:
     blog_ref: Optional[str]
     secret_key: Optional[str]
     sentry_dsn: Optional[str]
+    stripe_api_key: Optional[str]
+    stripe_price_id: Optional[str]
 
 
 __config__: Optional[Config] = None
@@ -35,6 +37,8 @@ def load_config(config_file: Path) -> Config:
         blog_ref=as_dict.get("blog_ref"),
         secret_key=as_dict.get("secret_key"),
         sentry_dsn=as_dict.get("sentry_dsn"),
+        stripe_price_id=as_dict.get("stripe_price_id"),
+        stripe_api_key=as_dict.get("stripe_api_key"),
     )
 
 

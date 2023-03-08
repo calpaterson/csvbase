@@ -12,6 +12,8 @@ def test_config_file_not_exist(tmpdir):
         blog_ref=None,
         secret_key=None,
         sentry_dsn=None,
+        stripe_api_key=None,
+        stripe_price_id=None,
     )
 
 
@@ -27,4 +29,6 @@ def test_config_file_basic(tmpdir):
         blog_ref=None,
         secret_key=None,
         sentry_dsn=None,
+        stripe_api_key=None,
+        stripe_price_id=None,
     )

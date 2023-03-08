@@ -62,6 +62,14 @@ class User(Base):
         "Praise", uselist=True, backref="user_objs"
     )
 
+    stripe_customers_obj: "RelationshipProperty[StripeCustomer]" = relationship(
+        "StripeCustomer", uselist=False, backref="user_obj"
+    )
+
+    payment_references: "RelationshipProperty[List[PaymentReference]]" = relationship(
+        "PaymentReference", uselist=True, backref="user_objs"
+    )
+
 
 class UserEmail(Base):
     __tablename__ = "user_emails"
@@ -163,3 +171,24 @@ class ProhibitedUsername(Base):
     __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
 
     username = Column(satypes.String, nullable=False, primary_key=True)
+
+
+class PaymentReference(Base):
+    __tablename__ = "payment_references"
+    __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+
+    payment_reference_uuid = Column(PGUUID, primary_key=True, index=True)
+    user_uuid = Column(
+        PGUUID, ForeignKey("metadata.users.user_uuid"), index=True, primary_key=True
+    )
+    payment_reference = Column(satypes.String, primary_key=True, index=True)
+
+
+class StripeCustomer(Base):
+    __tablename__ = "stripe_customers"
+    __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+
+    user_uuid = Column(
+        PGUUID, ForeignKey("metadata.users.user_uuid"), index=True, primary_key=True
+    )
+    stripe_customer_id = Column(satypes.String, nullable=False, index=True)

@@ -43,6 +43,7 @@ setup(
         "pyarrow==10.0.1",
         "sentry-sdk[flask]==1.12.1",
         "sqlalchemy==1.4.46",
+        "stripe==5.2.0",
         "systemd-python==234",
         "toml==0.10.2",
         "typing-extensions==4.0.1",
