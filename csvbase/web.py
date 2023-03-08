@@ -4,7 +4,6 @@ import secrets
 import shutil
 from datetime import date, timedelta
 from logging import getLogger
-from os import environ
 from typing import (
     Any,
     Dict,
@@ -46,6 +45,7 @@ from werkzeug.routing import BaseConverter
 from werkzeug.wrappers.response import Response
 
 from . import blog, exc, svc, streams
+from .config import get_config
 from .db import db, get_db_url
 from .json import value_to_json, json_to_value
 from .markdown import render_markdown
@@ -110,8 +110,9 @@ def init_app() -> Flask:
     app.config["SESSION_COOKIE_NAME"] = "csvbase_websesh"
     app.config["SESSION_REFRESH_EACH_REQUEST"] = False
     app.json.compact = False  # type: ignore
-    if "CSVBASE_SECRET_KEY" in environ:
-        app.config["SECRET_KEY"] = environ["CSVBASE_SECRET_KEY"]
+    config = get_config()
+    if config.secret_key is not None:
+        app.config["SECRET_KEY"] = config.secret_key
     else:
         app.logger.warning("CSVBASE_SECRET_KEY not set, using a random secret")
         app.config["SECRET_KEY"] = secrets.token_hex()
@@ -125,7 +126,7 @@ def init_app() -> Flask:
 
     app.register_blueprint(bp)
 
-    if "CSVBASE_BLOG_REF" in environ:
+    if config.blog_ref is not None:
         app.register_blueprint(blog.bp)
 
     @app.context_processor

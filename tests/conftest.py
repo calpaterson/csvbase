@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
 from csvbase import svc, web
+from csvbase.config import get_config
 from csvbase.db import db, get_db_url
 from csvbase.userdata import PGUserdataAdapter
 from csvbase.value_objs import Column, ColumnType, DataLicence, ContentType
@@ -19,7 +20,7 @@ from .utils import make_user, random_string, create_table
 @pytest.fixture(scope="session")
 def app():
     # enable the blog (but with a blank table ref!)
-    with patch.dict(os.environ, {"CSVBASE_BLOG_REF": ""}):
+    with patch.object(get_config(), "blog_ref", ""):
         a = web.init_app()
     a.config["TESTING"] = True
     # Speeds things up considerably when testing

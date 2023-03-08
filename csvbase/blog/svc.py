@@ -1,12 +1,10 @@
 from uuid import uuid4
 from datetime import date
-import os
-import zipfile
-from typing import Sequence
-from uuid import UUID
+from typing import Sequence, Tuple
 
 from csvbase import exc
 from csvbase.svc import get_table, create_table_metadata, user_by_name
+from csvbase.config import get_config
 from csvbase.userdata import PGUserdataAdapter
 from csvbase.value_objs import Column, ColumnType, KeySet, Row, DataLicence
 
@@ -40,9 +38,17 @@ def post_to_row(post: Post) -> Row:
     return row
 
 
+def get_blog_ref() -> Tuple[str, str]:
+    config = get_config()
+    if config.blog_ref is None:
+        raise RuntimeError("no blog ref")
+    else:
+        username, table_name = config.blog_ref.split("/")
+        return username, table_name
+
+
 def get_posts(sesh) -> Sequence[Post]:
-    blog_ref = os.environ["CSVBASE_BLOG_REF"]
-    username, table_name = blog_ref.split("/")
+    username, table_name = get_blog_ref()
     table = get_table(sesh, username, table_name)
     page = PGUserdataAdapter.table_page(
         sesh,
@@ -56,8 +62,7 @@ def get_posts(sesh) -> Sequence[Post]:
 
 
 def get_post(sesh, post_id: int) -> Post:
-    blog_ref = os.environ["CSVBASE_BLOG_REF"]
-    username, table_name = blog_ref.split("/")
+    username, table_name = get_blog_ref()
     table = get_table(sesh, username, table_name)
     row = PGUserdataAdapter.get_row(sesh, table.table_uuid, post_id)
     if row is None:
@@ -66,16 +71,14 @@ def get_post(sesh, post_id: int) -> Post:
 
 
 def insert_post(sesh, post: Post) -> None:
-    blog_ref = os.environ["CSVBASE_BLOG_REF"]
-    username, table_name = blog_ref.split("/")
+    username, table_name = get_blog_ref()
     table = get_table(sesh, username, table_name)
     row = post_to_row(post)
     PGUserdataAdapter.insert_row(sesh, table.table_uuid, row)
 
 
 def make_blog_table(sesh) -> None:
-    blog_ref = os.environ["CSVBASE_BLOG_REF"]
-    username, table_name = blog_ref.split("/")
+    username, table_name = get_blog_ref()
     user = user_by_name(sesh, username)
     create_table_metadata(
         sesh,

@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from unittest.mock import patch
 from uuid import UUID, uuid4
@@ -8,6 +7,7 @@ import pytest
 from lxml import etree
 
 from csvbase.blog import svc as blog_svc
+from csvbase.config import get_config
 from csvbase.blog.value_objs import Post
 from csvbase.svc import create_table_metadata, get_table
 from csvbase.userdata import PGUserdataAdapter
@@ -56,8 +56,8 @@ def blog_table(sesh, test_user: User):
     )
     table = get_table(sesh, test_user.username, table_name)
     sesh.commit()
-    with patch.dict(
-        os.environ, {"CSVBASE_BLOG_REF": f"{test_user.username}/{table.table_name}"}
+    with patch.object(
+        get_config(), "blog_ref", f"{test_user.username}/{table.table_name}"
     ):
         yield table
 
