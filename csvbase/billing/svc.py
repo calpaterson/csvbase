@@ -16,5 +16,5 @@ def insert_stripe_customer_id(sesh, user_uuid: UUID, stripe_customer_id: str) ->
     ...
 
 
-def get_stripe_customer_iud(sesh, user_uuid: UUID) -> Optional[str]:
+def get_stripe_customer_id(sesh, user_uuid: UUID) -> Optional[str]:
     ...
