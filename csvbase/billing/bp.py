@@ -7,7 +7,6 @@ import stripe
 from ..svc import user_by_user_uuid
 from ..sesh import get_sesh
 from ..value_objs import User
-from .. import models
 from ..config import get_config
 from . import svc
 
@@ -18,9 +17,10 @@ bp = Blueprint("billing", __name__)
 
 def init_blueprint(app):
     config = get_config()
-    stripe.api_key = config.stripe_api_key
-    app.register_blueprint(bp, url_prefix="/billing/")
-    logger.info("initialised billing blueprint")
+    if config.stripe_api_key is not None:
+        stripe.api_key = config.stripe_api_key
+        app.register_blueprint(bp, url_prefix="/billing/")
+        logger.info("initialised billing blueprint")
 
 
 @bp.route("/subscribe", methods=["GET"])
@@ -33,10 +33,6 @@ def subscribe():
     current_user: User = g.current_user
 
     payment_reference_uuid = uuid4()
-    payment_ref = models.PaymentReference(
-        payment_reference_uuid=payment_reference_uuid, user_uuid=current_user.user_uuid
-    )
-    sesh.add(payment_ref)
 
     checkout_session_kwargs = {
         "mode": "subscription",
@@ -67,7 +63,9 @@ def subscribe():
         current_user.username,
     )
 
-    payment_ref.payment_reference = checkout_session.id
+    svc.record_payment_reference(
+        sesh, payment_reference_uuid, current_user, checkout_session.id
+    )
     sesh.commit()
 
     return redirect(checkout_session.url)
@@ -97,6 +95,8 @@ def success(payment_reference_uuid: str):
     sesh.commit()
 
     user = user_by_user_uuid(sesh, user_uuid)
+
+    # FIXME: now mark the user as having subscribed
 
     flash("You have subscribed to csvbase")
     return redirect(url_for("csvbase.user", username=user.username))

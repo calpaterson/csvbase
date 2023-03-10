@@ -2,6 +2,20 @@ from typing import Tuple, Optional
 from uuid import UUID
 
 from ..models import PaymentReference
+from ..value_objs import User
+
+
+def record_payment_reference(
+    sesh, payment_reference_uuid: UUID, user: User, payment_reference: str
+) -> UUID:
+    sesh.add(
+        PaymentReference(
+            payment_reference_uuid=payment_reference_uuid,
+            user_uuid=user.user_uuid,
+            payment_reference=payment_reference,
+        )
+    )
+    return payment_reference_uuid
 
 
 def get_payment_reference(sesh, payment_reference_uuid: UUID) -> Tuple[UUID, str]:
