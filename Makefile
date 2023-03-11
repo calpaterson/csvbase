@@ -25,7 +25,7 @@ serve: .venv static-deps
 serve-gunicorn: .venv static-deps
 	. .venv/bin/activate; gunicorn -w 1 'csvbase.web:init_app()' --access-logfile=- -t 30 -b :6001
 
-tox: tests/test-data/sitemap.xsd
+tox: static-deps
 	tox
 
 bootstrap-5.1.3-dist.zip:
