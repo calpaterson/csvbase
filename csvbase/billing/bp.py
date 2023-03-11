@@ -1,11 +1,14 @@
 from uuid import uuid4, UUID
 from logging import getLogger
 
-from flask import url_for, Blueprint, redirect, g, flash
+from flask import url_for, Blueprint, redirect, g, flash, Flask
+from werkzeug.wrappers.response import Response
 import stripe
 
 from ..svc import user_by_user_uuid
 from ..sesh import get_sesh
+
+# from ..web import am_user_or_400
 from ..value_objs import User
 from ..config import get_config
 from . import svc
@@ -15,7 +18,7 @@ logger = getLogger(__name__)
 bp = Blueprint("billing", __name__)
 
 
-def init_blueprint(app):
+def init_blueprint(app: Flask) -> None:
     config = get_config()
     if config.stripe_api_key is not None:
         stripe.api_key = config.stripe_api_key
@@ -24,7 +27,7 @@ def init_blueprint(app):
 
 
 @bp.route("/subscribe", methods=["GET"])
-def subscribe():
+def subscribe() -> Response:
     """Redirect the user to the checkout"""
     sesh = get_sesh()
     config = get_config()
@@ -72,7 +75,7 @@ def subscribe():
 
 
 @bp.route("/success/<payment_reference_uuid>", methods=["GET"])
-def success(payment_reference_uuid: str):
+def success(payment_reference_uuid: str) -> Response:
     """The URL that a user gets redirected to upon a successful checkout.
 
     It's import that this is idempotent as users might refresh.
@@ -105,3 +108,22 @@ def success(payment_reference_uuid: str):
 @bp.route("/cancel/<payment_reference_uuid>", methods=["GET"])
 def cancel(payment_reference_uuid: str):
     raise NotImplementedError("not implemented")
+
+
+@bp.route("/manage", methods=["GET"])
+def manage() -> Response:
+    # FIXME: needed but cannot be imported due to an import loop
+    # am_user_or_400()
+    sesh = get_sesh()
+    current_user = g.current_user
+    customer_id = svc.get_stripe_customer_id(sesh, current_user.user_uuid)
+    portal_session = stripe.billing_portal.Session.create(
+        customer=customer_id,
+        return_url=url_for(
+            "csvbase.user", username=current_user.username, _external=True
+        ),
+    )
+    logger.info(
+        "Portal session '%s' created for %s", portal_session.id, current_user.username
+    )
+    return redirect(portal_session.url)

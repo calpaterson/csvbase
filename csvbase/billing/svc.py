@@ -1,7 +1,7 @@
 from typing import Tuple, Optional
 from uuid import UUID
 
-from ..models import PaymentReference
+from ..models import PaymentReference, StripeCustomer
 from ..value_objs import User
 
 
@@ -31,4 +31,18 @@ def insert_stripe_customer_id(sesh, user_uuid: UUID, stripe_customer_id: str) ->
 
 
 def get_stripe_customer_id(sesh, user_uuid: UUID) -> Optional[str]:
-    ...
+    return (
+        sesh.query(StripeCustomer.stripe_customer_id)
+        .filter(StripeCustomer.user_uuid == user_uuid)
+        .scalar()
+    )
+
+
+def has_had_subscription(sesh, user_uuid: UUID) -> bool:
+    """This is a temporary function - to be replaced later with a fuller
+    conception of subscription statuses."""
+    return sesh.query(
+        sesh.query(StripeCustomer)
+        .filter(StripeCustomer.user_uuid == user_uuid)
+        .exists()
+    ).scalar()

@@ -23,6 +23,11 @@
       <h2>Your API Key</h2>
       <code>{{ g.current_user.hex_api_key() }}</code>
 
+      {% if show_manage_subscription %}
+        <h2>Your subscription</h2>
+        <a href="{{ url_for('billing.manage') }}">Manage</a> your subscription.
+      {% endif %}
+
       <h2>Account controls</h2>
       <a href="{{ url_for('csvbase.sign_out') }}" class="btn btn-danger">Sign out</a>
     {% endif %}

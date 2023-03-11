@@ -67,11 +67,10 @@ from .value_objs import (
     Table,
     User,
 )
-from .streams import (
-    UserSubmittedBytes,
-    UserSubmittedCSVData,
-)
+from .streams import UserSubmittedCSVData
 from .constants import COPY_BUFFER_SIZE
+from . import billing
+from .billing import svc as billing_svc
 
 logger = getLogger(__name__)
 
@@ -125,8 +124,6 @@ def init_app() -> Flask:
     app.url_map.converters["table_name"] = TableNameConverter
 
     app.register_blueprint(bp)
-
-    from . import billing
 
     billing.init_blueprint(app)
 
@@ -1001,6 +998,11 @@ def user(username: str) -> Response:
     include_private = False
     if "current_user" in g and g.current_user.username == username:
         include_private = True
+        show_manage_subscription = billing_svc.has_had_subscription(
+            sesh, g.current_user.user_uuid
+        )
+    else:
+        show_manage_subscription = False
     user = svc.user_by_name(sesh, username)
     tables = svc.tables_for_user(
         sesh,
@@ -1013,6 +1015,7 @@ def user(username: str) -> Response:
             user=user,
             page_title=f"{username}",
             tables=list(tables),
+            show_manage_subscription=show_manage_subscription,
         )
     )
 

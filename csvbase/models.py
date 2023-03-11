@@ -177,11 +177,14 @@ class PaymentReference(Base):
     __tablename__ = "payment_references"
     __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
 
-    payment_reference_uuid = Column(PGUUID, primary_key=True, index=True)
+    payment_reference_uuid = Column(PGUUID, primary_key=True)
     user_uuid = Column(
-        PGUUID, ForeignKey("metadata.users.user_uuid"), index=True, primary_key=True
+        PGUUID, ForeignKey("metadata.users.user_uuid"), index=True, nullable=False
     )
-    payment_reference = Column(satypes.String, primary_key=True, index=True)
+    payment_reference = Column(satypes.String, index=True, unique=True, nullable=False)
+    created = Column(
+        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    )
 
 
 class StripeCustomer(Base):
@@ -189,6 +192,11 @@ class StripeCustomer(Base):
     __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
 
     user_uuid = Column(
-        PGUUID, ForeignKey("metadata.users.user_uuid"), index=True, primary_key=True
+        PGUUID,
+        ForeignKey("metadata.users.user_uuid"),
+        primary_key=True,
     )
-    stripe_customer_id = Column(satypes.String, nullable=False, index=True)
+    stripe_customer_id = Column(satypes.String, nullable=False, index=True, unique=True)
+    created = Column(
+        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    )
