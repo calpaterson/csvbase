@@ -4,7 +4,7 @@ import pytest
 
 from csvbase import exc
 from csvbase.value_objs import Column, ColumnType
-from csvbase.streams import peek_csv, sniff_csv
+from csvbase.streams import peek_csv
 
 test_data = Path(__file__).resolve().parent / "test-data"
 

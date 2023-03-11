@@ -10,13 +10,14 @@ from .models import Base
 from .logging import configure_logging
 from .config import load_config, default_config_file
 from csvbase import svc
+from .sesh import get_sesh
+from .web.app import init_app
 
 logger = getLogger(__name__)
 
 
 @click.command(help="Load the prohibited username list into the database")
 def load_prohibited_usernames():
-    from .web import get_sesh, init_app
 
     with init_app().app_context():
         svc.load_prohibited_usernames(get_sesh())
@@ -26,8 +27,6 @@ def load_prohibited_usernames():
     help="Make the tables in the database (from the models, without using alembic)"
 )
 def make_tables():
-    from .web import get_sesh, init_app
-
     with init_app().app_context():
         sesh = get_sesh()
         sesh.execute("CREATE SCHEMA IF NOT EXISTS metadata")

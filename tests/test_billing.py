@@ -3,9 +3,8 @@ from typing import Optional
 from uuid import uuid4
 from dataclasses import dataclass, field
 
-from csvbase.web import set_current_user
-from csvbase.billing import svc
-from csvbase.billing import bp
+from csvbase.web.main.bp import set_current_user
+from csvbase.web.billing import svc, bp
 
 from .utils import random_string
 

@@ -12,7 +12,6 @@ from csvbase.value_objs import (
     DataLicence,
     KeySet,
     Page,
-    PythonType,
     Table,
 )
 
@@ -73,9 +72,9 @@ def test_first_page(sesh, test_user, letters_table):
         ),
     )
 
-    assert page.has_less == False
+    assert page.has_less is False
     assert rows_to_alist(page.rows) == [(1, "a"), (2, "b"), (3, "c")]
-    assert page.has_more == True
+    assert page.has_more is True
 
 
 def test_second_page(sesh, test_user, letters_table):
@@ -85,9 +84,9 @@ def test_second_page(sesh, test_user, letters_table):
         keyset=KeySet([csvbase_row_id_col], (3,), op="greater_than", size=3),
     )
 
-    assert page.has_less == True
+    assert page.has_less is True
     assert rows_to_alist(page.rows) == [(4, "d"), (5, "e"), (6, "f")]
-    assert page.has_more == True
+    assert page.has_more is True
 
 
 def test_back_to_first_page(sesh, test_user, letters_table):
@@ -109,9 +108,9 @@ def test_last_page(sesh, test_user, letters_table):
         keyset=KeySet([csvbase_row_id_col], values=(23,), op="greater_than", size=10),
     )
 
-    assert page.has_less == True
+    assert page.has_less is True
     assert rows_to_alist(page.rows) == [(24, "x"), (25, "y"), (26, "z")]
-    assert page.has_more == False
+    assert page.has_more is False
 
 
 def test_backward_paging(sesh, test_user, letters_table):
@@ -121,9 +120,9 @@ def test_backward_paging(sesh, test_user, letters_table):
         keyset=KeySet([csvbase_row_id_col], values=(23,), op="less_than", size=3),
     )
 
-    assert page.has_less == True
+    assert page.has_less is True
     assert rows_to_alist(page.rows) == [(20, "t"), (21, "u"), (22, "v")]
-    assert page.has_more == True
+    assert page.has_more is True
 
 
 def test_pagination_over_the_top(sesh, test_user, letters_table):

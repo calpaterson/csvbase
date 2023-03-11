@@ -1,8 +1,8 @@
 from typing import Tuple, Optional
 from uuid import UUID
 
-from ..models import PaymentReference, StripeCustomer
-from ..value_objs import User
+from ...models import PaymentReference, StripeCustomer
+from ...value_objs import User
 
 
 def record_payment_reference(

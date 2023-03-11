@@ -1,5 +1,3 @@
-from typing import Optional
-
 from .value_objs import ColumnType, KeySet
 
 

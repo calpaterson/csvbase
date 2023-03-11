@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from csvbase.web import from_html_form_to_python
+from csvbase.web.main.bp import from_html_form_to_python
 from csvbase.value_objs import ColumnType
 
 
@@ -17,3 +17,13 @@ from csvbase.value_objs import ColumnType
 )
 def test_parsing_from_html_form(column_type, form_value, expected):
     assert from_html_form_to_python(column_type, form_value) == expected
+
+
+@pytest.mark.parametrize(
+    "filename",
+    ["site.css", "bootstrap.min.css", "bootstrap.bundle.js", "codehilite.css"],
+)
+def test_static_files(client, filename: str):
+    """This test just checks that css has not been broken."""
+    response = client.get(f"/static/{filename}")
+    assert response.status_code == 200

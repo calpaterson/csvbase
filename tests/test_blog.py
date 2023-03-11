@@ -1,17 +1,16 @@
-from pathlib import Path
 from unittest.mock import patch
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import feedparser
 import pytest
 from lxml import etree
 
-from csvbase.blog import svc as blog_svc
+from csvbase.web.blog import svc as blog_svc
 from csvbase.config import get_config
-from csvbase.blog.value_objs import Post
+from csvbase.web.blog.value_objs import Post
 from csvbase.svc import create_table_metadata, get_table
 from csvbase.userdata import PGUserdataAdapter
-from csvbase.value_objs import Column, ColumnType, DataLicence, Table, User
+from csvbase.value_objs import Column, ColumnType, DataLicence, User
 
 from .utils import random_string
 

@@ -3,7 +3,7 @@ from datetime import date
 import functools
 
 from . import exc
-from .value_objs import Column, PythonType, ColumnType
+from .value_objs import PythonType, ColumnType
 
 JsonType = Union[str, int, float, bool, None]
 

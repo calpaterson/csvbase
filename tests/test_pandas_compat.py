@@ -1,12 +1,10 @@
-from os import path
 from io import StringIO, BytesIO
 
 import pandas as pd
 from pandas.testing import assert_frame_equal
-from flask import url_for
 import pytest
 
-from .utils import test_data_path, random_string, get_df_as_csv
+from .utils import get_df_as_csv
 
 
 def get_df_as_parquet(client, url) -> pd.DataFrame:

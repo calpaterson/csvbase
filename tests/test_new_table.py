@@ -8,8 +8,9 @@ from pandas.testing import assert_frame_equal
 from werkzeug.datastructures import FileStorage
 from flask import url_for
 import pytest
-from csvbase import web
+from csvbase.web import main
 from csvbase.value_objs import ColumnType
+from csvbase.web.func import set_current_user
 
 from .conftest import ROMAN_NUMERALS
 from .utils import random_string, get_df_as_csv
@@ -21,7 +22,7 @@ def render_pickle(*args, **kwargs):
 
 @pytest.fixture(scope="function", autouse=True)
 def render_template_to_json():
-    with patch.object(web, "render_template") as mock_render_template:
+    with patch.object(main.bp, "render_template") as mock_render_template:
         mock_render_template.side_effect = render_pickle
         yield
 
@@ -60,7 +61,7 @@ def test_uploading_a_table_when_not_logged_in(client):
 
 def test_uploading_a_table(client, test_user):
     table_name = f"test-table-{random_string()}"
-    web.set_current_user(test_user)
+    set_current_user(test_user)
     resp = client.post(
         "/new-table",
         data={
@@ -79,7 +80,7 @@ def test_uploading_a_table_with_csvbase_row_ids(client, test_user, ten_rows):
     re-upload them.
 
     """
-    web.set_current_user(test_user)
+    set_current_user(test_user)
 
     ten_rows_df = get_df_as_csv(
         client, f"/{test_user.username}/{ten_rows.table_name}.csv"

@@ -16,13 +16,13 @@ static-deps: csvbase/static/bootstrap.min.css csvbase/static/bootstrap.bundle.js
 	. .venv/bin/activate; python -m pip install .
 	touch $@
 
-csvbase/static/codehilite.css: .venv/touchfile
+csvbase/web/static/codehilite.css: .venv/touchfile
 	. .venv/bin/activate; pygmentize -S default -f html -a .highlight > $@
 
-serve: .venv csvbase/static/bootstrap.min.css csvbase/static/codehilite.css csvbase/static/bootstrap.bundle.js
+serve: .venv csvbase/web/static/bootstrap.min.css csvbase/web/static/codehilite.css csvbase/web/static/bootstrap.bundle.js
 	. .venv/bin/activate; flask run -p 6001
 
-serve-gunicorn: .venv csvbase/static/bootstrap.min.css csvbase/static/codehilite.css csvbase/static/bootstrap.bundle.js
+serve-gunicorn: .venv csvbase/web/static/bootstrap.min.css csvbase/web/static/codehilite.css csvbase/web/static/bootstrap.bundle.js
 	. .venv/bin/activate; gunicorn -w 1 'csvbase.web:init_app()' --access-logfile=- -t 30 -b :6001
 
 tox: tests/test-data/sitemap.xsd
@@ -31,10 +31,10 @@ tox: tests/test-data/sitemap.xsd
 bootstrap-5.1.3-dist.zip:
 	curl -O -L https://github.com/twbs/bootstrap/releases/download/v5.1.3/bootstrap-5.1.3-dist.zip
 
-csvbase/static/bootstrap.min.css: bootstrap-5.1.3-dist.zip
+csvbase/web/static/bootstrap.min.css: bootstrap-5.1.3-dist.zip
 	unzip -p bootstrap-5.1.3-dist.zip bootstrap-5.1.3-dist/css/bootstrap.min.css > $@
 
-csvbase/static/bootstrap.bundle.js: bootstrap-5.1.3-dist.zip
+csvbase/web/static/bootstrap.bundle.js: bootstrap-5.1.3-dist.zip
 	unzip -p bootstrap-5.1.3-dist.zip bootstrap-5.1.3-dist/js/bootstrap.bundle.js > $@
 
 tests/test-data/sitemap.xsd:

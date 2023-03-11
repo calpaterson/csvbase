@@ -1,11 +1,7 @@
-import io
-import codecs
 from typing import (
     Optional,
     Sequence,
     Type,
-    Iterable,
-    Any,
     Dict,
     Union,
     Mapping,
@@ -20,7 +16,6 @@ import enum
 import binascii
 
 from sqlalchemy import types as satypes
-import werkzeug.datastructures
 
 
 # Preliminary version of a Row.  Another option would be to subclass tuple and

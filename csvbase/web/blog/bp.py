@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from .value_objs import Post
 from . import svc as blog_svc
-from .. import exc
+from ... import exc
 from csvbase.sesh import get_sesh
 from csvbase.markdown import render_markdown
 

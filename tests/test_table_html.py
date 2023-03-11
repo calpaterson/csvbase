@@ -1,6 +1,3 @@
-from . import utils
-
-
 def test_table_export(ten_rows, test_user, client):
     resp = client.get(f"/{test_user.username}/{ten_rows.table_name}/export")
     assert resp.status_code == 200

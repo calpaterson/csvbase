@@ -9,17 +9,12 @@ from contextlib import closing
 from datetime import datetime, timezone, date
 from logging import getLogger
 from typing import (
-    TYPE_CHECKING,
     Any,
     Dict,
-    Set,
     Iterable,
-    List,
     Optional,
     Sequence,
     Tuple,
-    Type,
-    Union,
     Mapping,
 )
 from uuid import UUID, uuid4
@@ -39,18 +34,12 @@ from .value_objs import (
     Column,
     ColumnType,
     DataLicence,
-    KeySet,
-    Page,
-    PythonType,
     Row,
     Table,
     User,
     RowCount,
 )
 from .json import value_to_json
-
-if TYPE_CHECKING:
-    from sqlalchemy.engine import RowProxy
 
 logger = getLogger(__name__)
 
