@@ -10,9 +10,11 @@ from alembic import context
 # access to the values within the .ini file in use.
 config = context.config
 
-config.set_main_option(
-    "sqlalchemy.url", environ.get("CSVBASE_DB_URL", "postgresql:///csvbase")
-)
+from csvbase.config import get_config
+
+csvbase_config = get_config()
+
+config.set_main_option("sqlalchemy.url", csvbase_config.db_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
