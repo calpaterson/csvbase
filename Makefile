@@ -3,11 +3,11 @@ export FLASK_ENV = development
 
 version :=$(file < csvbase/VERSION)
 
-.PHONY: tox serve release default static-deps
+.PHONY: tox serve serve-gunicorn release default static-deps
 
 default: tox
 
-static-deps: csvbase/static/bootstrap.min.css csvbase/static/bootstrap.bundle.js tests/test-data/sitemap.xsd
+static-deps: csvbase/web/static/codehilite.css csvbase/web/static/bootstrap.min.css csvbase/web/static/bootstrap.bundle.js tests/test-data/sitemap.xsd
 
 .venv: .venv/touchfile
 
@@ -19,10 +19,10 @@ static-deps: csvbase/static/bootstrap.min.css csvbase/static/bootstrap.bundle.js
 csvbase/web/static/codehilite.css: .venv/touchfile
 	. .venv/bin/activate; pygmentize -S default -f html -a .highlight > $@
 
-serve: .venv csvbase/web/static/bootstrap.min.css csvbase/web/static/codehilite.css csvbase/web/static/bootstrap.bundle.js
+serve: .venv static-deps
 	. .venv/bin/activate; flask run -p 6001
 
-serve-gunicorn: .venv csvbase/web/static/bootstrap.min.css csvbase/web/static/codehilite.css csvbase/web/static/bootstrap.bundle.js
+serve-gunicorn: .venv static-deps
 	. .venv/bin/activate; gunicorn -w 1 'csvbase.web:init_app()' --access-logfile=- -t 30 -b :6001
 
 tox: tests/test-data/sitemap.xsd
