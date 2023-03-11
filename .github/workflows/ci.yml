@@ -28,6 +28,8 @@ jobs:
         cat <<EOF > ~/.csvbase.toml
         secret_key = "snakeoil"
         db_url = "postgresql+psycopg2://csvbase:csvbase@localhost/csvbase"
+        stripe_api_key = "sample"
+        stripe_price_id = "price_123"
         EOF
     - name: Set up Python 3.7
       uses: actions/setup-python@v1

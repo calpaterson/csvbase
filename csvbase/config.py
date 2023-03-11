@@ -10,6 +10,13 @@ logger = getLogger(__name__)
 
 @dataclass
 class Config:
+    """A typecheckable config object.
+
+    In order to keep the benefits of typechecking, don't pass this into places
+    where the typechecker can't find it - ie: jinja templates.
+
+    """
+
     db_url: str
     environment: str
     blog_ref: Optional[str]
@@ -23,7 +30,11 @@ __config__: Optional[Config] = None
 
 
 def load_config(config_file: Path) -> Config:
-    """Loads the configuration at the given path"""
+    """Loads the configuration at the given path.
+
+    Currently this doesn't really validate the config - but that is planned.
+
+    """
     logger.info("loading config from %s", config_file)
     if config_file.exists():
         with open(config_file, encoding="utf-8") as config_f:
@@ -48,7 +59,13 @@ def default_config_file() -> Path:
 
 
 def get_config() -> Config:
-    """Returns the config"""
+    """Returns the config.
+
+    The the config does not change while the program is running, but in order
+    to make it easy to test, don't call this function from the top-level (that
+    makes it hard to mock).
+
+    """
     global __config__
     if __config__ is None:
         __config__ = load_config(default_config_file())
