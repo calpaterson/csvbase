@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
 COPY ./ ./
 
 RUN python -m pip install pygments==2.13.0
-RUN pygmentize -S default -f html -a .highlight > csvbase/static/codehilite.css
+RUN pygmentize -S default -f html -a .highlight > csvbase/web/static/codehilite.css
 RUN make static-deps
 
 RUN python -m pip wheel -w wheelhouse .
