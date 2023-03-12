@@ -3,11 +3,13 @@ from typing import Optional
 from uuid import uuid4
 from dataclasses import dataclass, field
 
+from csvbase.svc import create_user
 from csvbase.web.main.bp import set_current_user
 from csvbase.web.billing import svc, bp
 
 from .utils import random_string
 
+import stripe
 import pytest
 
 
@@ -42,17 +44,59 @@ def test_subscribe(client, test_user):
         status="complete",
         payment_status="paid",
     )
-    with patch.object(bp.stripe.checkout.Session, "create") as mock_retrieve:
-        mock_retrieve.return_value = fake_checkout_session
+    with patch.object(bp.stripe.checkout.Session, "create") as mock_create:
+        mock_create.return_value = fake_checkout_session
         subscribe_response = client.get("/billing/subscribe")
     assert subscribe_response.status_code == 302
     assert subscribe_response.headers["Location"] == fake_checkout_session.url
 
 
+def test_subscribe__stripe_rejects_customer_email(client, sesh, app):
+    crypt_context = app.config["CRYPT_CONTEXT"]
+    test_user = create_user(
+        sesh, crypt_context, random_string(), random_string(), email="darth@deathstar"
+    )
+    sesh.commit()
+    set_current_user(test_user)
+    fake_checkout_session = FakeCheckoutSession(
+        id=random_string(),
+        status="complete",
+        payment_status="paid",
+    )
+
+    def reject_if_email_present(**kwargs):
+        if "customer_email" in kwargs:
+            raise stripe.error.InvalidRequestError(
+                message="Invalid email address: darth@deathstar",
+                param="customer_email",
+                code="email_invalid",
+                http_status=400,
+            )
+        else:
+            return fake_checkout_session
+
+    with patch.object(bp.stripe.checkout.Session, "create") as mock_create:
+        mock_create.side_effect = reject_if_email_present
+        subscribe_response = client.get("/billing/subscribe")
+    assert subscribe_response.status_code == 302
+    assert subscribe_response.headers["Location"] == fake_checkout_session.url
+
+
+def test_subscribe__stripe_rejects_for_other_reason(client, test_user):
+    set_current_user(test_user)
+    with patch.object(bp.stripe.checkout.Session, "create") as mock_create:
+        mock_create.side_effect = stripe.error.InvalidRequestError(
+            message="Something else",
+            param="something",
+        )
+        with pytest.raises(stripe.error.InvalidRequestError):
+            client.get("/billing/subscribe")
+
+
 def test_success_url(client, sesh, test_user):
     payment_reference_uuid = uuid4()
     payment_reference = random_string()
-    payment_reference_uuid = svc.record_payment_reference(
+    svc.record_payment_reference(
         sesh, payment_reference_uuid, test_user, payment_reference
     )
     sesh.commit()
@@ -70,9 +114,9 @@ def test_success_url(client, sesh, test_user):
     assert resp.headers["Location"] == f"/{test_user.username}"
 
 
-@pytest.mark.xfail(reason="not implemented")
-def test_success_url__payment_reference_does_not_exist():
-    assert False
+def test_success_url__payment_reference_does_not_exist(client):
+    resp = client.get(f"/billing/success/{str(uuid4())}")
+    assert resp.status_code == 404
 
 
 def test_manage__happy(client, sesh, test_user):

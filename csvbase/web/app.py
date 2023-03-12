@@ -65,6 +65,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
         400,
     ),
     exc.CSVException: ("Unable to parse that csv file", 400),
+    exc.UnknownPaymentReferenceUUIDException: ("unknown payment reference", 404),
 }
 
 

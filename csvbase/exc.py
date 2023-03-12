@@ -87,3 +87,12 @@ class UnconvertableValueException(CSVBaseException):
 class CSVException(CSVBaseException):
     def __init__(self, message: str):
         self.message = message
+
+
+class BillingException(CSVBaseException):
+    pass
+
+
+class UnknownPaymentReferenceUUIDException(BillingException):
+    def __init__(self, payment_reference_uuid: str) -> None:
+        self.payment_reference_uuid = payment_reference_uuid

@@ -7,7 +7,7 @@ from ...value_objs import User
 
 def record_payment_reference(
     sesh, payment_reference_uuid: UUID, user: User, payment_reference: str
-) -> UUID:
+) -> None:
     sesh.add(
         PaymentReference(
             payment_reference_uuid=payment_reference_uuid,
@@ -15,14 +15,15 @@ def record_payment_reference(
             payment_reference=payment_reference,
         )
     )
-    return payment_reference_uuid
 
 
-def get_payment_reference(sesh, payment_reference_uuid: UUID) -> Tuple[UUID, str]:
+def get_payment_reference(
+    sesh, payment_reference_uuid: UUID
+) -> Optional[Tuple[UUID, str]]:
     return (
         sesh.query(PaymentReference.user_uuid, PaymentReference.payment_reference)
         .filter(PaymentReference.payment_reference_uuid == payment_reference_uuid)
-        .one()
+        .one_or_none()
     )
 
 

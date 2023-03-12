@@ -11,6 +11,7 @@ from ...sesh import get_sesh
 # from ..web import am_user_or_400
 from ...value_objs import User
 from ...config import get_config
+from ... import exc
 from . import svc
 
 logger = getLogger(__name__)
@@ -52,13 +53,29 @@ def subscribe() -> Response:
         "client_reference_id": str(payment_reference_uuid),
         "line_items": [{"price": price_id, "quantity": 1}],
     }
+
+    # This is an attempt to pre-fill if the email looks real but stripe may
+    # still reject and that is handled later
     if current_user.email is not None and "@" in current_user.email:
         checkout_session_kwargs["customer_email"] = current_user.email
     stripe_customer_id = svc.get_stripe_customer_id(sesh, current_user.user_uuid)
     if stripe_customer_id is not None:
         checkout_session_kwargs["customer"] = stripe_customer_id
 
-    checkout_session = stripe.checkout.Session.create(**checkout_session_kwargs)
+    try:
+        checkout_session = stripe.checkout.Session.create(**checkout_session_kwargs)
+    except stripe.error.InvalidRequestError as e:
+        if e.code == "email_invalid":
+            # if stripe did reject the email address, remove it and retry
+            logger.warning(
+                "stripe rejected customer email: '%s'",
+                checkout_session_kwargs["customer_email"],
+            )
+            del checkout_session_kwargs["customer_email"]
+            checkout_session = stripe.checkout.Session.create(**checkout_session_kwargs)
+        else:
+            logger.exception("stripe invalid request error")
+            raise
 
     logger.info(
         "created checkout session '%s' for '%s'",
@@ -82,9 +99,13 @@ def success(payment_reference_uuid: str) -> Response:
 
     """
     sesh = get_sesh()
-    user_uuid, payment_reference = svc.get_payment_reference(
-        sesh, UUID(payment_reference_uuid)
-    )
+    payment_ref_tup = svc.get_payment_reference(sesh, UUID(payment_reference_uuid))
+    if payment_ref_tup is None:
+        logger.error("no such payment reference uuid: %s", payment_reference_uuid)
+        raise exc.UnknownPaymentReferenceUUIDException(payment_reference_uuid)
+
+    user_uuid, payment_reference = payment_ref_tup
+
     checkout_session = stripe.checkout.Session.retrieve(payment_reference)
 
     logger.info(
