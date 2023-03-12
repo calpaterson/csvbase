@@ -47,7 +47,7 @@ def sesh(session_cls):
         yield sesh_
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def test_user(module_sesh, app):
     user = make_user(
         module_sesh,
@@ -85,7 +85,7 @@ def ten_rows(test_user, sesh):
     return table
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def private_table(test_user, module_sesh):
     x_column = Column("x", type_=ColumnType.INTEGER)
     table = create_table(module_sesh, test_user, [x_column], is_public=False)

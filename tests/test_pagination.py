@@ -18,7 +18,7 @@ from csvbase.value_objs import (
 from .utils import random_string
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def letters_table(test_user, module_sesh) -> Table:
     table_name = random_string()
 

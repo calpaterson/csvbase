@@ -28,7 +28,7 @@ def get_payment_reference(
 
 
 def insert_stripe_customer_id(sesh, user_uuid: UUID, stripe_customer_id: str) -> None:
-    ...
+    sesh.add(StripeCustomer(user_uuid=user_uuid, stripe_customer_id=stripe_customer_id))
 
 
 def get_stripe_customer_id(sesh, user_uuid: UUID) -> Optional[str]:

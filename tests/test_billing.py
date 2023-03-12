@@ -24,23 +24,30 @@ def random_stripe_url(host: str = "stripe.com", path_prefix="/") -> str:
 
 @dataclass
 class FakeCheckoutSession:
-    id: str
     status: str
     payment_status: str
     customer: Optional[str] = None
-    url: str = "http://example.com/checkout"
+    id: str = field(default_factory=random_string)
+    url: str = field(
+        default_factory=lambda: random_stripe_url(
+            host="checkout.stripe.com", path_prefix="/c/pay"
+        )
+    )
 
 
 @dataclass
 class FakePortalSession:
-    url: str
+    url: str = field(
+        default_factory=lambda: random_stripe_url(
+            "billing.stripe.com", path_prefix="/session"
+        )
+    )
     id: str = field(default_factory=random_string)
 
 
 def test_subscribe(client, test_user):
     set_current_user(test_user)
     fake_checkout_session = FakeCheckoutSession(
-        id=random_string(),
         status="complete",
         payment_status="paid",
     )
@@ -49,6 +56,11 @@ def test_subscribe(client, test_user):
         subscribe_response = client.get("/billing/subscribe")
     assert subscribe_response.status_code == 302
     assert subscribe_response.headers["Location"] == fake_checkout_session.url
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_subscribe__stripe_customer_already_Exists(client, test_user):
+    assert False
 
 
 def test_subscribe__stripe_rejects_customer_email(client, sesh, app):
@@ -110,6 +122,9 @@ def test_success_url(client, sesh, test_user):
             payment_status="paid",
         )
         resp = client.get(f"/billing/success/{str(payment_reference_uuid)}")
+
+    assert svc.get_stripe_customer_id(sesh, test_user.user_uuid) is not None
+
     assert resp.status_code == 302
     assert resp.headers["Location"] == f"/{test_user.username}"
 
@@ -125,12 +140,12 @@ def test_manage__happy(client, sesh, test_user):
     sesh.commit()
 
     set_current_user(test_user)
-    portal_url = random_stripe_url("billing.stripe.com", path_prefix="/session")
+    portal_session = FakePortalSession()
     with patch.object(bp.stripe.billing_portal.Session, "create") as mock_create:
-        mock_create.return_value = FakePortalSession(url=portal_url)
+        mock_create.return_value = portal_session
         resp = client.get("/billing/manage")
     assert resp.status_code == 302
-    assert resp.headers["Location"] == portal_url
+    assert resp.headers["Location"] == portal_session.url
 
 
 @pytest.mark.xfail(reason="not implemented")

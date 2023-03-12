@@ -68,7 +68,7 @@ def subscribe() -> Response:
         if e.code == "email_invalid":
             # if stripe did reject the email address, remove it and retry
             logger.warning(
-                "stripe rejected customer email: '%s'",
+                "stripe rejected customer email: '%s', retrying without it",
                 checkout_session_kwargs["customer_email"],
             )
             del checkout_session_kwargs["customer_email"]
@@ -77,17 +77,16 @@ def subscribe() -> Response:
             logger.exception("stripe invalid request error")
             raise
 
-    logger.info(
-        "created checkout session '%s' for '%s'",
-        checkout_session.id,
-        current_user.username,
-    )
-
     svc.record_payment_reference(
         sesh, payment_reference_uuid, current_user, checkout_session.id
     )
     sesh.commit()
 
+    logger.info(
+        "created checkout session '%s' for '%s', redirecting",
+        checkout_session.id,
+        current_user.username,
+    )
     return redirect(checkout_session.url)
 
 
@@ -108,15 +107,14 @@ def success(payment_reference_uuid: str) -> Response:
 
     checkout_session = stripe.checkout.Session.retrieve(payment_reference)
 
+    svc.insert_stripe_customer_id(sesh, user_uuid, checkout_session.customer)
+    sesh.commit()
     logger.info(
         "checkout session succeeded: '%s', status: '%s', payment_status: '%s'",
         checkout_session.id,
         checkout_session.status,
         checkout_session.payment_status,
     )
-
-    svc.insert_stripe_customer_id(sesh, user_uuid, checkout_session.customer)
-    sesh.commit()
 
     user = user_by_user_uuid(sesh, user_uuid)
 
