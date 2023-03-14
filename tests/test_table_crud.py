@@ -74,10 +74,10 @@ def test_read__etag_cache_hit(client, ten_rows, test_user, content_type):
     assert etag.startswith("W/")
     first_cc = first_resp.cache_control
     if content_type == ContentType.HTML:
-        assert first_cc.no_cache
+        assert first_cc.must_revalidate
         assert first_cc.private
     else:
-        assert first_cc.no_cache
+        assert first_cc.must_revalidate
         assert not first_cc.private
 
     second_resp = client.get(

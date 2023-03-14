@@ -15,6 +15,7 @@ from typing import (
     Iterator,
 )
 from urllib.parse import urlsplit, urlunsplit
+import hashlib
 
 import itsdangerous.serializer
 import werkzeug.http
@@ -330,11 +331,15 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
 
     if_none_match = request.headers.get("If-None-Match", None)
     if if_none_match == etag:
-        logger.info("matched etag (%s), returning 304", etag)
+        logger.debug("matched etag (%s), returning 304", etag)
         response = Response(status=304)
         return add_table_view_cache_headers(response, etag)
+    elif if_none_match is not None:
+        logger.info(
+            "provided etag (%s) doesn't match current (%s)", if_none_match, etag
+        )
     else:
-        logger.warning("NO MATCH")
+        logger.debug("no matching etag")
 
     if content_type in {ContentType.HTML, ContentType.JSON}:
         page = PGUserdataAdapter.table_page(sesh, table, keyset)
@@ -387,29 +392,43 @@ def make_table_view_etag(
     table: Table, content_type: ContentType, keyset: KeySet
 ) -> str:
     current_username = getattr(g, "current_username", "anonymous")
-
-    key = [
-        str(table.table_uuid),
-        keyset_to_dict(keyset),
-        content_type.value,
-        current_username if content_type == ContentType.HTML else "",
-    ]
+    # we have to hash here because some browsers (eg Chrome) don't seem to
+    # handle some characters (eg comma) well in the ETag header
+    hash_ = hashlib.blake2b()
+    hash_.update(table.table_uuid.bytes)
+    hash_.update(str(keyset_to_dict(keyset)).encode("utf-8"))
+    hash_.update(content_type.value.encode("utf-8"))
+    if content_type == ContentType.HTML:
+        hash_.update(current_username.encode("utf-8"))
+    key = hash_.hexdigest()
+    # and we sign to avoid people fishing for other people's cache'd versions
+    # with etags
     serializer = itsdangerous.serializer.Serializer(current_app.config["SECRET_KEY"])
     etag = "W/" + str(serializer.dumps(key))
-    # logger.debug("table view etag = %s", etag)
     return etag
 
 
 def add_table_view_cache_headers(response: Response, etag: str) -> Response:
-    """Add HTTP cache headers that supply ETags but insist that revalidation is always done."""
+    """Set the ETag and xkey (varnish) cache headers relevant to table views."""
+    # Don't set private here - that should already have been done above (and we
+    # don't know, here whether a given table is private or not)
     response.headers["ETag"] = etag
-    response.cache_control.no_cache = True
-    response.cache_control.max_age = int(timedelta(days=28).total_seconds())
+
+    # Setting the max age to a low but non-zero value
+    response.cache_control.max_age = int(timedelta(seconds=1).total_seconds())
+    response.cache_control.must_revalidate = True
+
+    # HTML views show usernames, other personal data, and we have to indicate
+    # if it's an HTML view that the Cookie header is part of the cache key
     if response.mimetype == ContentType.HTML.value:
         response.cache_control.private = True
         response.headers["Vary"] = "Accept, Cookie"
     else:
         response.headers["Vary"] = "Accept"
+
+    # xkeys are used by varnish to do invalidation - currently not used because
+    # etags works well enough for now
+    # response.headers["xkey"] = "table/{table_uuid}"
     return response
 
 
