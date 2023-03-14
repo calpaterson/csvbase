@@ -12,6 +12,7 @@ from .config import load_config, default_config_file
 from csvbase import svc
 from .sesh import get_sesh
 from .web.app import init_app
+from .web.billing import svc as billing_svc
 
 logger = getLogger(__name__)
 
@@ -83,3 +84,12 @@ def config_cli(config_file: Optional[Path]):
         config_file = default_config_file()
 
     logger.info(load_config(config_file))
+
+
+@click.command("csvbase-update-stripe-subscriptions")
+@click.option("--full", is_flag=True, default=False, help="Update all subscriptions, not just those that haven't been updated recently")
+def update_stripe_subscriptions(full: bool) -> None:
+    configure_logging()
+
+    billing_svc.initialise_stripe()
+    billing_svc.update_stripe_subscriptions(full)

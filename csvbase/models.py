@@ -200,3 +200,17 @@ class StripeCustomer(Base):
     created = Column(
         satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
     )
+
+
+class StripeSubscription(Base):
+    __tablename__ = "subscriptions"
+    __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+
+    stripe_subscription_id = Column(satypes.String, primary_key=True)
+    user_uuid = Column(
+        PGUUID,
+        ForeignKey("metadata.users.user_uuid"),
+        primary_key=True,
+    )
+    status = ...
+    ttl = ...

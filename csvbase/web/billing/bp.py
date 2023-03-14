@@ -22,7 +22,7 @@ bp = Blueprint("billing", __name__)
 def init_blueprint(app: Flask) -> None:
     config = get_config()
     if config.stripe_api_key is not None:
-        stripe.api_key = config.stripe_api_key
+        svc.initialise_stripe()
         app.register_blueprint(bp, url_prefix="/billing/")
         logger.info("initialised billing blueprint")
 

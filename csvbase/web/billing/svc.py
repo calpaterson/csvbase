@@ -1,8 +1,20 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Iterable
 from uuid import UUID
+from logging import getLogger
 
+from sqlalchemy import func
+import stripe
+
+from ...config import get_config
 from ...models import PaymentReference, StripeCustomer
 from ...value_objs import User
+
+logger = getLogger(__name__)
+
+def initialise_stripe() -> None:
+    if stripe.api_key is None:
+        config = get_config()
+        stripe.api_key = config.stripe_api_key
 
 
 def record_payment_reference(
@@ -47,3 +59,24 @@ def has_had_subscription(sesh, user_uuid: UUID) -> bool:
         .filter(StripeCustomer.user_uuid == user_uuid)
         .exists()
     ).scalar()
+
+
+
+def get_stripe_subscriptions_for_update(sesh) -> Iterable:
+    query = sesh.query(StripeSubscription.stripe_subjection_id).filter(StripeSubscription.ttl<func.now())
+    for stripe_subscription_id, in query:
+        yield stripe.Subscription.retrieve(stripe_subscription_id)
+
+
+def update_stripe_subscriptions(sesh, full: bool) -> None:
+    stripe_subscription_objs: Iterable
+    if not full:
+        stripe_subscription_objs = get_stripe_subscriptions_for_update(sesh)
+    else:
+        stripe_subscription_objs = stripe.Subscription.list()
+
+    for stripe_subscription_obj in stripe_subscription_objs:
+        logger.info("checking %s", stripe_subjection_obj.id)
+        ...
+
+
