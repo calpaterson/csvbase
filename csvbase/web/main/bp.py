@@ -1,4 +1,5 @@
 import io
+from pathlib import Path
 import shutil
 from datetime import date, timedelta
 from logging import getLogger
@@ -43,7 +44,7 @@ from ..func import (
     get_current_user_or_401,
     get_current_user,
 )
-from ... import exc, svc, streams
+from ... import exc, svc, streams, table_io
 from ...json import value_to_json, json_to_value
 from ...markdown import render_markdown
 from ...sesh import get_sesh
@@ -106,16 +107,33 @@ def about() -> str:
 
 
 class ConvertForm(MethodView):
-    def get(self):
-        return render_template(
-            "convert.html",
-            input_formats=[ContentType.CSV],
-            output_formats=[
-                ContentType.PARQUET,
-                ContentType.XLSX,
-                ContentType.JSON_LINES,
-            ],
-            default_output_format=ContentType.PARQUET,
+    def get(self) -> Response:
+        return make_response(
+            render_template(
+                "convert.html",
+                input_formats=[ContentType.CSV],
+                output_formats=[
+                    ContentType.PARQUET,
+                    ContentType.XLSX,
+                    ContentType.JSON_LINES,
+                ],
+                default_output_format=ContentType.PARQUET,
+            )
+        )
+
+    def post(self) -> Response:
+        csv_buf = streams.byte_buf_to_str_buf(request.files["file"])
+        if request.files["file"].filename is not None:
+            original_filename = Path(request.files["file"].filename)
+        else:
+            original_filename = Path("converted")
+        converted_filename = original_filename.with_suffix(".parquet")
+        dialect, columns = streams.peek_csv(csv_buf)
+        csv_buf.seek(0)
+        rows = table_io.csv_to_rows(csv_buf, columns, dialect)
+        return make_streaming_response(
+            table_io.rows_to_parquet(columns, rows),
+            download_filename=str(converted_filename),
         )
 
 
@@ -192,13 +210,12 @@ def new_table_form_submission() -> Response:
     )
     PGUserdataAdapter.create_table(sesh, table_uuid, columns)
     table = svc.get_table(sesh, current_user.username, table_name)
-    # FIXME: what happens if this fails?
+    rows = table_io.csv_to_rows(csv_buf, columns, dialect)
     PGUserdataAdapter.insert_table_data(
         sesh,
         table,
-        csv_buf,
-        dialect,
         columns,
+        rows,
     )
     svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()
@@ -385,8 +402,10 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                 jsonify(table_to_json_dict(table, page)), etag
             )
     elif content_type is ContentType.PARQUET:
+        columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
+        rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
         return add_table_view_cache_headers(
-            make_streaming_response(svc.table_as_parquet(sesh, table.table_uuid)), etag
+            make_streaming_response(table_io.rows_to_parquet(columns, rows)), etag
         )
     elif content_type is ContentType.JSON_LINES:
         return add_table_view_cache_headers(

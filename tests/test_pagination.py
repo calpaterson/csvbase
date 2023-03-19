@@ -1,10 +1,8 @@
-import csv
-import io
 import string
 
 import pytest
 
-from csvbase import svc, streams
+from csvbase import svc
 from csvbase.userdata import PGUserdataAdapter
 from csvbase.value_objs import (
     Column,
@@ -22,15 +20,8 @@ from .utils import random_string
 def letters_table(test_user, module_sesh) -> Table:
     table_name = random_string()
 
-    csv_buf = io.StringIO()
-    writer = csv.writer(csv_buf)
-    writer.writerow(["letter"])
-    for char in string.ascii_lowercase:
-        writer.writerow(char)
-    csv_buf.seek(0)
-
-    dialect, columns = streams.peek_csv(csv_buf)
-    csv_buf.seek(0)
+    columns = [Column("letter", type_=ColumnType.TEXT)]
+    rows = [[letter] for letter in string.ascii_lowercase]
     table_uuid = svc.create_table_metadata(
         module_sesh,
         test_user.user_uuid,
@@ -44,9 +35,8 @@ def letters_table(test_user, module_sesh) -> Table:
     PGUserdataAdapter.insert_table_data(
         module_sesh,
         table,
-        csv_buf,
-        dialect,
         columns,
+        rows,
     )
     module_sesh.commit()
     return svc.get_table(module_sesh, test_user.username, table_name)

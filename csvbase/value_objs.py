@@ -174,7 +174,7 @@ class ColumnType(enum.Enum):
         return _PRETTY_TYPE_MAP[self]
 
 
-PythonType = Union[int, bool, float, date, str]
+PythonType = Union[int, bool, float, date, str, None]
 SQLAlchemyType = Union[
     satypes.BigInteger,
     satypes.Boolean,
@@ -243,6 +243,9 @@ class ContentType(enum.Enum):
     def pretty_name(self) -> str:
         return PRETTY_NAME_MAP[self]
 
+    def file_extension(self) -> str:
+        return EXTENSION_MAP_REVERSE[self]
+
 
 EXTENSION_MAP: Mapping[str, ContentType] = {
     "html": ContentType.HTML,
@@ -252,6 +255,9 @@ EXTENSION_MAP: Mapping[str, ContentType] = {
     "jsonl": ContentType.JSON_LINES,
     "xlsx": ContentType.XLSX,
 }
+
+EXTENSION_MAP_REVERSE = {v: k for k, v in EXTENSION_MAP.items()}
+
 
 PRETTY_NAME_MAP: Mapping[ContentType, str] = {
     ContentType.HTML: "HTML",

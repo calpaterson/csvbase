@@ -12,7 +12,7 @@ from csvbase.web.app import init_app
 from csvbase.config import get_config
 from csvbase.db import get_db_url
 from csvbase.userdata import PGUserdataAdapter
-from csvbase.value_objs import Column, ColumnType, ContentType
+from csvbase.value_objs import Column, ColumnType, ContentType, Table
 
 from .utils import make_user, create_table
 
@@ -66,7 +66,7 @@ ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
 
 
 @pytest.fixture(scope="function")
-def ten_rows(test_user, sesh):
+def ten_rows(test_user, sesh) -> Table:
     data = [
         (numeral, (index % 2) == 0, date(2018, 1, index), index + 0.5)
         for index, numeral in enumerate(ROMAN_NUMERALS, start=1)

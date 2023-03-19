@@ -235,18 +235,9 @@ class PGUserdataAdapter:
         cls,
         sesh: Session,
         table: Table,
-        csv_buf: UserSubmittedCSVData,
-        dialect: Type[csv.Dialect],
         columns: Sequence[Column],
+        rows: Iterable[Collection[PythonType]],
     ) -> None:
-        # Copy in with binary copy
-        reader = csv.reader(csv_buf, dialect)
-        csv_buf.readline()  # pop the header, which is not useful
-        row_gen = (
-            (conv.from_string_to_python(col.type_, v) for col, v in zip(columns, line))
-            for line in reader
-        )
-
         temp_table_name = cls._make_temp_table_name(prefix="insert")
         main_table_name = cls._make_userdata_table_name(
             table.table_uuid, with_schema=True
@@ -261,7 +252,7 @@ class PGUserdataAdapter:
             temp_table_name,
             column_names,
         )
-        copy_manager.copy(row_gen)
+        copy_manager.copy(rows)
 
         temp_tableclause = cls._get_tableclause(temp_table_name, table.columns)
 
