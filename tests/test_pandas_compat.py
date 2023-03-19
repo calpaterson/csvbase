@@ -39,12 +39,11 @@ def put_df_as_csv(client, user, url, df: pd.DataFrame) -> None:
 def test_csvs_in_and_out(test_user, sesh, client, ten_rows):
     """Test that a csv can be pulled out, edited, and then posted back"""
     url = f"/{test_user.username}/{ten_rows.table_name}"
-
+    pd.set_option("chained_assignment", "raise")
     df = get_df_as_csv(client, url)
-    # df = df.assign(as_date=pd.to_datetime(df["as_date"]))
-    df.drop(labels=2, axis="index", inplace=True)  # removed data
+    df = df.drop(labels=2, axis="index")  # removed data
     df.loc[11] = ("XI", False, "2018-01-11", 11.5)  # added data
-    df.loc[5].roman_numeral = "FIVE"  # changed data
+    df[df.roman_numeral == "5"].roman_numeral = "FIVE"  # changed data
 
     buf = StringIO()
     df.to_csv(buf)
@@ -70,7 +69,7 @@ def test_get_unknown_extension(test_user, client, ten_rows):
     assert resp.status_code == 406
 
 
-def test_get_parquet(test_user, sesh, client, ten_rows):
+def test_get_parquet(test_user, sesh, client, ten_rows) -> None:
     url = f"/{test_user.username}/{ten_rows.table_name}"
     df_from_csv = get_df_as_csv(client, url)
     df_from_csv = df_from_csv.assign(as_date=pd.to_datetime(df_from_csv["as_date"]))
