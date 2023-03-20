@@ -54,9 +54,7 @@ def get_stripe_customer_id(sesh, user_uuid: UUID) -> Optional[str]:
     )
 
 
-def has_had_subscription(sesh, user_uuid: UUID) -> bool:
-    """This is a temporary function - to be replaced later with a fuller
-    conception of subscription statuses."""
+def has_stripe_customer(sesh, user_uuid: UUID) -> bool:
     return sesh.query(
         sesh.query(StripeCustomer)
         .filter(StripeCustomer.user_uuid == user_uuid)

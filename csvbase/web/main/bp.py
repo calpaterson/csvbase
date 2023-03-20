@@ -890,7 +890,7 @@ def user(username: str) -> Response:
     include_private = False
     if "current_user" in g and g.current_user.username == username:
         include_private = True
-        show_manage_subscription = billing_svc.has_had_subscription(
+        show_manage_subscription = billing_svc.has_stripe_customer(
             sesh, g.current_user.user_uuid
         )
     else:
