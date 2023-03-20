@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 from typing import Optional
 from logging import getLogger
@@ -12,13 +13,13 @@ from .config import load_config, default_config_file
 from csvbase import svc
 from .sesh import get_sesh
 from .web.app import init_app
+from .web.billing import svc as billing_svc
 
 logger = getLogger(__name__)
 
 
 @click.command(help="Load the prohibited username list into the database")
 def load_prohibited_usernames():
-
     with init_app().app_context():
         svc.load_prohibited_usernames(get_sesh())
 
@@ -83,3 +84,23 @@ def config_cli(config_file: Optional[Path]):
         config_file = default_config_file()
 
     logger.info(load_config(config_file))
+
+
+@click.command("csvbase-update-stripe-subscriptions")
+@click.option(
+    "--full",
+    is_flag=True,
+    default=False,
+    help="Update all subscriptions, not just those that haven't been updated recently",
+)
+def update_stripe_subscriptions(full: bool) -> None:
+    configure_logging()
+
+    sesh = get_sesh()
+
+    billing_svc.initialise_stripe()
+    app = init_app()
+    with app.app_context():
+        all_updated = billing_svc.update_stripe_subscriptions(sesh, full)
+        if not all_updated:
+            sys.exit(1)

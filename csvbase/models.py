@@ -200,3 +200,42 @@ class StripeCustomer(Base):
     created = Column(
         satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
     )
+
+
+class StripeSubscription(Base):
+    __tablename__ = "stripe_subscriptions"
+    __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+
+    stripe_subscription_id = Column(satypes.String, primary_key=True)
+    user_uuid = Column(
+        PGUUID, ForeignKey("metadata.users.user_uuid"), nullable=False, index=True
+    )
+    stripe_subscription_status_id = Column(
+        satypes.SmallInteger,
+        ForeignKey(
+            "metadata.stripe_subscription_statuses.stripe_subscription_status_id"
+        ),
+        index=True,
+        nullable=False,
+    )
+    created = Column(
+        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    )
+    updated = Column(
+        satypes.DateTime(timezone=True),
+        default=func.now(),
+        nullable=False,
+        index=True,
+        onupdate=func.now(),
+    )
+    ttl = Column(satypes.DateTime(timezone=True), nullable=False, index=True)
+
+
+class StripeSubscriptionStatus(Base):
+    __tablename__ = "stripe_subscription_statuses"
+    __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+
+    stripe_subscription_status_id = Column(
+        satypes.SmallInteger, primary_key=True, unique=True, autoincrement=False
+    )
+    stripe_subscription_status = Column(satypes.String, nullable=False, unique=True)

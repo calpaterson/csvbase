@@ -54,9 +54,10 @@ setup(
     entry_points={
         "console_scripts": [
             "csvbase-make-tables=csvbase.cli:make_tables",
-            "csvbase-make-blog-table=csvbase.blog.cli:make_blog_table",
+            "csvbase-make-blog-table=csvbase.web.blog.cli:make_blog_table",
             "csvbase-load-prohibited-usernames=csvbase.cli:load_prohibited_usernames",
             "csvbase-config=csvbase.cli:config_cli",
+            "csvbase-update-stripe-subscriptions=csvbase.cli:update_stripe_subscriptions",
         ]
     },
 )
