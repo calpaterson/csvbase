@@ -1,16 +1,22 @@
 from uuid import uuid4, UUID
 from logging import getLogger
 
-from flask import url_for, Blueprint, redirect, g, flash, Flask
+from flask import (
+    url_for,
+    Blueprint,
+    redirect,
+    flash,
+    Flask,
+    make_response,
+    render_template,
+)
 from werkzeug.wrappers.response import Response
 import stripe
 
 from ...svc import user_by_user_uuid
 from ...sesh import get_sesh
-
-# from ..web import am_user_or_400
-from ...value_objs import User
 from ...config import get_config
+from ..func import get_current_user, get_current_user_or_401
 from ... import exc
 from . import svc
 
@@ -34,7 +40,7 @@ def subscribe() -> Response:
     config = get_config()
 
     price_id = config.stripe_price_id
-    current_user: User = g.current_user
+    current_user = get_current_user_or_401()
 
     payment_reference_uuid = uuid4()
 
@@ -131,11 +137,12 @@ def cancel(payment_reference_uuid: str):
 
 @bp.route("/manage", methods=["GET"])
 def manage() -> Response:
-    # FIXME: needed but cannot be imported due to an import loop
-    # am_user_or_400()
+    current_user = get_current_user_or_401()
     sesh = get_sesh()
-    current_user = g.current_user
     customer_id = svc.get_stripe_customer_id(sesh, current_user.user_uuid)
+    if customer_id is None:
+        # FIXME: error case
+        ...
     portal_session = stripe.billing_portal.Session.create(
         customer=customer_id,
         return_url=url_for(
@@ -146,3 +153,17 @@ def manage() -> Response:
         "Portal session '%s' created for %s", portal_session.id, current_user.username
     )
     return redirect(portal_session.url)
+
+
+@bp.route("/pricing", methods=["GET"])
+def pricing() -> Response:
+    has_subscription = False
+    current_user = get_current_user()
+    if current_user:
+        sesh = get_sesh()
+        has_subscription = svc.has_stripe_customer(sesh, current_user.user_uuid)
+    return make_response(
+        render_template(
+            "pricing.html", page_title="Pricing", has_subscription=has_subscription
+        )
+    )

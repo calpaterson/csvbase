@@ -59,7 +59,7 @@ def test_subscribe(client, test_user):
 
 
 @pytest.mark.xfail(reason="not implemented")
-def test_subscribe__stripe_customer_already_Exists(client, test_user):
+def test_subscribe__stripe_customer_already_exists(client, test_user):
     assert False
 
 
@@ -92,6 +92,15 @@ def test_subscribe__stripe_rejects_customer_email(client, sesh, app):
         subscribe_response = client.get("/billing/subscribe")
     assert subscribe_response.status_code == 302
     assert subscribe_response.headers["Location"] == fake_checkout_session.url
+
+
+def test_subscribe__not_signed_in(client):
+    """When you try to subscribe but aren't signed in you get asked to register"""
+    subscribe_response = client.get(
+        "/billing/subscribe", headers={"Accept": "text/html"}
+    )
+    assert subscribe_response.status_code == 302
+    assert subscribe_response.headers["Location"] == "/register"
 
 
 def test_subscribe__stripe_rejects_for_other_reason(client, test_user):
@@ -155,4 +164,21 @@ def test_manage__no_stripe_customer(client, sesh, test_user):
 
 @pytest.mark.xfail(reason="not implemented")
 def test_manage__not_signed_in(client, sesh):
+    assert False
+
+
+def test_pricing__signed_out(client):
+    pricing_resp = client.get("/billing/pricing")
+    assert pricing_resp.status_code == 200
+
+
+def test_pricing__signed_in_but_no_subscription(client, test_user):
+    set_current_user(test_user)
+    pricing_resp = client.get("/billing/pricing")
+    assert pricing_resp.status_code == 200
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_pricing__signed_in_with_subscription(client, test_user):
+    set_current_user(test_user)
     assert False
