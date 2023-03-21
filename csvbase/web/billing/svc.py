@@ -4,7 +4,9 @@ from uuid import UUID
 from logging import getLogger
 
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 import stripe
+from sqlalchemy.dialects.postgresql import insert
 
 from ...config import get_config
 from ...models import PaymentReference, StripeCustomer, StripeSubscription
@@ -21,7 +23,7 @@ def initialise_stripe() -> None:
 
 
 def record_payment_reference(
-    sesh, payment_reference_uuid: UUID, user: User, payment_reference: str
+    sesh: Session, payment_reference_uuid: UUID, user: User, payment_reference: str
 ) -> None:
     sesh.add(
         PaymentReference(
@@ -33,7 +35,7 @@ def record_payment_reference(
 
 
 def get_payment_reference(
-    sesh, payment_reference_uuid: UUID
+    sesh: Session, payment_reference_uuid: UUID
 ) -> Optional[Tuple[UUID, str]]:
     return (
         sesh.query(PaymentReference.user_uuid, PaymentReference.payment_reference)
@@ -42,11 +44,50 @@ def get_payment_reference(
     )
 
 
-def insert_stripe_customer_id(sesh, user_uuid: UUID, stripe_customer_id: str) -> None:
-    sesh.add(StripeCustomer(user_uuid=user_uuid, stripe_customer_id=stripe_customer_id))
+def insert_stripe_customer_id(
+    sesh: Session, user_uuid: UUID, stripe_customer_id: str
+) -> None:
+    """Insert a stripe customer (idempotently, but raising an
+    IntegrityError if it already exists under a different user.
+
+    This is necessary to be defensive if users reload the success url.
+
+    """
+    insert_stmt = insert(StripeCustomer.__table__).values(
+        user_uuid=user_uuid, stripe_customer_id=stripe_customer_id
+    )
+    if_not_exists_stmt = insert_stmt.on_conflict_do_nothing(
+        index_elements=["user_uuid"]
+    )
+    sesh.execute(if_not_exists_stmt)
 
 
-def get_stripe_customer_id(sesh, user_uuid: UUID) -> Optional[str]:
+def insert_stripe_subscription(
+    sesh: Session, user_uuid: UUID, stripe_subscription
+) -> None:
+    """Insert a stripe subscription (idempotently, but raising an
+    IntegrityError if it already exists under a different user.
+
+    This is necessary to be defensive if users reload the success url.
+
+    """
+    sub_orm_obj = (
+        sesh.query(StripeSubscription)
+        .filter(
+            StripeSubscription.user_uuid == user_uuid,
+            StripeSubscription.stripe_subscription_id == stripe_subscription.id,
+        )
+        .one_or_none()
+    )
+    if sub_orm_obj is None:
+        sub_orm_obj = StripeSubscription(
+            user_uuid=user_uuid, stripe_subscription_id=stripe_subscription.id
+        )
+        sesh.add(sub_orm_obj)
+    fill_stripe_subscription(sub_orm_obj, stripe_subscription)
+
+
+def get_stripe_customer_id(sesh: Session, user_uuid: UUID) -> Optional[str]:
     return (
         sesh.query(StripeCustomer.stripe_customer_id)
         .filter(StripeCustomer.user_uuid == user_uuid)
@@ -54,7 +95,7 @@ def get_stripe_customer_id(sesh, user_uuid: UUID) -> Optional[str]:
     )
 
 
-def has_stripe_customer(sesh, user_uuid: UUID) -> bool:
+def has_stripe_customer(sesh: Session, user_uuid: UUID) -> bool:
     return sesh.query(
         sesh.query(StripeCustomer)
         .filter(StripeCustomer.user_uuid == user_uuid)
@@ -62,7 +103,7 @@ def has_stripe_customer(sesh, user_uuid: UUID) -> bool:
     ).scalar()
 
 
-def get_stripe_subscriptions_for_update(sesh) -> Iterable:
+def get_stripe_subscriptions_for_update(sesh: Session) -> Iterable:
     query = sesh.query(StripeSubscription.stripe_subscription_id).filter(
         StripeSubscription.ttl < func.now(),
         StripeSubscription.stripe_subscription_id.startswith("sub_"),
@@ -71,18 +112,13 @@ def get_stripe_subscriptions_for_update(sesh) -> Iterable:
         yield stripe.Subscription.retrieve(stripe_subscription_id)
 
 
-def update_stripe_subscription(sesh, stripe_subscription) -> bool:
+def update_stripe_subscription(sesh: Session, stripe_subscription) -> bool:
     stripe_subscription_id = stripe_subscription.id
-    status_id = StripeSubscriptionStatus[stripe_subscription.status.upper()].value
-    ttl = datetime.fromtimestamp(
-        stripe_subscription.current_period_end, timezone.utc
-    ) + timedelta(days=3)
 
     sub_orm_obj = sesh.query(StripeSubscription).get(stripe_subscription_id)
     if sub_orm_obj is not None:
         logger.info("updated %s", stripe_subscription_id)
-        sub_orm_obj.stripe_subscription_status_id = status_id
-        sub_orm_obj.ttl = ttl
+        fill_stripe_subscription(sub_orm_obj, stripe_subscription)
     else:
         customer_obj = (
             sesh.query(StripeCustomer)
@@ -93,14 +129,12 @@ def update_stripe_subscription(sesh, stripe_subscription) -> bool:
             logger.warning(
                 "updated up %s (via stripe customer)", stripe_subscription_id
             )
-            sesh.add(
-                StripeSubscription(
-                    stripe_subscription_id=stripe_subscription_id,
-                    user_uuid=customer_obj.user_uuid,
-                    stripe_subscription_status_id=status_id,
-                    ttl=ttl,
-                )
+            sub_orm_obj = StripeSubscription(
+                stripe_subscription_id=stripe_subscription_id,
+                user_uuid=customer_obj.user_uuid,
             )
+            fill_stripe_subscription(sub_orm_obj, stripe_subscription)
+            sesh.add(sub_orm_obj)
         else:
             # resolution of this is manual
             logger.error("did not find %s!", stripe_subscription_id)
@@ -108,7 +142,20 @@ def update_stripe_subscription(sesh, stripe_subscription) -> bool:
     return True
 
 
-def update_stripe_subscriptions(sesh, full: bool) -> bool:
+def fill_stripe_subscription(
+    stripe_subscription_orm_obj: StripeSubscription, stripe_subscription_api_obj
+) -> None:
+    status_id = StripeSubscriptionStatus[
+        stripe_subscription_api_obj.status.upper()
+    ].value
+    ttl = datetime.fromtimestamp(
+        stripe_subscription_api_obj.current_period_end, timezone.utc
+    ) + timedelta(days=3)
+    stripe_subscription_orm_obj.stripe_subscription_status_id = status_id
+    stripe_subscription_orm_obj.ttl = ttl
+
+
+def update_stripe_subscriptions(sesh: Session, full: bool) -> bool:
     stripe_subscriptions: Iterable
     if not full:
         stripe_subscriptions = get_stripe_subscriptions_for_update(sesh)

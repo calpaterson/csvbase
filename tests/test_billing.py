@@ -1,13 +1,16 @@
+from datetime import datetime
 from unittest.mock import patch
 from typing import Optional
 from uuid import uuid4
 from dataclasses import dataclass, field
 
+import sqlalchemy
+
 from csvbase.svc import create_user
 from csvbase.web.main.bp import set_current_user
 from csvbase.web.billing import svc, bp
 
-from .utils import random_string
+from .utils import random_string, make_user
 
 import stripe
 import pytest
@@ -23,6 +26,13 @@ def random_stripe_url(host: str = "stripe.com", path_prefix="/") -> str:
 
 
 @dataclass
+class FakeSubscription:
+    status: str = "active"
+    current_period_end: int = int(datetime(2018, 1, 3).timestamp())
+    id: str = field(default_factory=random_string)
+
+
+@dataclass
 class FakeCheckoutSession:
     status: str
     payment_status: str
@@ -33,6 +43,7 @@ class FakeCheckoutSession:
             host="checkout.stripe.com", path_prefix="/c/pay"
         )
     )
+    subscription: FakeSubscription = field(default_factory=FakeSubscription)
 
 
 @dataclass
@@ -138,6 +149,34 @@ def test_success_url(client, sesh, test_user):
     assert resp.headers["Location"] == f"/{test_user.username}"
 
 
+def test_success_url__is_idempotent(client, sesh, test_user):
+    payment_reference_uuid = uuid4()
+    payment_reference = random_string()
+    svc.record_payment_reference(
+        sesh, payment_reference_uuid, test_user, payment_reference
+    )
+    sesh.commit()
+
+    with patch.object(bp.stripe.checkout.Session, "retrieve") as mock_retrieve:
+        mock_retrieve.return_value = FakeCheckoutSession(
+            id=payment_reference,
+            customer=random_string(),
+            url=random_string(),
+            status="complete",
+            payment_status="paid",
+        )
+        resp1 = client.get(f"/billing/success/{str(payment_reference_uuid)}")
+        resp2 = client.get(f"/billing/success/{str(payment_reference_uuid)}")
+
+    assert svc.get_stripe_customer_id(sesh, test_user.user_uuid) is not None
+
+    assert resp1.status_code == 302
+    assert resp1.headers["Location"] == f"/{test_user.username}"
+
+    assert resp2.status_code == 302
+    assert resp2.headers["Location"] == f"/{test_user.username}"
+
+
 def test_success_url__payment_reference_does_not_exist(client):
     resp = client.get(f"/billing/success/{str(uuid4())}")
     assert resp.status_code == 404
@@ -182,3 +221,33 @@ def test_pricing__signed_in_but_no_subscription(client, test_user):
 def test_pricing__signed_in_with_subscription(client, test_user):
     set_current_user(test_user)
     assert False
+
+
+def test_insert_stripe_customer_id__if_exists_under_different_user(sesh, app):
+    """Check this specific issue results in an error"""
+    user1 = make_user(sesh, app.config["CRYPT_CONTEXT"])
+    user2 = make_user(sesh, app.config["CRYPT_CONTEXT"])
+
+    stripe_customer_id = random_string()
+
+    svc.insert_stripe_customer_id(sesh, user1.user_uuid, stripe_customer_id)
+    sesh.commit()
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        svc.insert_stripe_customer_id(sesh, user2.user_uuid, stripe_customer_id)
+        sesh.commit()
+
+
+def test_insert_stripe_subscription_id__if_exists_under_different_user(sesh, app):
+    """Check this specific issue results in an error"""
+    user1 = make_user(sesh, app.config["CRYPT_CONTEXT"])
+    user2 = make_user(sesh, app.config["CRYPT_CONTEXT"])
+
+    fake_subscription = FakeSubscription()
+
+    svc.insert_stripe_subscription(sesh, user1.user_uuid, fake_subscription)
+    sesh.commit()
+
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+        svc.insert_stripe_subscription(sesh, user2.user_uuid, fake_subscription)
+        sesh.commit()

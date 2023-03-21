@@ -111,9 +111,12 @@ def success(payment_reference_uuid: str) -> Response:
 
     user_uuid, payment_reference = payment_ref_tup
 
-    checkout_session = stripe.checkout.Session.retrieve(payment_reference)
+    checkout_session = stripe.checkout.Session.retrieve(
+        payment_reference, expand=["subscription"]
+    )
 
     svc.insert_stripe_customer_id(sesh, user_uuid, checkout_session.customer)
+    svc.insert_stripe_subscription(sesh, user_uuid, checkout_session.subscription)
     sesh.commit()
     logger.info(
         "checkout session succeeded: '%s', status: '%s', payment_status: '%s'",
