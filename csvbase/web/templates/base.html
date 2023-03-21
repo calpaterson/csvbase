@@ -40,6 +40,13 @@
                    href="{{ url_for('csvbase.paste') }}">Paste/Upload</a>
               </li>
 
+              {% if "billing" in blueprints %}
+                <li class="nav-item">
+                  <a class="nav-link {% if request.endpoint == 'billing.pricing' %}active{% endif %}"
+                     href="{{ url_for('billing.pricing') }}">Pricing</a>
+                </li>
+              {% endif %}
+
               {% if "blog" in blueprints %}
                 <li class="nav-item">
                   <a class="nav-link {% if request.endpoint == 'blog.blog_index' %}active{% endif %}"

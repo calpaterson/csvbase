@@ -156,3 +156,7 @@ def test_manage__no_stripe_customer(client, sesh, test_user):
 @pytest.mark.xfail(reason="not implemented")
 def test_manage__not_signed_in(client, sesh):
     assert False
+
+
+def test_pricing__signed_in_no_subscription(client, sesh):
+    ...
