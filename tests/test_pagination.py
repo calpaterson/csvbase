@@ -31,16 +31,15 @@ def letters_table(test_user, module_sesh) -> Table:
 
     dialect, columns = streams.peek_csv(csv_buf)
     csv_buf.seek(0)
-    table_uuid = PGUserdataAdapter.create_table(module_sesh, columns)
-    svc.create_table_metadata(
+    table_uuid = svc.create_table_metadata(
         module_sesh,
-        table_uuid,
         test_user.user_uuid,
         table_name,
         True,
         "",
         DataLicence.ALL_RIGHTS_RESERVED,
     )
+    PGUserdataAdapter.create_table(module_sesh, table_uuid, columns)
     table = svc.get_table(module_sesh, test_user.username, table_name)
     PGUserdataAdapter.insert_table_data(
         module_sesh,
@@ -139,10 +138,10 @@ def test_pagination_over_the_top(sesh, test_user, letters_table):
 def test_pagination_under_the_bottom(sesh, test_user):
     table_name = random_string()
     x_column = Column("x", ColumnType.INTEGER)
-    table_uuid = PGUserdataAdapter.create_table(sesh, columns=[x_column])
-    svc.create_table_metadata(
-        sesh, table_uuid, test_user.user_uuid, table_name, False, "", DataLicence.OGL
+    table_uuid = svc.create_table_metadata(
+        sesh, test_user.user_uuid, table_name, False, "", DataLicence.OGL
     )
+    PGUserdataAdapter.create_table(sesh, table_uuid, columns=[x_column])
 
     row_ids = [
         PGUserdataAdapter.insert_row(sesh, table_uuid, {x_column: 1}) for _ in range(5)
@@ -166,11 +165,11 @@ def test_pagination_under_the_bottom(sesh, test_user):
 def test_paging_on_empty_table(sesh, test_user):
     table_name = random_string()
 
-    table_uuid = PGUserdataAdapter.create_table(
-        sesh, columns=[Column("x", ColumnType.INTEGER)]
+    table_uuid = svc.create_table_metadata(
+        sesh, test_user.user_uuid, table_name, False, "", DataLicence.OGL
     )
-    svc.create_table_metadata(
-        sesh, table_uuid, test_user.user_uuid, table_name, False, "", DataLicence.OGL
+    PGUserdataAdapter.create_table(
+        sesh, table_uuid, columns=[Column("x", ColumnType.INTEGER)]
     )
     table = svc.get_table(sesh, test_user.username, table_name)
 

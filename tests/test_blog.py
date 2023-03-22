@@ -43,16 +43,15 @@ def blog_table(sesh, test_user: User):
         Column("cover_image_alt", ColumnType.TEXT),
         Column("posted", ColumnType.DATE),
     ]
-    table_uuid = PGUserdataAdapter.create_table(sesh, columns)
-    create_table_metadata(
+    table_uuid = create_table_metadata(
         sesh,
-        table_uuid,
         test_user.user_uuid,
         table_name,
         False,
         "",
         DataLicence.ALL_RIGHTS_RESERVED,
     )
+    PGUserdataAdapter.create_table(sesh, table_uuid, columns)
     table = get_table(sesh, test_user.username, table_name)
     sesh.commit()
     with patch.object(

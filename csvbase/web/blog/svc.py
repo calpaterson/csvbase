@@ -80,13 +80,12 @@ def insert_post(sesh, post: Post) -> None:
 def make_blog_table(sesh) -> None:
     username, table_name = get_blog_ref()
     user = user_by_name(sesh, username)
-    create_table_metadata(
+    table_uuid = create_table_metadata(
         sesh,
-        uuid4(),
         user.user_uuid,
         table_name,
         False,
         "",
         DataLicence.ALL_RIGHTS_RESERVED,
     )
-    PGUserdataAdapter.create_table(sesh, BLOG_COLUMNS)
+    PGUserdataAdapter.create_table(sesh, table_uuid, BLOG_COLUMNS)

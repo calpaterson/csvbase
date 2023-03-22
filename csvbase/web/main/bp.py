@@ -16,6 +16,7 @@ from typing import (
 )
 from urllib.parse import urlsplit, urlunsplit
 import hashlib
+from uuid import uuid4
 
 import itsdangerous.serializer
 import werkzeug.http
@@ -168,16 +169,15 @@ def new_table_form_submission() -> Response:
     data_licence = DataLicence(request.form.get("data-licence", type=int))
     dialect, columns = streams.peek_csv(csv_buf)
     csv_buf.seek(0)
-    table_uuid = PGUserdataAdapter.create_table(sesh, columns)
-    svc.create_table_metadata(
+    table_uuid = svc.create_table_metadata(
         sesh,
-        table_uuid,
         g.current_user.user_uuid,
         table_name,
         is_public,
         "",
         data_licence,
     )
+    PGUserdataAdapter.create_table(sesh, table_uuid, columns)
     table = svc.get_table(sesh, user.username, table_name)
     # FIXME: what happens if this fails?
     PGUserdataAdapter.insert_table_data(
@@ -258,16 +258,15 @@ def blank_table_form_post() -> Response:
     else:
         is_public = True
 
-    table_uuid = PGUserdataAdapter.create_table(sesh, cols)
-    svc.create_table_metadata(
+    table_uuid = svc.create_table_metadata(
         sesh,
-        table_uuid,
         g.current_user.user_uuid,
         table_name,
         is_public,
         "",
         licence,
     )
+    PGUserdataAdapter.create_table(sesh, table_uuid, cols)
     sesh.commit()
     return redirect(
         url_for(

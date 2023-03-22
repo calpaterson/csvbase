@@ -168,13 +168,17 @@ def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> 
 
 def create_table_metadata(
     sesh: Session,
-    table_uuid: UUID,
     user_uuid: UUID,
     table_name: str,
     is_public: bool,
     caption: str,
     licence: DataLicence,
-) -> None:
+) -> UUID:
+    """Creates the metadata structures for a table (but not the table itself) -
+    including assigning the table uuid.
+
+    """
+    table_uuid = uuid4()
     table_obj = models.Table(
         table_uuid=table_uuid, table_name=table_name, user_uuid=user_uuid
     )
@@ -182,6 +186,7 @@ def create_table_metadata(
     table_obj.caption = caption
     table_obj.licence_id = licence.value
     sesh.add(table_obj)
+    return table_uuid
 
 
 def update_table_metadata(

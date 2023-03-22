@@ -49,14 +49,13 @@ def create_table(
 ) -> Table:
     if table_name is None:
         table_name = random_string()
-    table_uuid = PGUserdataAdapter.create_table(sesh, columns)
-    svc.create_table_metadata(
+    table_uuid = svc.create_table_metadata(
         sesh,
-        table_uuid,
         user.user_uuid,
         table_name,
         is_public=is_public,
         caption=caption,
         licence=licence,
     )
+    PGUserdataAdapter.create_table(sesh, table_uuid, columns)
     return svc.get_table(sesh, user.username, table_name)

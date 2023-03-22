@@ -309,8 +309,9 @@ class PGUserdataAdapter:
         sesh.execute(DropTable(sa_table))  # type: ignore
 
     @classmethod
-    def create_table(cls, sesh: Session, columns: Iterable[Column]) -> UUID:
-        table_uuid = uuid4()
+    def create_table(
+        cls, sesh: Session, table_uuid: UUID, columns: Iterable[Column]
+    ) -> UUID:
         cols: List[SAColumn] = [
             SAColumn(
                 "csvbase_row_id", satypes.BigInteger, Identity(), primary_key=True
