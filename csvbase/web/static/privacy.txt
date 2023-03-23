@@ -1,6 +1,6 @@
 # csvbase privacy policy
 
-This policy was last updated on 2023-01-18
+This policy was last updated on 2023-03-23
 
 ## Contact details
 
@@ -20,6 +20,10 @@ If you experience a crash we collect extra, impersonal, information about your
 configuration, strictly for the purposes of debugging that crash.  That is
 shared with Sentry (https://sentry.io/) and retained for 30 days.  Personal
 information is shared with Sentry.
+
+If you subscribe our payment provider (Stripe) collects your payment data -
+credit card details, name, address, etc.  We don't have access to that data
+except to see if your payments are going through.
 
 ## How we get the personal information and why we have it
 

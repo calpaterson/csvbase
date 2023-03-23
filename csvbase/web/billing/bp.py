@@ -164,7 +164,7 @@ def pricing() -> Response:
     current_user = get_current_user()
     if current_user:
         sesh = get_sesh()
-        has_subscription = svc.has_stripe_customer(sesh, current_user.user_uuid)
+        has_subscription = svc.has_subscription(sesh, current_user.user_uuid)
     return make_response(
         render_template(
             "pricing.html", page_title="Pricing", has_subscription=has_subscription

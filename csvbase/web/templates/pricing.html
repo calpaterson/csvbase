@@ -15,11 +15,8 @@
     contribution of <mark>£1 per month</mark>.</p>
 
       {% if has_subscription %}
-        <a
-          {# FIXME: include whence #}
-            href="{{ url_for('billing.manage') }}"
-            class="btn btn-primary btn-lg active"
-            role="button">Manage your subscription</a>
+        <p>You are already subscribed. <a
+            href="{{ url_for('billing.manage') }}">Manage your subscription</a>.
         {% else %}
           <a
             href="{{ url_for('billing.subscribe') }}"

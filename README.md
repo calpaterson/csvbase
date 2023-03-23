@@ -53,10 +53,6 @@ This repo has the full sourcecode for the website.
 
 The website is free to use, to the limit of my cheapo hosting.
 
-At the moment it's all 'alpha-quality', ie: "if you break it you get to keep
-both pieces".  APIs might be tweaked a little but what is there now probably
-won't change hugely.
-
 Csvbase is licensed under the AGPLv3 or later.  You're free to reuse it as you
 like under that licence but please bear in mind the one-man-and-his-dog nature
 of this operation: I can't support you and there is NO warranty; not even for

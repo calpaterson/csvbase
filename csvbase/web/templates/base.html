@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='codehilite.css' ) }}">
     <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='logo/192x192.png') }}">
     <link rel="canonical" href="{{ canonical_url or request.base_url }}">
-    <title>{{page_title or "csvbase (alpha)"}}</title>
+    <title>{{page_title or "csvbase"}}</title>
     {% endblock %}
   </head>
   <body>
@@ -20,7 +20,7 @@
         <div class="container">
           <a class="navbar-brand" href="{{ url_for('csvbase.index') }}">
             <img src="/static/logo/192x192.png" alt=" " width="32" height="32" class="d-inline-block align-text">
-            csvbase <em><small class="text-muted">(alpha)</small></em>
+            csvbase
           </a>
 
           <button class="navbar-toggler"

@@ -1,6 +1,6 @@
 # csvbase terms of service
 
-These terms were last updated on 2022-05-05.
+These terms were last updated on 2023-03-23.
 
 ## Contact details
 
@@ -10,10 +10,7 @@ cal@calpaterson.com
 
 ## Outline
 
-csvbase is provided as a alpha quality service.  That means it's not of a
-professional standard.  Neither is the software.
-
-We don't provide any guarantees and you use the service at your own risk.
+csvbase is a data sharing website.
 
 ## Data you post on csvbase
 
