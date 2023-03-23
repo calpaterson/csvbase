@@ -1,8 +1,5 @@
-from datetime import datetime
 from unittest.mock import patch
-from typing import Optional
 from uuid import uuid4
-from dataclasses import dataclass, field
 
 import sqlalchemy
 
@@ -10,55 +7,21 @@ from csvbase.svc import create_user
 from csvbase.web.main.bp import set_current_user
 from csvbase.web.billing import svc, bp
 
-from .utils import random_string, make_user
+from .utils import (
+    random_string,
+    make_user,
+    FakeStripeSubscription,
+    FakeStripePortalSession,
+    FakeStripeCheckoutSession,
+)
 
 import stripe
 import pytest
 
 
-def random_stripe_url(host: str = "stripe.com", path_prefix="/") -> str:
-    """Returns realistic (but randomized) stripe urls.
-
-    Useful for asserting that redirects went to the right url.
-
-    """
-    return f"https://{host}{path_prefix}/{random_string()}"
-
-
-@dataclass
-class FakeSubscription:
-    status: str = "active"
-    current_period_end: int = int(datetime(2018, 1, 3).timestamp())
-    id: str = field(default_factory=random_string)
-
-
-@dataclass
-class FakeCheckoutSession:
-    status: str
-    payment_status: str
-    customer: Optional[str] = None
-    id: str = field(default_factory=random_string)
-    url: str = field(
-        default_factory=lambda: random_stripe_url(
-            host="checkout.stripe.com", path_prefix="/c/pay"
-        )
-    )
-    subscription: FakeSubscription = field(default_factory=FakeSubscription)
-
-
-@dataclass
-class FakePortalSession:
-    url: str = field(
-        default_factory=lambda: random_stripe_url(
-            "billing.stripe.com", path_prefix="/session"
-        )
-    )
-    id: str = field(default_factory=random_string)
-
-
 def test_subscribe(client, test_user):
     set_current_user(test_user)
-    fake_checkout_session = FakeCheckoutSession(
+    fake_checkout_session = FakeStripeCheckoutSession(
         status="complete",
         payment_status="paid",
     )
@@ -81,7 +44,7 @@ def test_subscribe__stripe_rejects_customer_email(client, sesh, app):
     )
     sesh.commit()
     set_current_user(test_user)
-    fake_checkout_session = FakeCheckoutSession(
+    fake_checkout_session = FakeStripeCheckoutSession(
         id=random_string(),
         status="complete",
         payment_status="paid",
@@ -134,7 +97,7 @@ def test_success_url(client, sesh, test_user):
     sesh.commit()
 
     with patch.object(bp.stripe.checkout.Session, "retrieve") as mock_retrieve:
-        mock_retrieve.return_value = FakeCheckoutSession(
+        mock_retrieve.return_value = FakeStripeCheckoutSession(
             id=payment_reference,
             customer=random_string(),
             url=random_string(),
@@ -158,7 +121,7 @@ def test_success_url__is_idempotent(client, sesh, test_user):
     sesh.commit()
 
     with patch.object(bp.stripe.checkout.Session, "retrieve") as mock_retrieve:
-        mock_retrieve.return_value = FakeCheckoutSession(
+        mock_retrieve.return_value = FakeStripeCheckoutSession(
             id=payment_reference,
             customer=random_string(),
             url=random_string(),
@@ -188,7 +151,7 @@ def test_manage__happy(client, sesh, test_user):
     sesh.commit()
 
     set_current_user(test_user)
-    portal_session = FakePortalSession()
+    portal_session = FakeStripePortalSession()
     with patch.object(bp.stripe.billing_portal.Session, "create") as mock_create:
         mock_create.return_value = portal_session
         resp = client.get("/billing/manage")
@@ -243,7 +206,7 @@ def test_insert_stripe_subscription_id__if_exists_under_different_user(sesh, app
     user1 = make_user(sesh, app.config["CRYPT_CONTEXT"])
     user2 = make_user(sesh, app.config["CRYPT_CONTEXT"])
 
-    fake_subscription = FakeSubscription()
+    fake_subscription = FakeStripeSubscription()
 
     svc.insert_stripe_subscription(sesh, user1.user_uuid, fake_subscription)
     sesh.commit()

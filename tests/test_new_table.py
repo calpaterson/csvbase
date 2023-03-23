@@ -13,7 +13,7 @@ from csvbase.value_objs import ColumnType
 from csvbase.web.func import set_current_user
 
 from .conftest import ROMAN_NUMERALS
-from .utils import random_string, get_df_as_csv
+from .utils import random_string, get_df_as_csv, subscribe_user
 
 
 def render_pickle(*args, **kwargs):
@@ -210,3 +210,35 @@ def test_blank_table__over_quota(client, test_user):
     )
 
     assert resp2.status_code == 400
+
+
+def test_second_blank_table__into_subscription_quota(sesh, client, test_user):
+    set_current_user(test_user)
+    subscribe_user(sesh, test_user)
+    sesh.commit()
+
+    resp1 = client.post(
+        "/new-table/blank",
+        data={
+            "col-name-1": "test",
+            "col-type-1": "TEXT",
+            "table-name": random_string(),
+            "data-licence": 1,
+            "private": "on",
+        },
+    )
+
+    assert resp1.status_code == 302
+
+    resp2 = client.post(
+        "/new-table/blank",
+        data={
+            "col-name-1": "test",
+            "col-type-1": "TEXT",
+            "table-name": random_string(),
+            "data-licence": 1,
+            "private": "on",
+        },
+    )
+
+    assert resp2.status_code == 302

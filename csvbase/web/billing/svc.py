@@ -62,6 +62,22 @@ def insert_stripe_customer_id(
     sesh.execute(if_not_exists_stmt)
 
 
+def get_stripe_customer_id(sesh: Session, user_uuid: UUID) -> Optional[str]:
+    return (
+        sesh.query(StripeCustomer.stripe_customer_id)
+        .filter(StripeCustomer.user_uuid == user_uuid)
+        .scalar()
+    )
+
+
+def has_stripe_customer(sesh: Session, user_uuid: UUID) -> bool:
+    return sesh.query(
+        sesh.query(StripeCustomer)
+        .filter(StripeCustomer.user_uuid == user_uuid)
+        .exists()
+    ).scalar()
+
+
 def insert_stripe_subscription(
     sesh: Session, user_uuid: UUID, stripe_subscription
 ) -> None:
@@ -85,22 +101,6 @@ def insert_stripe_subscription(
         )
         sesh.add(sub_orm_obj)
     fill_stripe_subscription(sub_orm_obj, stripe_subscription)
-
-
-def get_stripe_customer_id(sesh: Session, user_uuid: UUID) -> Optional[str]:
-    return (
-        sesh.query(StripeCustomer.stripe_customer_id)
-        .filter(StripeCustomer.user_uuid == user_uuid)
-        .scalar()
-    )
-
-
-def has_stripe_customer(sesh: Session, user_uuid: UUID) -> bool:
-    return sesh.query(
-        sesh.query(StripeCustomer)
-        .filter(StripeCustomer.user_uuid == user_uuid)
-        .exists()
-    ).scalar()
 
 
 def get_stripe_subscriptions_for_update(sesh: Session) -> Iterable:
@@ -169,14 +169,35 @@ def update_stripe_subscriptions(sesh: Session, full: bool) -> bool:
     return all_updated
 
 
+def has_subscription(sesh: Session, user_uuid: UUID) -> bool:
+    # FIXME: we generously assume all states are ok for now
+    return sesh.query(
+        sesh.query(StripeSubscription)
+        .filter(StripeSubscription.user_uuid == user_uuid)
+        .exists()
+    ).scalar()
+
+
 # by default, users get 100 mb (non-SI units to be generous) of private bytes
 DEFAULT_PRIVATE_BYTES = 100 * 1024 * 1024 * 1024
 
 # and a single private table
 DEFAULT_PRIVATE_TABLES = 1
 
+# a soft limit of 10 gb (again, non-SI) of private bytes
+SUBSCRIBED_PRIVATE_BYTES = 10000 * 1024 * 1024 * 1024
+
+# a soft limit - 1k private tables for subscribed users
+SUBSCRIBED_PRIVATE_TABLES = 1000
+
 
 def get_quota(sesh: Session, user_uuid: UUID) -> Quota:
-    return Quota(
-        private_tables=DEFAULT_PRIVATE_TABLES, private_bytes=DEFAULT_PRIVATE_BYTES
-    )
+    if has_subscription(sesh, user_uuid):
+        return Quota(
+            private_tables=SUBSCRIBED_PRIVATE_TABLES,
+            private_bytes=SUBSCRIBED_PRIVATE_BYTES,
+        )
+    else:
+        return Quota(
+            private_tables=DEFAULT_PRIVATE_TABLES, private_bytes=DEFAULT_PRIVATE_BYTES
+        )
