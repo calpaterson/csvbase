@@ -913,11 +913,9 @@ def user(username: str) -> Response:
     include_private = False
     if "current_user" in g and g.current_user.username == username:
         include_private = True
-        show_manage_subscription = billing_svc.has_stripe_customer(
-            sesh, g.current_user.user_uuid
-        )
+        has_subscription = billing_svc.has_subscription(sesh, g.current_user.user_uuid)
     else:
-        show_manage_subscription = False
+        has_subscription = False
     user = svc.user_by_name(sesh, username)
     tables = svc.tables_for_user(
         sesh,
@@ -930,7 +928,7 @@ def user(username: str) -> Response:
             user=user,
             page_title=f"{username}",
             tables=list(tables),
-            show_manage_subscription=show_manage_subscription,
+            show_manage_subscription=has_subscription,
         )
     )
 

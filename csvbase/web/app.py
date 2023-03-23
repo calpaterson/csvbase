@@ -130,6 +130,9 @@ def init_app() -> Flask:
             if http_code == 401:
                 flash("You need to sign in to do that")
                 return redirect(url_for("csvbase.register"))
+            elif isinstance(e, exc.NotEnoughQuotaException):
+                flash("You need to subscribe in order to do that")
+                return redirect(url_for("billing.pricing"))
             else:
                 resp = make_response(f"http error code {http_code}: {message}")
                 resp.status_code = http_code
