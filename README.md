@@ -4,11 +4,13 @@
 
 # csvbase
 
-## The grand plan
+## What it's about
 
-1. Paste your CSV file, receive free CRUD REST API, easy pandas export, etc
-2. ???
-3. Profit
+1. Paste your CSV file
+2. Get a table on the web you can share with people via url
+3. They can export it into pandas/excel/spark/whatever
+
+In short: making it really easy to share dataframes.
 
 ## For example
 
