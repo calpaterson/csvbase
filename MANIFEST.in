@@ -1,5 +1,5 @@
-graft csvbase/templates
-graft csvbase/static
+graft csvbase/web/templates
+graft csvbase/web/static
 include csvbase/VERSION
 include csvbase/data/prohibited-usernames
 global-exclude *.pyc
