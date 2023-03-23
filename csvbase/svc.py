@@ -447,6 +447,7 @@ def tables_for_user(
 ) -> Iterable[Table]:
     rp = (
         sesh.query(models.Table, models.User.username)
+        .join(models.User)
         .filter(models.Table.user_uuid == user_uuid)
         .order_by(models.Table.created.desc())
     )
