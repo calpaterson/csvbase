@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import table as satable
 
+from .web.billing.svc import get_quota
 from . import data, exc, models
 from .userdata import PGUserdataAdapter
 from .value_objs import (
@@ -38,6 +39,7 @@ from .value_objs import (
     Table,
     User,
     RowCount,
+    Usage,
 )
 from .json import value_to_json
 
@@ -441,12 +443,11 @@ def is_valid_api_key(sesh: Session, username: str, hex_api_key: str) -> bool:
 
 
 def tables_for_user(
-    sesh: Session, username: str, include_private: bool = False
+    sesh: Session, user_uuid: UUID, include_private: bool = False
 ) -> Iterable[Table]:
     rp = (
         sesh.query(models.Table, models.User.username)
-        .join(models.User)
-        .filter(models.User.username == username)
+        .filter(models.Table.user_uuid == user_uuid)
         .order_by(models.Table.created.desc())
     )
     if not include_private:
@@ -641,4 +642,28 @@ def mark_table_changed(sesh: Session, table_uuid: UUID) -> None:
         update(models.Table)  # type: ignore
         .where(models.Table.table_uuid == table_uuid)
         .values(last_changed=func.now())
+    )
+
+
+def get_usage(sesh: Session, user_uuid: UUID) -> Usage:
+    tables_and_public = sesh.query(models.Table.table_uuid, models.Table.public).filter(
+        models.Table.user_uuid == user_uuid
+    )
+    private_bytes = 0
+    private_tables = 0
+    public_bytes = 0
+    public_tables = 0
+    for table_uuid, is_public in tables_and_public:
+        byte_count = PGUserdataAdapter.byte_count(sesh, table_uuid)
+        if is_public:
+            public_tables += 1
+            public_bytes += byte_count
+        else:
+            private_tables += 1
+            private_bytes += byte_count
+    return Usage(
+        private_bytes=private_bytes,
+        private_tables=private_tables,
+        public_bytes=public_bytes,
+        public_tables=public_tables,
     )

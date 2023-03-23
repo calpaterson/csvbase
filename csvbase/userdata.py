@@ -465,6 +465,19 @@ class PGUserdataAdapter:
         sesh.execute(reset_serial_stmt)
         sesh.execute(add_stmt_blanks)
 
+    @classmethod
+    def byte_count(cls, sesh: Session, table_uuid: UUID) -> int:
+        # pg_total_relation_size returns the size of the table plus toast, plus
+        # indices https://stackoverflow.com/a/70397779
+        stmt = text("SELECT pg_total_relation_size(:relname);")
+        rs = sesh.execute(
+            stmt,
+            params={
+                "relname": cls._make_userdata_table_name(table_uuid, with_schema=True)
+            },
+        )
+        return rs.scalar()
+
 
 class CreateTempTableLike(DDLElement):
     inherit_cache = False

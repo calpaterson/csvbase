@@ -261,3 +261,27 @@ PRETTY_NAME_MAP: Mapping[ContentType, str] = {
     ContentType.JSON_LINES: "JSON lines",
     ContentType.XLSX: "MS Excel",
 }
+
+
+@dataclass
+class Quota:
+    private_tables: int
+    private_bytes: int
+
+
+@dataclass
+class Usage:
+    """Represents the actual usage of a user - to be compared against their
+    Quota.
+
+    """
+
+    public_tables: int
+    public_bytes: int
+    private_tables: int
+    private_bytes: int
+
+    def exceeds_quota(self, quota: Quota) -> bool:
+        return (self.private_tables > quota.private_tables) or (
+            self.private_bytes > quota.private_bytes
+        )

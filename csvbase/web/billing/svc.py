@@ -10,7 +10,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from ...config import get_config
 from ...models import PaymentReference, StripeCustomer, StripeSubscription
-from ...value_objs import User
+from ...value_objs import User, Quota
 from .value_objs import StripeSubscriptionStatus
 
 logger = getLogger(__name__)
@@ -167,3 +167,16 @@ def update_stripe_subscriptions(sesh: Session, full: bool) -> bool:
         all_updated = update_stripe_subscription(sesh, stripe_subscription)
     sesh.commit()
     return all_updated
+
+
+# by default, users get 100 mb (non-SI units to be generous) of private bytes
+DEFAULT_PRIVATE_BYTES = 100 * 1024 * 1024 * 1024
+
+# and a single private table
+DEFAULT_PRIVATE_TABLES = 1
+
+
+def get_quota(sesh: Session, user_uuid: UUID) -> Quota:
+    return Quota(
+        private_tables=DEFAULT_PRIVATE_TABLES, private_bytes=DEFAULT_PRIVATE_BYTES
+    )

@@ -59,6 +59,35 @@ def test_uploading_a_table_when_not_logged_in(client):
     assert resp.headers["Location"] == f"/{username}/{table_name}"
 
 
+def test_uploading_a_table_over_quota(client, test_user):
+    set_current_user(test_user)
+
+    resp1 = client.post(
+        "/new-table",
+        data={
+            "table-name": "private-table-1",
+            "private": "on",
+            "data-licence": "1",
+            "csv-file": (FileStorage(BytesIO(b"a,b,c\n1,2,3"), "test.csv")),
+        },
+        content_type="multipart/form-data",
+    )
+    assert resp1.status_code == 302
+    assert resp1.headers["Location"] == f"/{test_user.username}/private-table-1"
+
+    resp2 = client.post(
+        "/new-table",
+        data={
+            "table-name": "private-table-2",
+            "private": "on",
+            "data-licence": "1",
+            "csv-file": (FileStorage(BytesIO(b"a,b,c\n1,2,3"), "test.csv")),
+        },
+        content_type="multipart/form-data",
+    )
+    assert resp2.status_code == 400
+
+
 def test_uploading_a_table(client, test_user):
     table_name = f"test-table-{random_string()}"
     set_current_user(test_user)
@@ -119,3 +148,65 @@ def test_uploading_a_table_with_csvbase_row_ids(client, test_user, ten_rows):
     )
     actual_df = get_df_as_csv(client, resp.headers["Location"])
     assert_frame_equal(expected_df, actual_df[["roman_numeral"]])
+
+
+def test_blank_table(client, test_user):
+    set_current_user(test_user)
+    resp1 = client.post(
+        "/new-table/blank",
+        data={
+            "col-name-1": "test",
+            "col-type-1": "TEXT",
+            "table-name": random_string(),
+            "data-licence": 1,
+            "private": "on",
+        },
+    )
+
+    assert resp1.status_code == 302
+
+
+@pytest.mark.xfail(reason="actual bug, needs fixing")
+def test_blank_table__and_register(client):
+    resp1 = client.post(
+        "/new-table/blank",
+        data={
+            "col-name-1": "test",
+            "col-type-1": "TEXT",
+            "table-name": random_string(),
+            "data-licence": 1,
+            "private": "on",
+        },
+    )
+
+    assert resp1.status_code == 302
+
+
+def test_blank_table__over_quota(client, test_user):
+    set_current_user(test_user)
+
+    resp1 = client.post(
+        "/new-table/blank",
+        data={
+            "col-name-1": "test",
+            "col-type-1": "TEXT",
+            "table-name": random_string(),
+            "data-licence": 1,
+            "private": "on",
+        },
+    )
+
+    assert resp1.status_code == 302
+
+    resp2 = client.post(
+        "/new-table/blank",
+        data={
+            "col-name-1": "test",
+            "col-type-1": "TEXT",
+            "table-name": random_string(),
+            "data-licence": 1,
+            "private": "on",
+        },
+    )
+
+    assert resp2.status_code == 400

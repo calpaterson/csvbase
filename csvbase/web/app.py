@@ -39,7 +39,7 @@ from ..logging import configure_logging
 from .. import sentry
 from ..sesh import get_sesh
 from .func import is_browser
-from . import billing
+from .billing import bp as billing_bp
 from .main.bp import bp as main_bp
 
 logger = getLogger(__name__)
@@ -66,6 +66,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
     ),
     exc.CSVException: ("Unable to parse that csv file", 400),
     exc.UnknownPaymentReferenceUUIDException: ("unknown payment reference", 404),
+    exc.NotEnoughQuotaException: ("this would exceed your quota", 400),
 }
 
 
@@ -94,7 +95,7 @@ def init_app() -> Flask:
 
     app.register_blueprint(main_bp)
 
-    billing.init_blueprint(app)
+    billing_bp.init_blueprint(app)
 
     if config.blog_ref is not None:
         app.register_blueprint(blog_bp)

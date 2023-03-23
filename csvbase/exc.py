@@ -96,3 +96,7 @@ class BillingException(CSVBaseException):
 class UnknownPaymentReferenceUUIDException(BillingException):
     def __init__(self, payment_reference_uuid: str) -> None:
         self.payment_reference_uuid = payment_reference_uuid
+
+
+class NotEnoughQuotaException(BillingException):
+    pass

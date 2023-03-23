@@ -16,7 +16,6 @@ from typing import (
 )
 from urllib.parse import urlsplit, urlunsplit
 import hashlib
-from uuid import uuid4
 
 import itsdangerous.serializer
 import werkzeug.http
@@ -38,7 +37,12 @@ from flask_cors import cross_origin
 from typing_extensions import Literal
 from werkzeug.wrappers.response import Response
 
-from ..func import is_browser, set_current_user
+from ..func import (
+    is_browser,
+    set_current_user,
+    get_current_user_or_401,
+    get_current_user,
+)
 from ... import exc, svc, streams
 from ...json import value_to_json, json_to_value
 from ...markdown import render_markdown
@@ -142,18 +146,27 @@ def upload_file() -> str:
 def new_table_form_submission() -> Response:
     sesh = get_sesh()
     if "username" in request.form:
-        user = svc.create_user(
+        current_user = svc.create_user(
             sesh,
             current_app.config["CRYPT_CONTEXT"],
             request.form["username"],
             request.form["password"],
             request.form.get("email"),
         )
-        sign_in_user(user)
+        sign_in_user(current_user)
         flash("Account registered")
     else:
-        am_a_user_or_400()
-        user = g.current_user
+        current_user = get_current_user_or_401()
+
+    quota = billing_svc.get_quota(sesh, current_user.user_uuid)
+    usage = svc.get_usage(sesh, current_user.user_uuid)
+    if "private" in request.form:
+        usage.private_tables += 1
+    else:
+        usage.public_tables += 1
+    if usage.exceeds_quota(quota):
+        logger.warning("%s tried to exceed quota", user)
+        raise exc.NotEnoughQuotaException()
 
     table_name = request.form["table-name"]
     textarea = request.form.get("csv-textarea")
@@ -171,14 +184,14 @@ def new_table_form_submission() -> Response:
     csv_buf.seek(0)
     table_uuid = svc.create_table_metadata(
         sesh,
-        g.current_user.user_uuid,
+        current_user.user_uuid,
         table_name,
         is_public,
         "",
         data_licence,
     )
     PGUserdataAdapter.create_table(sesh, table_uuid, columns)
-    table = svc.get_table(sesh, user.username, table_name)
+    table = svc.get_table(sesh, current_user.username, table_name)
     # FIXME: what happens if this fails?
     PGUserdataAdapter.insert_table_data(
         sesh,
@@ -192,7 +205,7 @@ def new_table_form_submission() -> Response:
     return redirect(
         url_for(
             "csvbase.table_view",
-            username=g.current_user.username,
+            username=current_user.username,
             table_name=table_name,
         )
     )
@@ -239,8 +252,19 @@ def blank_table() -> str:
 
 @bp.route("/new-table/blank", methods=["POST"])
 def blank_table_form_post() -> Response:
-    am_a_user_or_400()
+    current_user = get_current_user_or_401()
+
     sesh = get_sesh()
+    quota = billing_svc.get_quota(sesh, current_user.user_uuid)
+    usage = svc.get_usage(sesh, current_user.user_uuid)
+    if "private" in request.form:
+        usage.private_tables += 1
+    else:
+        usage.public_tables += 1
+    if usage.exceeds_quota(quota):
+        logger.warning("%s tried to exceed quota", user)
+        raise exc.NotEnoughQuotaException()
+
     cols = []
     index = 1
     while True:
@@ -260,7 +284,7 @@ def blank_table_form_post() -> Response:
 
     table_uuid = svc.create_table_metadata(
         sesh,
-        g.current_user.user_uuid,
+        current_user.user_uuid,
         table_name,
         is_public,
         "",
@@ -271,7 +295,7 @@ def blank_table_form_post() -> Response:
     return redirect(
         url_for(
             "csvbase.table_view",
-            username=g.current_user.username,
+            username=current_user.username,
             table_name=table_name,
         )
     )
@@ -897,7 +921,7 @@ def user(username: str) -> Response:
     user = svc.user_by_name(sesh, username)
     tables = svc.tables_for_user(
         sesh,
-        username,
+        user.user_uuid,
         include_private=include_private,
     )
     return make_response(
@@ -1198,7 +1222,8 @@ def table_to_json_dict(table: Table, page: Page) -> Dict[str, Any]:
 def url_for_with_auth(endpoint: str, **values) -> str:
     """Build a url, but add basic auth (if the users is logged in)"""
     flask_url = url_for(endpoint, **values)
-    if "current_user" in g:
+    current_user = get_current_user()
+    if current_user is not None:
         username = g.current_user.username
         password = g.current_user.hex_api_key()
     else:

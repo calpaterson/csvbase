@@ -1,4 +1,4 @@
-export FLASK_APP = csvbase.web:init_app()
+export FLASK_APP = csvbase.web.app:init_app()
 export FLASK_ENV = development
 
 version :=$(file < csvbase/VERSION)
@@ -23,7 +23,7 @@ serve: .venv static-deps
 	. .venv/bin/activate; flask run -p 6001
 
 serve-gunicorn: .venv static-deps
-	. .venv/bin/activate; gunicorn -w 1 'csvbase.web:init_app()' --access-logfile=- -t 30 -b :6001
+	. .venv/bin/activate; gunicorn -w 1 '$FLASK_APP' --access-logfile=- -t 30 -b :6001
 
 tox: static-deps
 	tox
