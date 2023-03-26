@@ -4,26 +4,37 @@
 {% block explainer %}{% endblock %}
 
 {% block main %}
-  <div class="container">
-    <div>
-      <h1>Pricing</h1>
-    </div>
-
-  <div class="col-auto">
-    <p>csvbase is <mark>free for open data</mark> - public tables.</p>
-    <p>The first private table <u>is free</u> but after that you must make a
-    contribution of <mark>£1 per month</mark>.</p>
-
-      {% if has_subscription %}
-        <p>You are already subscribed. <a
-            href="{{ url_for('billing.manage') }}">Manage your subscription</a>.
+<div class="container">
+  <div class="row">
+    <div class="col-md-8 offset-md-2">
+      <h1 class="py-2">Pricing</h1>
+      <p>
+        csvbase is <mark>free for open data</mark> - all users can upload
+        and share unlimited public tables completely free of charge.
+      </p>
+      <p>
+        Each user also gets their <mark>first private table for free</mark>.
+        If you need more private tables you can subscribe for £2/month for
+        unlimited private tables.
+      </p>
+      <p>
+        Subscribing not only unlocks unlimited private tables but also supports
+        the development of this <a href="https://github.com/calpaterson/csvbase">completely open source project</a>.
+      </p>
+      <div class="d-grid justify-content-center">
+        {% if has_subscription %}
+          <p>You are already subscribed. <a href="{{ url_for('billing.manage') }}">Manage your subscription</a>.
         {% else %}
-          <a
-            href="{{ url_for('billing.subscribe') }}"
-            class="btn btn-success btn-lg active"
-            role="button">Subscribe for £1/month</a>
+          <a href="{{ url_for('billing.subscribe') }}"
+             class="btn btn-success btn-lg active text-center"
+             role="button"
+             >Get unlimited private tables for £2/month</a>
         {% endif %}
+        <div class="text-center">
+          <p>Have a question?  Feel free to <a href="mailto:cal@calpaterson.com">get in contact</a><p>
+        </div>
+      </div>
+    </div>
   </div>
-
-  </div>
+</div>
 {% endblock %}

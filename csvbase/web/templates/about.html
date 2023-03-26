@@ -4,39 +4,71 @@
 {% block explainer %}{% endblock %}
 
 {% block main %}
-  <div class="container">
-    <div class="px-4 py-2 text-center">
-      <img alt="logo" src="{{ url_for('static', filename='logo/192x192.png') }}" width="192" height="192">
-      <h1 class="display-5 fw-bold">csvbase</h1>
-    </div>
-
-    <div class="col-auto">
-      <p>csvbase is a website for hosting table data.</p>
-
-      <p>It&apos;s primarily aimed at open data &#8212; but <a href=" {{ url_for('billing.pricing') }}">private data is accepted too</a>.</p>
-
-      <ul>
-        <li>To get started, just <a href="{{ url_for('csvbase.upload_file') }}">upload your CSV file</a> or <a href="{{ url_for('csvbase.paste') }}">paste directly from MS Excel</a></li>
-        <li>All tables have a <a href="{{ url_for('csvbase.get_table_apidocs', username='meripaterson', table_name='stock-exchanges') }}">simple REST API</a><ul>
-            <li>A GraphQL API will follow soon</li>
-        </ul></li>
-        <li>Exporting to Pandas/R/MS Excel is dead easy; just use the url:<ul>
-            <li><code>import pandas as pd; pd.read_csv("{{url_for('csvbase.table_view', username='meripaterson', table_name='stock-exchanges', _external=True)}}")</code></ul></li>
-      </ul>
-
-      <p>Some possible uses might be:
+<div class="container">
+  <div class="row">
+    <div class="col-md-8 offset-md-2">
+      <div class="px-4 py-2 text-center">
+        <img alt="logo" src="{{ url_for('static', filename='logo/192x192.png') }}" width="192" height="192">
+        <h1 class="display-5 fw-bold">About csvbase</h1>
+      </div>
+      <p>
+        <mark>csvbase is a website for hosting and sharing data tables.</mark>
+      </p>
+      <p>
+        Whether you&#39;re working with open data or private data, csvbase makes it
+        easy to upload, manage, edit and share your data with other people.
+      </p>
+      <p>
+        Get started by <a href="">uploading your CSV file</a> (or just <a href="">copy and paste straight
+        from MS Excel</a>).  Then you can share the link with other people and they
+        can <a href="">download in their preferred formats (Parquet, MS Excel)</a> or access the
+        data as via a <a href="">simple REST API</a>.
+      </p>
+      <p>
+        Some sample usecases are:
         <ul>
-          <li>Hosting open data, for example <a href="{{ url_for('csvbase.table_view', username='meripaterson', table_name='stock-exchanges') }}">the world&apos;s stock exchanges</a></li>
-          <li>A simple back-end for basic applications</li>
-          <li>Sharing data between developers (who like APIs!) and data analysts (who like CSVs!)</li>
+          <li>Hosting open data, such as a list of the world&#39s stock exchanges</li>
+          <li>Provide a simple mini-database for basic apps.</li>
+          <li>Sharing data between developers (who like APIs!) and data analysts (who like data feeds).</li>
         </ul>
       </p>
-
-      <p>csvbase is <a href="https://github.com/calpaterson/csvbase">open source
-          software, under the AGPLv3</a>.  It&apos;s (mostly) written
-          by <a href="https://calpaterson.com/about.html">Cal Paterson</a>.  Please
-          let me know what you think by
-          sending <a href="mailto:cal@calpaterson.com">an email</a>.</p>
+      <p>
+        csvbase is free for open data and <a href="">£1/month for unlimited private tables</a>
+      </p>
+      <p>
+        csvbase is <a href="https://github.com/calpaterson/csvbase">completely open source, on Github.<a/>
+      </p>
     </div>
   </div>
+</div>
+
+  {#   <div class="col-auto"> #}
+  {#     <p>csvbase is a website for hosting table data.</p> #}
+
+  {#     <p>It&apos;s primarily aimed at open data &#8212; but <a href=" {{ url_for('billing.pricing') }}">private data is accepted too</a>.</p> #}
+
+  {#     <ul> #}
+  {#       <li>To get started, just <a href="{{ url_for('csvbase.upload_file') }}">upload your CSV file</a> or <a href="{{ url_for('csvbase.paste') }}">paste directly from MS Excel</a></li> #}
+  {#       <li>All tables have a <a href="{{ url_for('csvbase.get_table_apidocs', username='meripaterson', table_name='stock-exchanges') }}">simple REST API</a><ul> #}
+  {#           <li>A GraphQL API will follow soon</li> #}
+  {#       </ul></li> #}
+  {#       <li>Exporting to Pandas/R/MS Excel is dead easy; just use the url:<ul> #}
+  {#           <li><code>import pandas as pd; pd.read_csv("{{url_for('csvbase.table_view', username='meripaterson', table_name='stock-exchanges', _external=True)}}")</code></ul></li> #}
+  {#     </ul> #}
+
+  {#     <p>Some possible uses might be: #}
+  {#       <ul> #}
+  {#         <li>Hosting open data, for example <a href="{{ url_for('csvbase.table_view', username='meripaterson', table_name='stock-exchanges') }}">the world&apos;s stock exchanges</a></li> #}
+  {#         <li>A simple back-end for basic applications</li> #}
+  {#         <li>Sharing data between developers (who like APIs!) and data analysts (who like CSVs!)</li> #}
+  {#       </ul> #}
+  {#     </p> #}
+
+  {#     <p>csvbase is <a href="https://github.com/calpaterson/csvbase">open source #}
+  {#         software, under the AGPLv3</a>.  It&apos;s (mostly) written #}
+  {#         by <a href="https://calpaterson.com/about.html">Cal Paterson</a>.  Please #}
+  {#         let me know what you think by #}
+  {#         sending <a href="mailto:cal@calpaterson.com">an email</a>.</p> #}
+  {#   </div> #}
+  {# </div> #}
 {% endblock %}
