@@ -45,38 +45,40 @@
         {% endif %}
       </div>
       <div class="col-md-4 {% if table.username == g.current_username %}offset-md-3{% else %}offset-md-4{% endif %}">
-    <ul class="pagination justify-content-center">
-      {% if page.has_less %}
-        <li class="page-item">
-          <a class="page-link"
-             href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name, op='lt', n=page.rows[0][ROW_ID_COLUMN]) }}">Previous page</a>
-        </li>
-      {% else %}
-        <li class="page-item disabled">
-          <a class="page-link" href="#" tabindex="-1">Previous page</a>
-        </li>
-      {% endif %}
+        <ul class="pagination justify-content-center">
+          {% if page.has_less %}
+            <li class="page-item">
+              <a class="page-link"
+                 href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name, op='lt', n=page.rows[0][ROW_ID_COLUMN]) }}">Previous page</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled">
+              <a class="page-link" href="#" tabindex="-1">Previous page</a>
+            </li>
+          {% endif %}
 
-      <li class="page-item active">
-        {% if page.rows %}
-          <a class="page-link" href="#">Rows {{ page.rows[0][ROW_ID_COLUMN] }} to {{ page.rows[-1][ROW_ID_COLUMN] }} (of {{ table_macros.render_row_count(table) }})</a>
-        {% else %}
-          {# FIXME: this is hardcoded to handle the case where keysets only handle csvbase_row_id #}
-          <a class="page-link" href="#">Row {{keyset.values[0] + 1}} onwards</a>
-        {% endif %}
-      </li>
+          <li class="page-item active">
+            {% if page.rows %}
+              <a class="page-link" href="#">Rows {{ page.rows[0][ROW_ID_COLUMN] }} to {{ page.rows[-1][ROW_ID_COLUMN] }} (of {{ table_macros.render_row_count(table) }})</a>
+            {% else %}
+              {# FIXME: this is hardcoded to handle the case where keysets only handle csvbase_row_id #}
+              <a class="page-link" href="#">Row {{keyset.values[0] + 1}} onwards</a>
+            {% endif %}
+          </li>
 
-      {% if page.has_more %}
-        <li class="page-item">
-          <a class="page-link"
-             href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name, op='gt', n=page.rows[-1][ROW_ID_COLUMN]) }}">Next page</a>
-        </li>
-      {% else %}
-        <li class="page-item disabled">
-          <a class="page-link" href="#" tabindex="-1">Next page</a>
-        </li>
-      {% endif %}
-    </ul>
+          {% if page.has_more %}
+            <li class="page-item">
+              <a class="page-link"
+                 href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name, op='gt', n=page.rows[-1][ROW_ID_COLUMN]) }}">Next page</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled">
+              <a class="page-link" href="#" tabindex="-1">Next page</a>
+            </li>
+          {% endif %}
+        </ul>
+      </div>
     </div>
   </nav>
+  </div>
 {% endblock %}

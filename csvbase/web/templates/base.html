@@ -13,91 +13,100 @@
     <title>{{page_title or "csvbase"}}</title>
     {% endblock %}
   </head>
-  <body>
+  <body class="d-flex flex-column min-vh-100">
     {% block body %}
+      <div class="flex-fill">
 
-      <nav id="csvbase-nav" class="navbar navbar-expand-sm navbar-light">
-        <div class="container">
-          <a class="navbar-brand" href="{{ url_for('csvbase.index') }}">
-            <img src="/static/logo/192x192.png" alt=" " width="32" height="32" class="d-inline-block align-text">
-            csvbase
-          </a>
+        <nav id="csvbase-nav" class="navbar navbar-expand-sm navbar-light">
+          <div class="container">
+            <a class="navbar-brand" href="{{ url_for('csvbase.index') }}">
+              <img src="/static/logo/192x192.png" alt=" " width="32" height="32" class="d-inline-block align-text">
+              csvbase
+            </a>
 
-          <button class="navbar-toggler"
-                  type="button"
-                  data-bs-toggle="collapse"
-                  data-bs-target="#navbar-collapse">
-            <span class="navbar-toggler-icon"></span>
-          </button>
+            <button class="navbar-toggler"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbar-collapse">
+                    <span class="navbar-toggler-icon"></span>
+            </button>
 
-          <div class="collapse navbar-collapse" id="navbar-collapse">
+            <div class="collapse navbar-collapse" id="navbar-collapse">
 
-            {% block navbar_elements %}
+              {% block navbar_elements %}
 
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-              <li class="nav-item">
-                <a class="nav-link {% if request.endpoint == 'csvbase.paste' %}active{% endif %}"
-                   href="{{ url_for('csvbase.paste') }}">Paste/Upload</a>
-              </li>
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                  <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'csvbase.paste' %}active{% endif %}"
+                       href="{{ url_for('csvbase.paste') }}">Paste/Upload</a>
+                  </li>
 
-              {% if "billing" in blueprints %}
-                <li class="nav-item">
-                  <a class="nav-link {% if request.endpoint == 'billing.pricing' %}active{% endif %}"
-                     href="{{ url_for('billing.pricing') }}">Pricing</a>
-                </li>
-              {% endif %}
+                  {% if "billing" in blueprints %}
+                    <li class="nav-item">
+                      <a class="nav-link {% if request.endpoint == 'billing.pricing' %}active{% endif %}"
+                         href="{{ url_for('billing.pricing') }}">Pricing</a>
+                    </li>
+                  {% endif %}
 
-              {% if "blog" in blueprints %}
-                <li class="nav-item">
-                  <a class="nav-link {% if request.endpoint == 'blog.blog_index' %}active{% endif %}"
-                     href="{{ url_for('blog.blog_index') }}">Blog</a>
-                </li>
-              {% endif %}
+                  {% if "blog" in blueprints %}
+                    <li class="nav-item">
+                      <a class="nav-link {% if request.endpoint == 'blog.blog_index' %}active{% endif %}"
+                         href="{{ url_for('blog.blog_index') }}">Blog</a>
+                    </li>
+                  {% endif %}
 
-              <li class="nav-item">
-                <a class="nav-link {% if request.endpoint == 'csvbase.about' %}active{% endif %}"
-                   href="{{ url_for('csvbase.about') }}">About</a>
-              </li>
+                  <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'csvbase.about' %}active{% endif %}"
+                       href="{{ url_for('csvbase.about') }}">About</a>
+                  </li>
+                </ul>
+
+              {% endblock %}
+
+            </div>
+          </div>
+        </nav>
+
+        {% block explainer %}
+        {% endblock %}
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="container">
+              {% for message in messages %}
+                <div class="alert alert-primary" role="alert">
+                  {{ message }}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {% block main %}
+        {% endblock %}
+      {% endblock %}
+
+      {# end of the flex-fill above #}
+      </div>
+
+    <footer class="py-3 my-5 border-top">
+      <div class="container">
+        <div class="row">
+          <div class="offset-md-5 col-md-2">
+            <a href="/" class="d-flex align-items-center mb-3 mb-md-0 link-dark text-decoration-none">
+              <img src="/static/logo/192x192.png" alt=" " width="32" height="32" class="d-inline-block align-text" style="margin: auto">
+            </a>
+          </div>
+          <div class="col-md-4 text-md-end">
+            <ul class="nav justify-content-md-end">
+              <li class="nav-item"><a href="https://github.com/calpaterson/csvbase" class="nav-link text-muted">Source code</a></li>
+              <li class="nav-item"><a href="{{ url_for('static', filename='privacy.txt') }}" class="nav-link text-muted">Privacy policy</a></li>
+              <li class="nav-item"><a href="{{ url_for('static', filename='terms.txt') }}" class="nav-link text-muted">Terms</a></li>
             </ul>
-
-            {% endblock %}
-
           </div>
         </div>
-      </nav>
-
-      {% block explainer %}
-      {% endblock %}
-
-      {% with messages = get_flashed_messages() %}
-        {% if messages %}
-          <div class="container">
-            {% for message in messages %}
-              <div class="alert alert-primary" role="alert">
-                {{ message }}
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
-      {% endwith %}
-
-      {% block main %}
-      {% endblock %}
-    {% endblock %}
-
-    <div class="container">
-      <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 my-5 border-top">
-        <a href="/" class="offset-md-4 col-md-4 d-flex align-items-center justify-content-center mb-3 mb-md-0 me-md-auto link-dark text-decoration-none">
-          <img src="/static/logo/192x192.png" alt=" " width="32" height="32" class="d-inline-block align-text">
-        </a>
-
-        <ul class="nav col-md-4 justify-content-end">
-          <li class="nav-item"><a href="https://github.com/calpaterson/csvbase" class="nav-link px-2 text-muted">Source code</a></li>
-          <li class="nav-item"><a href="{{ url_for('static', filename='privacy.txt') }}" class="nav-link px-2 text-muted">Privacy policy</a></li>
-          <li class="nav-item"><a href="{{ url_for('static', filename='terms.txt') }}" class="nav-link px-2 text-muted">Terms</a></li>
-        </ul>
-      </footer>
-    </div>
+      </div>
+    </footer>
 
     <script src="{{ url_for('static', filename='bootstrap.bundle.js' ) }}" integrity="sha384-8fq7CZc5BnER+jVlJI2Jafpbn4A9320TKhNJfYP33nneHep7sUg/OD30x7fK09pS"></script>
 
