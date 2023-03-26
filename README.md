@@ -4,6 +4,8 @@
 
 # csvbase
 
+A website for sharing data tables.
+
 ## What it's about
 
 1. Paste your CSV file
