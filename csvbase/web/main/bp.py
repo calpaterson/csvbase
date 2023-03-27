@@ -440,6 +440,7 @@ def make_table_view_etag(
     hash_.update(table.table_uuid.bytes)
     hash_.update(str(keyset_to_dict(keyset)).encode("utf-8"))
     hash_.update(content_type.value.encode("utf-8"))
+    hash_.update(table.last_changed.isoformat().encode("utf-8"))
     if content_type == ContentType.HTML:
         hash_.update(current_username.encode("utf-8"))
     key = hash_.hexdigest()

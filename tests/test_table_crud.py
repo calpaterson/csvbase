@@ -3,6 +3,7 @@ from unittest.mock import ANY
 
 import pytest
 
+from csvbase import svc
 from csvbase.value_objs import ContentType
 
 from .conftest import ROMAN_NUMERALS
@@ -100,6 +101,31 @@ def test_read__etag_cache_miss(client, ten_rows, test_user, content_type):
     etag = first_resp.headers["ETag"]
 
     assert etag.startswith("W/")
+
+
+def test_read__last_changed_updates_the_etag(
+    client, ten_rows, test_user, content_type, sesh
+):
+    first_resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        headers={"Accept": content_type.value},
+    )
+    assert first_resp.status_code == 200, first_resp.data
+    assert content_type.value in first_resp.headers["Content-Type"]
+    first_etag = first_resp.headers["ETag"]
+
+    svc.mark_table_changed(sesh, ten_rows.table_uuid)
+    sesh.commit()
+
+    second_resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        headers={"Accept": content_type.value},
+    )
+    assert second_resp.status_code == 200, second_resp.data
+    assert content_type.value in second_resp.headers["Content-Type"]
+    second_etag = second_resp.headers["ETag"]
+
+    assert first_etag != second_etag
 
 
 def test_read__with_no_rows(sesh, client, test_user, content_type):
