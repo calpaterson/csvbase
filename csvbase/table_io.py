@@ -1,7 +1,8 @@
 import csv
-from typing import List, Iterable, Mapping, Collection, Tuple, Sequence, IO
+from typing import List, Iterable, Mapping, Collection, Tuple, Sequence, IO, Dict, Any
 import io
 
+import xlsxwriter
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -90,3 +91,43 @@ def rows_to_csv(
         writer.writerow(row)
     csv_buf.seek(0)
     return csv_buf
+
+
+def rows_to_xlsx(columns: Sequence[Column], rows: Iterable[UnmappedRow], excel_table: bool = False) -> io.BytesIO:
+    xlsx_buf = io.BytesIO()
+
+    column_names = [c.name for c in columns]
+
+    # FIXME: Perhaps this should change based on the user's locale
+    workbook_args: Dict = {"default_date_format": "yyyy-mm-dd"}
+    if not excel_table:
+        workbook_args["constant_memory"] = True
+
+    with xlsxwriter.Workbook(xlsx_buf, workbook_args) as workbook:
+        worksheet = workbook.add_worksheet()
+
+        if excel_table:
+            rows = list(rows)
+            table_args: Dict[str, Any] = {}
+            table_args["data"] = rows
+            table_args["columns"] = [
+                {"header": column_name} for column_name in column_names
+            ]
+
+            worksheet.add_table(
+                first_row=0,
+                first_col=0,
+                last_row=len(rows),
+                # FIXME: last_col should be zero indexed, isn't - bug?
+                last_col=len(columns) - 1,
+                options=table_args,
+            )
+        else:
+            worksheet.write_row(0, 0, column_names)
+
+            for index, row in enumerate(rows, start=1):
+                worksheet.write_row(index, 0, row)
+
+    xlsx_buf.seek(0)
+    return xlsx_buf
+

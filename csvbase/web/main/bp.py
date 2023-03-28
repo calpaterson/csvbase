@@ -121,7 +121,7 @@ class ConvertForm(MethodView):
                 output_formats=[
                     ContentType.CSV,
                     ContentType.PARQUET,
-                    # ContentType.XLSX,
+                    ContentType.XLSX,
                     # ContentType.JSON_LINES,
                 ],
                 default_output_format=ContentType.PARQUET,
@@ -156,6 +156,8 @@ class ConvertForm(MethodView):
             response_buf = table_io.rows_to_parquet(columns, rows)
         elif to_content_type == ContentType.CSV:
             response_buf = table_io.rows_to_csv(columns, rows)
+        elif to_content_type == ContentType.XLSX:
+            response_buf = table_io.rows_to_xlsx(columns, rows)
 
         return make_streaming_response(
             response_buf,
@@ -695,7 +697,9 @@ def export_table_xlsx(username: str, table_name: str) -> Response:
 
     excel_table = "excel-table" in request.args
 
-    xlsx_buf = svc.table_as_xlsx(sesh, table.table_uuid, excel_table=excel_table)
+    columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
+    rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
+    xlsx_buf = table_io.rows_to_xlsx(columns, rows, excel_table=excel_table)
     return make_streaming_response(
         xlsx_buf,
         ContentType.XLSX,

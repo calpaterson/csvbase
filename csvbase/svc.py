@@ -261,51 +261,6 @@ def table_as_jsonlines(sesh: Session, table_uuid: UUID) -> io.StringIO:
     return jl_buf
 
 
-def table_as_xlsx(
-    sesh: Session,
-    table_uuid: UUID,
-    excel_table: bool = False,
-) -> io.BytesIO:
-    xlsx_buf = io.BytesIO()
-
-    column_names = [c.name for c in PGUserdataAdapter.get_columns(sesh, table_uuid)]
-
-    rows = PGUserdataAdapter.table_as_rows(sesh, table_uuid)
-
-    # FIXME: Perhaps this should change based on the user's locale
-    workbook_args: Dict = {"default_date_format": "yyyy-mm-dd"}
-    if not excel_table:
-        workbook_args["constant_memory"] = True
-
-    with xlsxwriter.Workbook(xlsx_buf, workbook_args) as workbook:
-        worksheet = workbook.add_worksheet()
-
-        if excel_table:
-            rows = list(rows)
-            table_args: Dict[str, Any] = {}
-            table_args["data"] = rows
-            table_args["columns"] = [
-                {"header": column_name} for column_name in column_names
-            ]
-
-            worksheet.add_table(
-                first_row=0,
-                first_col=0,
-                last_row=len(rows),
-                # FIXME: last_col should be zero indexed, isn't - bug?
-                last_col=len(column_names) - 1,
-                options=table_args,
-            )
-        else:
-            worksheet.write_row(0, 0, column_names)
-
-            for index, row in enumerate(rows, start=1):
-                worksheet.write_row(index, 0, row)
-
-    xlsx_buf.seek(0)
-    return xlsx_buf
-
-
 def get_a_made_up_row(sesh: Session, table_uuid: UUID) -> Row:
     columns = PGUserdataAdapter.get_columns(sesh, table_uuid)
     return {c: c.type_.example() for c in columns}

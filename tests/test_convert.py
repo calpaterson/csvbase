@@ -16,7 +16,9 @@ SAMPLE_DATAFRAME = pd.DataFrame(
 @pytest.mark.parametrize(
     "from_format, to_format",
     [
+        (ContentType.CSV, ContentType.CSV),
         (ContentType.CSV, ContentType.PARQUET),
+        (ContentType.CSV, ContentType.XLSX),
         (ContentType.PARQUET, ContentType.CSV),
     ],
 )
@@ -28,6 +30,7 @@ def test_convert__a_to_b(client, test_user, from_format, to_format):
     reverse_methods = {
         ContentType.CSV: pd.read_csv,
         ContentType.PARQUET: pd.read_parquet,
+        ContentType.XLSX: pd.read_excel
     }
 
     get_resp = client.get("/convert")

@@ -9,6 +9,7 @@ test_reqs = [
     "bpython~=0.22.1",
     "feedparser==6.0.2",
     "mypy==0.982",
+    "openpyxl==3.1.2",
     "pandas==1.3.5",
     "pytest-flask==1.2.0",
     "pytest==7.1.1",
