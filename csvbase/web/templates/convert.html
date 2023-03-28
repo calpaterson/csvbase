@@ -15,9 +15,11 @@
           <label for="from-type-select" class="col-form-label">From</label>
         </div>
         <div class="col-auto">
-          <select class="form-select" name="from">
-              <option selected
-                value="csv">CSV</option>
+          <select class="form-select" name="from-format">
+            {% for input_format in input_formats %}
+              <option {% if input_format == default_input_format %}selected{% endif %}
+                      value="{{ input_format.value }}">{{ input_format.pretty_name() }}</option>
+            {% endfor %}
           </select>
         </div>
       </div>
@@ -27,7 +29,7 @@
           <label for="to-type-select" class="col-form-label">To</label>
         </div>
         <div class="col-auto">
-          <select class="form-select" name="to">
+          <select class="form-select" name="to-format">
             {% for output_format in output_formats %}
               <option {% if output_format == default_output_format %}selected{% endif %}
                       value="{{ output_format.value }}">{{ output_format.pretty_name() }}</option>

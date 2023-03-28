@@ -17,9 +17,12 @@ PARQUET_TYPE_MAP: Mapping[ColumnType, pa.lib.DataType] = {
     ColumnType.DATE: pa.date32(),
 }
 
-PARQUET_READ_TYPE_MAP: Mapping[str, ColumnType] = {
-    "INT64": ColumnType.INTEGER,
-    "STRING": ColumnType.TEXT,
+PARQUET_READ_TYPE_MAP: Mapping[Tuple[str, str], ColumnType] = {
+    ("INT64", "NONE"): ColumnType.INTEGER,
+    ("BYTE_ARRAY", "STRING"): ColumnType.TEXT,
+    ("INT32", "DATE"): ColumnType.DATE,
+    ("DOUBLE", "NONE"): ColumnType.FLOAT,
+    ("BOOLEAN", "NONE"): ColumnType.BOOLEAN,
 }
 
 UnmappedRow = Collection[PythonType]
@@ -61,12 +64,12 @@ def buf_to_pf(buf: IO[bytes]) -> pq.ParquetFile:
 
 def parquet_file_to_columns(pf: pq.ParquetFile) -> List[Column]:
     columns = []
-    for column in pf.schema:
-        if column.logical_type.type != "NONE":
-            type_str = column.logical_type.type
-        else:
-            type_str = column.physical_type
-        columns.append(Column(column.name, PARQUET_READ_TYPE_MAP[type_str]))
+    for pf_column in pf.schema:
+        type_str_pair: Tuple[str, str] = (
+            pf_column.physical_type,
+            pf_column.logical_type.type,
+        )
+        columns.append(Column(pf_column.name, PARQUET_READ_TYPE_MAP[type_str_pair]))
     return columns
 
 

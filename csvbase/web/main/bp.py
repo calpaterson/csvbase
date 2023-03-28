@@ -112,13 +112,20 @@ class ConvertForm(MethodView):
         return make_response(
             render_template(
                 "convert.html",
-                input_formats=[ContentType.CSV],
+                input_formats=[
+                    ContentType.CSV,
+                    # FIXME: Parquet's type system needs more work to be able
+                    # to parse it in csvbase
+                    # ContentType.PARQUET,
+                ],
                 output_formats=[
+                    ContentType.CSV,
                     ContentType.PARQUET,
-                    ContentType.XLSX,
-                    ContentType.JSON_LINES,
+                    # ContentType.XLSX,
+                    # ContentType.JSON_LINES,
                 ],
                 default_output_format=ContentType.PARQUET,
+                default_input_format=ContentType.CSV,
             )
         )
 

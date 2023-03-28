@@ -3,11 +3,14 @@ import io
 from werkzeug.datastructures import FileStorage
 
 import pandas as pd
+from pandas.testing import assert_frame_equal
 import pytest
 
 from csvbase.value_objs import ContentType
 
-SAMPLE_DATAFRAME = pd.DataFrame({"id": range(3), "value": ["a", "b", "c"]})
+SAMPLE_DATAFRAME = pd.DataFrame(
+    {"id": [100, 200, 300], "value": ["a", "b", "c"]}
+).set_index("id")
 
 
 @pytest.mark.parametrize(
@@ -18,14 +21,19 @@ SAMPLE_DATAFRAME = pd.DataFrame({"id": range(3), "value": ["a", "b", "c"]})
     ],
 )
 def test_convert__a_to_b(client, test_user, from_format, to_format):
-    get_resp = client.get("/convert")
-    assert get_resp.status_code == 200
-
-    buf = io.BytesIO()
     methods = {
         ContentType.CSV: SAMPLE_DATAFRAME.to_csv,
         ContentType.PARQUET: SAMPLE_DATAFRAME.to_parquet,
     }
+    reverse_methods = {
+        ContentType.CSV: pd.read_csv,
+        ContentType.PARQUET: pd.read_parquet,
+    }
+
+    get_resp = client.get("/convert")
+    assert get_resp.status_code == 200
+
+    buf = io.BytesIO()
     methods[from_format](buf)
     buf.seek(0)
 
@@ -47,6 +55,11 @@ def test_convert__a_to_b(client, test_user, from_format, to_format):
         post_resp.headers["Content-Disposition"]
         == f'attachment; filename="{expected_filename}"'
     )
+
+    actual_dataframe = reverse_methods[to_format](io.BytesIO(post_resp.data)).set_index(
+        "id"
+    )
+    assert_frame_equal(SAMPLE_DATAFRAME, actual_dataframe)
 
 
 @pytest.mark.xfail(reason="not implemented")
