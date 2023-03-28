@@ -14,6 +14,7 @@ from typing import (
     Union,
     cast,
     Iterator,
+    IO,
 )
 from urllib.parse import urlsplit, urlunsplit
 import hashlib
@@ -122,17 +123,35 @@ class ConvertForm(MethodView):
         )
 
     def post(self) -> Response:
-        csv_buf = streams.byte_buf_to_str_buf(request.files["file"])
+        to_content_type = ContentType(request.form["to-format"])
+        from_content_type = ContentType(request.form["from-format"])
+
         if request.files["file"].filename is not None:
             original_filename = Path(request.files["file"].filename)
         else:
             original_filename = Path("converted")
-        converted_filename = original_filename.with_suffix(".parquet")
-        dialect, columns = streams.peek_csv(csv_buf)
-        csv_buf.seek(0)
-        rows = table_io.csv_to_rows(csv_buf, columns, dialect)
+        converted_filename = original_filename.with_suffix(
+            "." + to_content_type.file_extension()
+        )
+
+        if from_content_type == ContentType.CSV:
+            str_buf = streams.byte_buf_to_str_buf(request.files["file"])
+            dialect, columns = streams.peek_csv(str_buf)
+            str_buf.seek(0)
+            rows = table_io.csv_to_rows(str_buf, columns, dialect)
+        elif from_content_type == ContentType.PARQUET:
+            pf = table_io.buf_to_pf(cast(IO[bytes], request.files["file"]))
+            columns = table_io.parquet_file_to_columns(pf)
+            rows = table_io.parquet_file_to_rows(pf)
+
+        response_buf: Union[io.StringIO, io.BytesIO]
+        if to_content_type == ContentType.PARQUET:
+            response_buf = table_io.rows_to_parquet(columns, rows)
+        elif to_content_type == ContentType.CSV:
+            response_buf = table_io.rows_to_csv(columns, rows)
+
         return make_streaming_response(
-            table_io.rows_to_parquet(columns, rows),
+            response_buf,
             download_filename=str(converted_filename),
         )
 
@@ -413,9 +432,11 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
             etag,
         )
     else:
+        columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
+        rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
         return add_table_view_cache_headers(
             make_streaming_response(
-                svc.table_as_csv(sesh, table.table_uuid), ContentType.CSV
+                table_io.rows_to_csv(columns, rows), ContentType.CSV
             ),
             etag,
         )
@@ -690,11 +711,9 @@ def export_table_csv(username: str, table_name: str) -> Response:
     except KeyError:
         raise exc.InvalidRequest(f"invalid separator: {separator}")
 
-    csv_buf = svc.table_as_csv(
-        sesh,
-        table.table_uuid,
-        delimiter=delimiter,
-    )
+    columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
+    rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
+    csv_buf = table_io.rows_to_csv(columns, rows, delimiter=delimiter)
 
     extension = "tsv" if separator == "tab" else "csv"
     return make_streaming_response(

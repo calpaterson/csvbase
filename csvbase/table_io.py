@@ -1,5 +1,5 @@
 import csv
-from typing import Sequence, Iterable, Mapping, Collection
+from typing import List, Iterable, Mapping, Collection, Tuple, Sequence, IO
 import io
 
 import pyarrow as pa
@@ -15,6 +15,11 @@ PARQUET_TYPE_MAP: Mapping[ColumnType, pa.lib.DataType] = {
     ColumnType.FLOAT: pa.float64(),
     ColumnType.BOOLEAN: pa.bool_(),
     ColumnType.DATE: pa.date32(),
+}
+
+PARQUET_READ_TYPE_MAP: Mapping[str, ColumnType] = {
+    "INT64": ColumnType.INTEGER,
+    "STRING": ColumnType.TEXT,
 }
 
 UnmappedRow = Collection[PythonType]
@@ -48,3 +53,37 @@ def csv_to_rows(
         for line in reader
     )
     return row_gen
+
+
+def buf_to_pf(buf: IO[bytes]) -> pq.ParquetFile:
+    return pq.ParquetFile(buf)
+
+
+def parquet_file_to_columns(pf: pq.ParquetFile) -> List[Column]:
+    columns = []
+    for column in pf.schema:
+        if column.logical_type.type != "NONE":
+            type_str = column.logical_type.type
+        else:
+            type_str = column.physical_type
+        columns.append(Column(column.name, PARQUET_READ_TYPE_MAP[type_str]))
+    return columns
+
+
+def parquet_file_to_rows(pf: pq.ParquetFile) -> Iterable[UnmappedRow]:
+    table = pf.read()
+    for batch in table.to_batches():
+        as_dict = batch.to_pydict()
+        yield from zip(*as_dict.values())
+
+
+def rows_to_csv(
+    columns: Sequence[Column], rows: Iterable[UnmappedRow], delimiter: str = ","
+) -> io.StringIO:
+    csv_buf = io.StringIO()
+    writer = csv.writer(csv_buf, delimiter=delimiter)
+    writer.writerow([col.name for col in columns])
+    for row in rows:
+        writer.writerow(row)
+    csv_buf.seek(0)
+    return csv_buf

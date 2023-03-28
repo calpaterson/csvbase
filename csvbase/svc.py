@@ -250,27 +250,6 @@ def set_readme_markdown(
         table.readme_obj.readme_markdown = bleached
 
 
-def table_as_csv(
-    sesh: Session,
-    table_uuid: UUID,
-    delimiter: str = ",",
-) -> io.StringIO:
-    csv_buf = io.StringIO()
-
-    columns = [c.name for c in PGUserdataAdapter.get_columns(sesh, table_uuid)]
-
-    # this allows for putting the columns in with proper csv escaping
-    writer = csv.writer(csv_buf, delimiter=delimiter)
-    writer.writerow(columns)
-
-    # FIXME: This is probably too slow
-    for row in PGUserdataAdapter.table_as_rows(sesh, table_uuid):
-        writer.writerow(row)
-
-    csv_buf.seek(0)
-    return csv_buf
-
-
 def table_as_jsonlines(sesh: Session, table_uuid: UUID) -> io.StringIO:
     jl_buf = io.StringIO()
 

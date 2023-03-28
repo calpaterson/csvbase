@@ -14,10 +14,10 @@ SAMPLE_DATAFRAME = pd.DataFrame({"id": range(3), "value": ["a", "b", "c"]})
     "from_format, to_format",
     [
         (ContentType.CSV, ContentType.PARQUET),
-        # (ContentType.PARQUET, ContentType.CSV),
+        (ContentType.PARQUET, ContentType.CSV),
     ],
 )
-def test_convert_file(client, test_user, from_format, to_format):
+def test_convert__a_to_b(client, test_user, from_format, to_format):
     get_resp = client.get("/convert")
     assert get_resp.status_code == 200
 
@@ -47,3 +47,13 @@ def test_convert_file(client, test_user, from_format, to_format):
         post_resp.headers["Content-Disposition"]
         == f'attachment; filename="{expected_filename}"'
     )
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_convert__unreadable_file():
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_convert__unknown_content_type():
+    assert False
