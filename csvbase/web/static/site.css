@@ -59,11 +59,7 @@
 
 
 .blog-post-description {
-    max-width: 30rem;
     font-style: oblique;
-    margin: auto;
-    text-align: center;
-    margin-bottom: 1em;
 }
 
 .blog-post-draft {
