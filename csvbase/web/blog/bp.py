@@ -81,7 +81,7 @@ def make_feed(sesh: Session, feed_url: str) -> str:
     fg.title("csvbase blog")
     fg.language("en")
     fg.link(href=feed_url, rel="self")
-    fg.description("nothing")
+    fg.description("The csvbase blog")
 
     for post in blog_svc.get_posts(sesh):
         if post.draft:
@@ -89,6 +89,8 @@ def make_feed(sesh: Session, feed_url: str) -> str:
         fe = fg.add_entry()
         fe.id(str(post.uuid))
         fe.title(post.title)
+        if post.posted:
+            fe.pubDate(post.posted)
         fe.description(post.description)
         fe.link(href=url_for("blog.post", post_id=post.id, _external=True))
 
