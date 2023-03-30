@@ -32,9 +32,9 @@
 {% endblock %}
 
 {% block main %}
-  <div class="container">
+  <div class="container blog-post">
     <div class="row">
-      <div class="col-lg-8 offset-lg-2 blog-post blog-post-{{post.id}}">
+      <div class="col-lg-8 offset-lg-2 blog-post-{{post.id}}">
         <h1 class="py-2">{{ post.title }}</h1>
         <figure class="figure">
           <img class="figure-img img-fluid rounded" src="{{ post.cover_image_url}}" alt="{{ post.cover_image_alt}}">
