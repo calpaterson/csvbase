@@ -1,5 +1,5 @@
 import json
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 
 from feedgen.feed import FeedGenerator
 from flask import Blueprint, render_template, Response, url_for, make_response, request
@@ -90,7 +90,10 @@ def make_feed(sesh: Session, feed_url: str) -> str:
         fe.id(str(post.uuid))
         fe.title(post.title)
         if post.posted:
-            fe.pubDate(post.posted)
+            posted = post.posted
+            fe.pubDate(
+                datetime(posted.year, posted.month, posted.day, tzinfo=timezone.utc)
+            )
         fe.description(post.description)
         fe.link(href=url_for("blog.post", post_id=post.id, _external=True))
 
