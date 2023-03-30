@@ -41,6 +41,11 @@
                        href="{{ url_for('csvbase.paste') }}">Paste/Upload</a>
                   </li>
 
+                  <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'csvbase.convert' %}active{% endif %}"
+                       href="{{ url_for('csvbase.convert') }}">Convert</a>
+                  </li>
+
                   {% if "billing" in blueprints %}
                     <li class="nav-item">
                       <a class="nav-link {% if request.endpoint == 'billing.pricing' %}active{% endif %}"

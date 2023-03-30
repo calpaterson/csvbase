@@ -250,17 +250,6 @@ def set_readme_markdown(
         table.readme_obj.readme_markdown = bleached
 
 
-def table_as_jsonlines(sesh: Session, table_uuid: UUID) -> io.StringIO:
-    jl_buf = io.StringIO()
-
-    column_names = [c.name for c in PGUserdataAdapter.get_columns(sesh, table_uuid)]
-    for row in PGUserdataAdapter.table_as_rows(sesh, table_uuid):
-        json.dump(dict(zip(column_names, (value_to_json(v) for v in row))), jl_buf)
-        jl_buf.write("\n")
-    jl_buf.seek(0)
-    return jl_buf
-
-
 def get_a_made_up_row(sesh: Session, table_uuid: UUID) -> Row:
     columns = PGUserdataAdapter.get_columns(sesh, table_uuid)
     return {c: c.type_.example() for c in columns}

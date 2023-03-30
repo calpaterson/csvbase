@@ -1,3 +1,4 @@
+import json
 import csv
 from typing import List, Iterable, Mapping, Collection, Tuple, Sequence, IO, Dict, Any
 import io
@@ -9,6 +10,7 @@ import pyarrow.parquet as pq
 from . import conv
 from .streams import UserSubmittedCSVData
 from .value_objs import ColumnType, PythonType, Column
+from .json import value_to_json
 
 PARQUET_TYPE_MAP: Mapping[ColumnType, pa.lib.DataType] = {
     ColumnType.TEXT: pa.string(),
@@ -93,7 +95,9 @@ def rows_to_csv(
     return csv_buf
 
 
-def rows_to_xlsx(columns: Sequence[Column], rows: Iterable[UnmappedRow], excel_table: bool = False) -> io.BytesIO:
+def rows_to_xlsx(
+    columns: Sequence[Column], rows: Iterable[UnmappedRow], excel_table: bool = False
+) -> io.BytesIO:
     xlsx_buf = io.BytesIO()
 
     column_names = [c.name for c in columns]
@@ -131,3 +135,15 @@ def rows_to_xlsx(columns: Sequence[Column], rows: Iterable[UnmappedRow], excel_t
     xlsx_buf.seek(0)
     return xlsx_buf
 
+
+def rows_to_jsonlines(
+    columns: Sequence[Column], rows: Iterable[UnmappedRow]
+) -> io.StringIO:
+    jl_buf = io.StringIO()
+
+    column_names = [c.name for c in columns]
+    for row in rows:
+        json.dump(dict(zip(column_names, (value_to_json(v) for v in row))), jl_buf)
+        jl_buf.write("\n")
+    jl_buf.seek(0)
+    return jl_buf

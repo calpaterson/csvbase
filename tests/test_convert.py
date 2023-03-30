@@ -1,7 +1,8 @@
 from pathlib import Path
 import io
-from werkzeug.datastructures import FileStorage
+from functools import partial
 
+from werkzeug.datastructures import FileStorage
 import pandas as pd
 from pandas.testing import assert_frame_equal
 import pytest
@@ -19,6 +20,7 @@ SAMPLE_DATAFRAME = pd.DataFrame(
         (ContentType.CSV, ContentType.CSV),
         (ContentType.CSV, ContentType.PARQUET),
         (ContentType.CSV, ContentType.XLSX),
+        (ContentType.CSV, ContentType.JSON_LINES),
         (ContentType.PARQUET, ContentType.CSV),
     ],
 )
@@ -30,7 +32,8 @@ def test_convert__a_to_b(client, test_user, from_format, to_format):
     reverse_methods = {
         ContentType.CSV: pd.read_csv,
         ContentType.PARQUET: pd.read_parquet,
-        ContentType.XLSX: pd.read_excel
+        ContentType.XLSX: pd.read_excel,
+        ContentType.JSON_LINES: partial(pd.read_json, lines=True),
     }
 
     get_resp = client.get("/convert")

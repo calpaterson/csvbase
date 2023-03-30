@@ -122,7 +122,7 @@ class ConvertForm(MethodView):
                     ContentType.CSV,
                     ContentType.PARQUET,
                     ContentType.XLSX,
-                    # ContentType.JSON_LINES,
+                    ContentType.JSON_LINES,
                 ],
                 default_output_format=ContentType.PARQUET,
                 default_input_format=ContentType.CSV,
@@ -158,6 +158,10 @@ class ConvertForm(MethodView):
             response_buf = table_io.rows_to_csv(columns, rows)
         elif to_content_type == ContentType.XLSX:
             response_buf = table_io.rows_to_xlsx(columns, rows)
+        elif to_content_type == ContentType.JSON_LINES:
+            response_buf = table_io.rows_to_jsonlines(columns, rows)
+        else:
+            raise exc.InvalidRequest()
 
         return make_streaming_response(
             response_buf,
@@ -165,7 +169,7 @@ class ConvertForm(MethodView):
         )
 
 
-bp.add_url_rule("/convert", view_func=ConvertForm.as_view("convert-form"))
+bp.add_url_rule("/convert", "convert", view_func=ConvertForm.as_view("convert-form"))
 
 
 @bp.route("/new-table/paste")
@@ -436,8 +440,10 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
             make_streaming_response(table_io.rows_to_parquet(columns, rows)), etag
         )
     elif content_type is ContentType.JSON_LINES:
+        columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
+        rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
         return add_table_view_cache_headers(
-            make_streaming_response(svc.table_as_jsonlines(sesh, table.table_uuid)),
+            make_streaming_response(table_io.rows_to_jsonlines(columns, rows)),
             etag,
         )
     else:
