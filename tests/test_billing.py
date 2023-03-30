@@ -214,3 +214,17 @@ def test_insert_stripe_subscription_id__if_exists_under_different_user(sesh, app
     with pytest.raises(sqlalchemy.exc.IntegrityError):
         svc.insert_stripe_subscription(sesh, user2.user_uuid, fake_subscription)
         sesh.commit()
+
+
+def test_cancel(client, sesh, test_user):
+    payment_reference_uuid = uuid4()
+    payment_reference = random_string()
+    svc.record_payment_reference(
+        sesh, payment_reference_uuid, test_user, payment_reference
+    )
+    sesh.commit()
+
+    cancel_resp = client.get(f"/billing/cancel/{payment_reference_uuid}")
+    assert cancel_resp.status_code == 302
+
+    assert cancel_resp.headers["Location"] == "/about"

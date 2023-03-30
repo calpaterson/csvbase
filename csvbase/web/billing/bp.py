@@ -135,7 +135,8 @@ def success(payment_reference_uuid: str) -> Response:
 
 @bp.route("/cancel/<payment_reference_uuid>", methods=["GET"])
 def cancel(payment_reference_uuid: str):
-    raise NotImplementedError("not implemented")
+    flash("Checkout cancelled")
+    return redirect(url_for("csvbase.about"))
 
 
 @bp.route("/manage", methods=["GET"])
