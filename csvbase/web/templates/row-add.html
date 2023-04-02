@@ -21,10 +21,7 @@
             <label class="col-form-label" for="{{col.name}}-input">{{ col.name }}</label>
           </div>
           <div class="col-auto">
-            <input
-              id="{{col.name}}-input"
-              type="{{ row_macros.form_type(col) }}"
-              name="{{ col.name }}" value="">
+            {{ row_macros.column_value_input(col, None) }}
           </div>
         </div>
       {% endfor %}

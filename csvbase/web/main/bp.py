@@ -806,7 +806,7 @@ def get_row(username: str, table_name: str, row_id: int) -> Response:
     if is_browser():
         return make_response(
             render_template(
-                "row_view_or_edit.html",
+                "row-view-or-edit.html",
                 page_title=f"{username}/{table_name}/rows/{row_id}",
                 row=row,
                 row_id=row_id,
