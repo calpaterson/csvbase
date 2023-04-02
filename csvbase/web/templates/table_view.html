@@ -80,5 +80,19 @@
         </div>
       </div>
     </nav>
+
+    {% if readme_html %}
+      <div class="container">
+        <div class="col-auto">
+          <div class="card">
+            <div class="card-header">Readme</div>
+            <div class="card-body">
+              {{ readme_html|safe }}
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
   </div>
 {% endblock %}

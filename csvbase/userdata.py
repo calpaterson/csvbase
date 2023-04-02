@@ -107,6 +107,22 @@ class PGUserdataAdapter:
             return {c: row[c.name] for c in columns}
 
     @classmethod
+    def min_row_id(cls, sesh: Session, table_uuid: UUID) -> int:
+        """Returns the lowest row id in the table, or if there are no rows, 0."""
+        table_clause = cls._get_userdata_tableclause(sesh, table_uuid)
+        stmt = (
+            select([table_clause.c.csvbase_row_id])
+            .order_by(table_clause.c.csvbase_row_id)
+            .limit(1)
+        )
+        cursor = sesh.execute(stmt)
+        row_id: Optional[int] = cursor.scalar()
+        if row_id is None:
+            return 0
+        else:
+            return row_id
+
+    @classmethod
     def get_a_sample_row(cls, sesh: Session, table_uuid: UUID) -> Row:
         """Returns a sample row from the table (the lowest row id).
 

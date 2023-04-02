@@ -53,6 +53,9 @@ class KeySet:
 class Page:
     """A page from a table"""
 
+    # FIXME: This is pretty awful as an API.  eg it would be great to know if
+    # row id X was in the page
+
     has_less: bool
     has_more: bool
     rows: Sequence[Row]

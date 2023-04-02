@@ -204,17 +204,14 @@ def update_table_metadata(
     table_obj.licence_id = licence.value
 
 
-def get_readme_markdown(sesh, user_uuid: UUID, table_name: str) -> Optional[str]:
+def get_readme_markdown(sesh: Session, table_uuid: UUID) -> Optional[str]:
     readme = (
         sesh.query(models.TableReadme.readme_markdown)
-        .join(models.Table)
-        .filter(
-            models.Table.user_uuid == user_uuid, models.Table.table_name == table_name
-        )
+        .filter(models.TableReadme.table_uuid == table_uuid)
         .scalar()
     )
     if readme is None:
-        return readme
+        return None
     else:
         return bleach.clean(readme)
 

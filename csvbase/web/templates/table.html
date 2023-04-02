@@ -49,10 +49,11 @@
           <a class="nav-link {% if request.endpoint == 'csvbase.table_view' %}active{%endif%}"
              href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">View</a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'csvbase.table_readme' %}active{%endif%}"
-             href="{{ url_for('csvbase.table_readme', username=table.username, table_name=table.table_name) }}">Readme</a>
-        </li>
+        {# FIXME: Commented out - trying something different with READMEs #}
+        {# <li class="nav-item"> #}
+        {#   <a class="nav-link {% if request.endpoint == 'csvbase.table_readme' %}active{%endif%}" #}
+        {#      href="{{ url_for('csvbase.table_readme', username=table.username, table_name=table.table_name) }}">Readme</a> #}
+        {# </li> #}
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.table_details' %}active{%endif%}"
              href="{{ url_for('csvbase.table_details', username=table.username, table_name=table.table_name) }}">Schema/details</a>
@@ -89,10 +90,11 @@
           <a class="nav-link {% if request.endpoint == 'csvbase.table_view' %}active{%endif%}"
              href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">View</a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'csvbase.table_readme' %}active{%endif%}"
-             href="{{ url_for('csvbase.table_readme', username=table.username, table_name=table.table_name) }}">Readme</a>
-        </li>
+        {# FIXME: Commented out - trying something different with READMEs #}
+        {# <li class="nav-item"> #}
+        {#   <a class="nav-link {% if request.endpoint == 'csvbase.table_readme' %}active{%endif%}" #}
+        {#      href="{{ url_for('csvbase.table_readme', username=table.username, table_name=table.table_name) }}">Readme</a> #}
+        {# </li> #}
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.table_export' %}active{%endif%}"
              href="{{ url_for('csvbase.table_export', username=table.username, table_name=table.table_name) }}"

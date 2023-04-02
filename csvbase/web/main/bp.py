@@ -1,4 +1,5 @@
 import io
+from uuid import UUID
 from pathlib import Path
 import shutil
 from datetime import date, timedelta
@@ -417,15 +418,26 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
         page = PGUserdataAdapter.table_page(sesh, table, keyset)
         ensure_not_over_the_top(table, keyset, page)
         if content_type is ContentType.HTML:
+            min_row_id = PGUserdataAdapter.min_row_id(sesh, table.table_uuid)
+            row_ids_in_page = set(row[ROW_ID_COLUMN] for row in page.rows)
+            is_first_page = min_row_id == 0 or (min_row_id in row_ids_in_page)
+
+            template_kwargs = dict(
+                page_title=f"{table.username}/{table.table_name}",
+                table=table,
+                page=page,
+                keyset=keyset,
+                ROW_ID_COLUMN=ROW_ID_COLUMN,
+                praise_id=get_praise_id_if_exists(table),
+            )
+
+            if is_first_page:
+                template_kwargs["readme_html"] = readme_html(sesh, table.table_uuid)
+
             response = make_response(
                 render_template(
                     "table_view.html",
-                    page_title=f"{table.username}/{table.table_name}",
-                    table=table,
-                    page=page,
-                    keyset=keyset,
-                    ROW_ID_COLUMN=ROW_ID_COLUMN,
-                    praise_id=get_praise_id_if_exists(table),
+                    **template_kwargs,
                 )
             )
             return add_table_view_cache_headers(response, etag)
@@ -514,17 +526,18 @@ def add_table_view_cache_headers(response: Response, etag: str) -> Response:
 @bp.route("/<username>/<table_name:table_name>/readme", methods=["GET"])
 def table_readme(username: str, table_name: str) -> Response:
     sesh = get_sesh()
-    user = svc.user_by_name(sesh, username)
     if not svc.is_public(sesh, username, table_name) and not am_user(username):
         raise exc.TableDoesNotExistException(username, table_name)
 
-    readme_markdown = svc.get_readme_markdown(sesh, user.user_uuid, table_name)
+    table = svc.get_table(sesh, username, table_name)
+
+    readme_markdown = svc.get_readme_markdown(sesh, table.table_uuid)
+
     if readme_markdown is not None:
         readme_html = render_markdown(readme_markdown)
     else:
         readme_html = "(no readme set)"
 
-    table = svc.get_table(sesh, username, table_name)
     return make_response(
         render_template(
             "table_readme.html",
@@ -615,11 +628,10 @@ def table_details(username: str, table_name: str) -> str:
 @bp.route("/<username>/<table_name:table_name>/settings", methods=["GET"])
 def table_settings(username: str, table_name: str) -> str:
     sesh = get_sesh()
-    user = svc.user_by_name(sesh, username)
     table = svc.get_table(sesh, username, table_name)
     am_user_or_400(username)
 
-    table_readme_markdown = svc.get_readme_markdown(sesh, user.user_uuid, table_name)
+    table_readme_markdown = svc.get_readme_markdown(sesh, table.table_uuid)
 
     return render_template(
         "table_settings.html",
@@ -1317,3 +1329,12 @@ def from_html_form_to_python(
         return ""
     else:
         return column_type.python_type()(form_value)
+
+
+def readme_html(sesh, table_uuid: UUID) -> Optional[str]:
+    readme_markdown = svc.get_readme_markdown(sesh, table_uuid)
+    if readme_markdown is not None:
+        readme_html = render_markdown(readme_markdown)
+        return readme_html
+    else:
+        return None
