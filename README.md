@@ -16,7 +16,7 @@ In short: making it really easy to share dataframes.
 
 ## For example
 
-The current demo is
+A good demo is
 [meripaterson/stock-exchanges](https://csvbase.com/meripaterson/stock-exchanges),
 which is an up-to-date list of the world's stock exchanges.
 
@@ -53,9 +53,8 @@ It's just as easy to:
 
 ## A few more details
 
-This repo has the full sourcecode for the website.
-
-The website is free to use, to the limit of my cheapo hosting.
+This repo has the full sourcecode for the website.  There is no other repo with
+more stuff in it.
 
 Csvbase is licensed under the AGPLv3 or later.  You're free to reuse it as you
 like under that licence but please bear in mind the one-man-and-his-dog nature
