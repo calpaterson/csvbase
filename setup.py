@@ -30,6 +30,7 @@ setup(
         "argon2-cffi==21.3.0",
         "bleach==5.0.1",
         "cchardet==2.1.7",
+        "click==8.1.3",
         "feedgen==0.9.0",
         "flask-babel==2.0",
         "flask-cors==3.0.10",
