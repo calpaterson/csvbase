@@ -183,7 +183,7 @@ def paste() -> str:
     )
 
 
-@bp.route("/new-table/upload-file", methods=["GET"])
+@bp.get("/new-table/upload-file")
 def upload_file() -> str:
     return render_template(
         "new-table.html",
@@ -193,7 +193,7 @@ def upload_file() -> str:
     )
 
 
-@bp.route("/new-table", methods=["POST"])
+@bp.post("/new-table")
 def new_table_form_submission() -> Response:
     sesh = get_sesh()
     if "username" in request.form:
@@ -261,7 +261,7 @@ def new_table_form_submission() -> Response:
     )
 
 
-@bp.route("/new-table/blank", methods=["GET"])
+@bp.get("/new-table/blank")
 def blank_table() -> str:
     def build_cols(args) -> List[Tuple[str, ColumnType]]:
         index = 1
@@ -300,7 +300,7 @@ def blank_table() -> str:
     )
 
 
-@bp.route("/new-table/blank", methods=["POST"])
+@bp.post("/new-table/blank")
 def blank_table_form_post() -> Response:
     current_user = get_current_user_or_401()
 
@@ -351,7 +351,7 @@ def blank_table_form_post() -> Response:
     )
 
 
-@bp.route("/<username>/<table_name:table_name>", methods=["GET"])
+@bp.get("/<username>/<table_name:table_name>")
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
 def table_view(username: str, table_name: str) -> Response:
     sesh = get_sesh()
@@ -368,7 +368,7 @@ def table_view(username: str, table_name: str) -> Response:
     return make_table_view_response(sesh, content_type, table)
 
 
-@bp.route("/<username>/<table_name:table_name>.<extension>", methods=["GET"])
+@bp.get("/<username>/<table_name:table_name>.<extension>")
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
 def table_view_with_extension(
     username: str, table_name: str, extension: str
@@ -523,7 +523,7 @@ def add_table_view_cache_headers(response: Response, etag: str) -> Response:
     return response
 
 
-@bp.route("/<username>/<table_name:table_name>/readme", methods=["GET"])
+@bp.get("/<username>/<table_name:table_name>/readme")
 def table_readme(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     if not svc.is_public(sesh, username, table_name) and not am_user(username):
@@ -549,7 +549,7 @@ def table_readme(username: str, table_name: str) -> Response:
     )
 
 
-@bp.route("/<username>/<table_name:table_name>/docs", methods=["GET"])
+@bp.get("/<username>/<table_name:table_name>/docs")
 def get_table_apidocs(username: str, table_name: str) -> str:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
@@ -576,7 +576,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
     )
 
 
-@bp.route("/<username>/<table_name:table_name>/export", methods=["GET"])
+@bp.get("/<username>/<table_name:table_name>/export")
 def table_export(username: str, table_name: str) -> str:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
@@ -609,7 +609,7 @@ def table_export(username: str, table_name: str) -> str:
     )
 
 
-@bp.route("/<username>/<table_name:table_name>/details", methods=["GET"])
+@bp.get("/<username>/<table_name:table_name>/details")
 def table_details(username: str, table_name: str) -> str:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
@@ -625,7 +625,7 @@ def table_details(username: str, table_name: str) -> str:
     )
 
 
-@bp.route("/<username>/<table_name:table_name>/settings", methods=["GET"])
+@bp.get("/<username>/<table_name:table_name>/settings")
 def table_settings(username: str, table_name: str) -> str:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
@@ -644,9 +644,7 @@ def table_settings(username: str, table_name: str) -> str:
     )
 
 
-@bp.route(
-    "/<username>/<table_name:table_name>/delete-table-form-post", methods=["POST"]
-)
+@bp.post("/<username>/<table_name:table_name>/delete-table-form-post")
 def delete_table_form_post(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     svc.user_by_name(sesh, username)
@@ -658,7 +656,7 @@ def delete_table_form_post(username: str, table_name: str) -> Response:
     return redirect(url_for("csvbase.user", username=username))
 
 
-@bp.route("/<username>/<table_name:table_name>/settings", methods=["POST"])
+@bp.post("/<username>/<table_name:table_name>/settings")
 def post_table_settings(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     am_user_or_400(username)
@@ -689,7 +687,7 @@ def post_table_settings(username: str, table_name: str) -> Response:
     )
 
 
-@bp.route("/<username>/<table_name:table_name>/praise", methods=["POST"])
+@bp.post("/<username>/<table_name:table_name>/praise")
 def praise_table(username: str, table_name: str) -> Response:
     whence = request.form["whence"]
     am_a_user_or_400()
@@ -706,8 +704,8 @@ def praise_table(username: str, table_name: str) -> Response:
 
 # FIXME: These two endpoints should be folded into table_view_with_extension
 # and deleted
-@bp.route("/<username>/<table_name:table_name>.xlsx", methods=["GET"])
-@bp.route("/<username>/<table_name:table_name>/export/xlsx", methods=["GET"])
+@bp.get("/<username>/<table_name:table_name>.xlsx")
+@bp.get("/<username>/<table_name:table_name>/export/xlsx")
 def export_table_xlsx(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
@@ -728,7 +726,7 @@ def export_table_xlsx(username: str, table_name: str) -> Response:
 CSV_SEPARATOR_MAP: Mapping[str, str] = {"comma": ",", "tab": "\t", "vertical-bar": "|"}
 
 
-@bp.route("/<username>/<table_name:table_name>/export/csv", methods=["GET"])
+@bp.get("/<username>/<table_name:table_name>/export/csv")
 def export_table_csv(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     svc.is_public(sesh, username, table_name) or am_user_or_400(username)
@@ -752,7 +750,7 @@ def export_table_csv(username: str, table_name: str) -> Response:
     )
 
 
-@bp.route("/<username>/<table_name:table_name>/rows/", methods=["POST"])
+@bp.post("/<username>/<table_name:table_name>/rows/")
 @cross_origin(max_age=CORS_EXPIRY, methods=["POST"])
 def create_row(username: str, table_name: str) -> Response:
     sesh = get_sesh()
@@ -804,7 +802,7 @@ def create_row(username: str, table_name: str) -> Response:
         )
 
 
-@bp.route("/<username>/<table_name:table_name>/rows/<int:row_id>", methods=["GET"])
+@bp.get("/<username>/<table_name:table_name>/rows/<int:row_id>")
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT", "DELETE"])
 def get_row(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
@@ -830,10 +828,7 @@ def get_row(username: str, table_name: str, row_id: int) -> Response:
         return jsonify(row_to_json_dict(table, row))
 
 
-@bp.route(
-    "/<username>/<table_name:table_name>/add-row-form",
-    methods=["GET"],
-)
+@bp.get("/<username>/<table_name:table_name>/add-row-form")
 def row_add_form(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
@@ -849,10 +844,7 @@ def row_add_form(username: str, table_name: str) -> Response:
     )
 
 
-@bp.route(
-    "/<username>/<table_name:table_name>/rows/<int:row_id>/delete-check",
-    methods=["GET"],
-)
+@bp.get("/<username>/<table_name:table_name>/rows/<int:row_id>/delete-check")
 def row_delete_check(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
     svc.user_exists(sesh, username)
@@ -874,7 +866,7 @@ def row_delete_check(username: str, table_name: str, row_id: int) -> Response:
     )
 
 
-@bp.route("/<username>/<table_name:table_name>/rows/<int:row_id>", methods=["PUT"])
+@bp.put("/<username>/<table_name:table_name>/rows/<int:row_id>")
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT", "DELETE"])
 def update_row(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
@@ -894,7 +886,7 @@ def update_row(username: str, table_name: str, row_id: int) -> Response:
     return jsonify(body)
 
 
-@bp.route("/<username>/<table_name:table_name>/rows/<int:row_id>", methods=["DELETE"])
+@bp.delete("/<username>/<table_name:table_name>/rows/<int:row_id>")
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT", "DELETE"])
 def delete_row(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
@@ -909,9 +901,8 @@ def delete_row(username: str, table_name: str, row_id: int) -> Response:
     return response
 
 
-@bp.route(
-    "/<username>/<table_name:table_name>/rows/<int:row_id>/delete-row-for-browsers",
-    methods=["POST"],
+@bp.post(
+    "/<username>/<table_name:table_name>/rows/<int:row_id>/delete-row-for-browsers"
 )
 def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Response:
     # extremely annoying to need a special endpoint for this but browser forms
@@ -951,7 +942,7 @@ def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Resp
 
 
 # FIXME: assert table name and user name match regex
-@bp.route("/<username>/<table_name:table_name>", methods=["PUT"])
+@bp.put("/<username>/<table_name:table_name>")
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
 def upsert_table(username: str, table_name: str) -> Response:
     sesh = get_sesh()
@@ -975,7 +966,7 @@ def upsert_table(username: str, table_name: str) -> Response:
     return make_text_response(f"upserted {username}/{table_name}")
 
 
-@bp.route("/<username>", methods=["GET"])
+@bp.get("/<username>")
 def user(username: str) -> Response:
     sesh = get_sesh()
     include_private = False
@@ -1001,7 +992,7 @@ def user(username: str) -> Response:
     )
 
 
-@bp.route("/robots.txt", methods=["GET"])
+@bp.get("/robots.txt")
 def robots() -> Response:
     sitemap_url = url_for("csvbase.sitemap", _external=True)
     robots_doc = f"Sitemap: {sitemap_url}"
@@ -1011,7 +1002,7 @@ def robots() -> Response:
     return resp
 
 
-@bp.route("/sitemap.xml", methods=["GET"])
+@bp.get("/sitemap.xml")
 def sitemap() -> Response:
     sesh = get_sesh()
     table_names = svc.get_public_table_names(sesh)
@@ -1099,7 +1090,7 @@ def sign_in() -> Response:
             raise exc.WrongAuthException()
 
 
-@bp.route("/sign-out", methods=["GET"])
+@bp.get("/sign-out")
 def sign_out():
     flask_session.clear()
     flash("Signed out")
