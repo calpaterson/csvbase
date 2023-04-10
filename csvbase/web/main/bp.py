@@ -232,7 +232,6 @@ def new_table_form_submission() -> Response:
         is_public = True
     data_licence = DataLicence(request.form.get("data-licence", type=int))
     dialect, columns = streams.peek_csv(csv_buf)
-    csv_buf.seek(0)
     table_uuid = svc.create_table_metadata(
         sesh,
         current_user.user_uuid,
@@ -947,19 +946,20 @@ def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Resp
 def upsert_table(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     am_user_or_400(username)
+
     # FIXME: add checking for forms here
     byte_buf = io.BytesIO()
     shutil.copyfileobj(request.stream, byte_buf)
     str_buf = streams.byte_buf_to_str_buf(byte_buf)
-    dialect = streams.sniff_csv(str_buf)
+    dialect, columns = streams.peek_csv(str_buf)
     table = svc.get_table(sesh, username, table_name)
+    rows = table_io.csv_to_rows(str_buf, columns, dialect)
 
-    str_buf.seek(0)
     PGUserdataAdapter.upsert_table_data(
         sesh,
         table,
-        str_buf,
-        dialect,
+        columns,
+        rows,
     )
     svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()

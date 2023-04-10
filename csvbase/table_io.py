@@ -52,8 +52,9 @@ def rows_to_parquet(
 def csv_to_rows(
     csv_buf: UserSubmittedCSVData, columns: Sequence[Column], dialect
 ) -> Iterable[UnmappedRow]:
+    # FIXME: check that contents of this headers
     reader = csv.reader(csv_buf, dialect)
-    csv_buf.readline()  # pop the header, which is not useful
+    header = next(reader)  # pop the header, which is not useful
     row_gen = (
         [conv.from_string_to_python(col.type_, v) for col, v in zip(columns, line)]
         for line in reader

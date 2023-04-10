@@ -355,38 +355,27 @@ class PGUserdataAdapter:
 
     @classmethod
     def upsert_table_data(
-        cls,
-        sesh: Session,
-        table: Table,
-        csv_buf: UserSubmittedCSVData,
-        dialect: Type[csv.Dialect],
+        cls, sesh: Session, table: Table, row_columns: Sequence[Column], rows: Iterable
     ) -> None:
-        """Upsert table data, using the csvbase_row_id to correlate the submitted
-        csv with the extant table.
+        """Upsert table data from rows into the SQL table.
+
+        Note that the columns being upserted can be a subset of the columns
+        that are present in the SQL table.  If the csvbase_row_id column is
+        present, it will be used to correlate changes.
 
         """
-        # This is a complicated routine.  First make a generator for the incoming rows.
-        reader = csv.reader(csv_buf, dialect)
-        csv_buf.readline()  # pop the header, which is not useful
-        row_gen = (
-            [
-                conv.from_string_to_python(col.type_, v)
-                for col, v in zip(table.columns, line)
-            ]
-            for line in reader
-        )
-
-        # Then make a temp table and COPY the new rows into it
-        temp_table_name = cls._make_temp_table_name(prefix="insert")
+        # First, make a temp table and COPY the new rows into it
+        temp_table_name = cls._make_temp_table_name(prefix="upsert")
         main_table_name = cls._make_userdata_table_name(
             table.table_uuid, with_schema=True
         )
         main_tableclause = cls._get_userdata_tableclause(sesh, table.table_uuid)
         sesh.execute(CreateTempTableLike(satable(temp_table_name), main_tableclause))
         raw_conn = sesh.connection().connection
-        column_names = [c.name for c in table.columns]
-        copy_manager = CopyManager(raw_conn, temp_table_name, column_names)
-        copy_manager.copy(row_gen)
+        upsert_column_names = [c.name for c in row_columns]
+        existing_column_names = [c.name for c in table.columns]
+        copy_manager = CopyManager(raw_conn, temp_table_name, upsert_column_names)
+        copy_manager.copy(rows)
 
         # Next selectively use the temp table to update the 'main' one
         temp_tableclause = cls._get_tableclause(temp_table_name, table.columns)
@@ -417,7 +406,7 @@ class PGUserdataAdapter:
             getattr(temp_tableclause.c, c.name) for c in table.columns
         ]
         add_stmt_no_blanks = main_tableclause.insert().from_select(
-            column_names,
+            existing_column_names,
             select(*add_stmt_select_columns)  # type: ignore
             .select_from(
                 temp_tableclause.outerjoin(
@@ -452,7 +441,7 @@ class PGUserdataAdapter:
             getattr(temp_tableclause.c, c.name) for c in table.user_columns()
         ]
         add_stmt_blanks = main_tableclause.insert().from_select(
-            column_names,
+            existing_column_names,
             select(*select_columns)  # type: ignore
             .select_from(
                 temp_tableclause.outerjoin(
@@ -466,6 +455,7 @@ class PGUserdataAdapter:
                 temp_tableclause.c.csvbase_row_id.is_(None),
             ),
         )
+
         sesh.execute(remove_stmt)
         sesh.execute(update_stmt)
         sesh.execute(add_stmt_no_blanks)

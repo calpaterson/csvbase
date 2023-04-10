@@ -111,4 +111,6 @@ def peek_csv(
         else:
             cols.append(Column(key, ColumnType.TEXT))
     logger.info("inferred: %s", cols)
+
+    csv_buf.seek(0)
     return dialect, cols

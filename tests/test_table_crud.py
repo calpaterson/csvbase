@@ -206,3 +206,60 @@ def test_read__paging_over_the_top(client, test_user, ten_rows, content_type):
         assert resp.status_code == 200
     if content_type is ContentType.JSON:
         assert resp.json == {"error": "that page does not exist"}
+
+
+def test_upsert__happy(client, test_user, ten_rows):
+    new_csv = """csvbase_row_id,roman_numeral,is_even,as_date,as_float
+,X,yes,2018-01-10,10.0
+,XI,no,2018-01-11,11.0
+"""
+    resp = client.put(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        data=new_csv,
+        headers={"Content-Type": "text/csv", "Authorization": test_user.basic_auth()},
+    )
+    assert resp.status_code == 200
+
+
+def test_upsert__no_content_type(client, test_user, ten_rows):
+    new_csv = """csvbase_row_id,roman_numeral,is_even,as_date,as_float
+,X,yes,2018-01-10,10.0
+,XI,no,2018-01-11,11.0
+"""
+    resp = client.put(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        data=new_csv,
+        headers={"Authorization": test_user.basic_auth()},
+    )
+    assert resp.status_code == 200
+
+
+def test_upsert__without_csvbase_row_id_column(client, test_user, ten_rows):
+    new_csv = """roman_numeral,is_even,as_date,as_float
+X,yes,2018-01-10,10.0
+XI,no,2018-01-11,11.0
+"""
+
+    resp = client.put(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        data=new_csv,
+        headers={"Authorization": test_user.basic_auth()},
+    )
+    assert resp.status_code == 200
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_upsert__wrong_content_type(client, test_user, ten_rows):
+    assert False
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_upsert__csv_header_doesnt_match(client, test_user, ten_rows):
+    new_csv = """a,b,c
+"""
+    resp = client.put(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        data=new_csv,
+        headers={"Authorization": test_user.basic_auth()},
+    )
+    assert resp.status_code != 200
