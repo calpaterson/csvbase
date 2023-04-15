@@ -439,7 +439,8 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                     **template_kwargs,
                 )
             )
-            return add_table_view_cache_headers(response, etag)
+            # HTML doesn't get an etag - too hard to key everything that goes in
+            return add_table_view_cache_headers(response)
         else:
             return add_table_view_cache_headers(
                 jsonify(table_to_json_dict(table, page)), etag
@@ -498,15 +499,17 @@ def make_table_view_etag(
     return etag
 
 
-def add_table_view_cache_headers(response: Response, etag: str) -> Response:
+def add_table_view_cache_headers(response: Response, etag: Optional[str] = None) -> Response:
     """Set the ETag and xkey (varnish) cache headers relevant to table views."""
     # Don't set private here - that should already have been done above (and we
-    # don't know, here whether a given table is private or not)
-    response.headers["ETag"] = etag
+    # don't know, here, whether a given table is private or not)
 
-    # Setting the max age to a low but non-zero value
-    response.cache_control.max_age = int(timedelta(seconds=1).total_seconds())
-    response.cache_control.must_revalidate = True
+    if etag is not None:
+        response.headers["ETag"] = etag
+
+    # Setting max_age to 0 indicates that this response is always stale and
+    # should be revalidated
+    response.cache_control.max_age = 0
 
     # HTML views show usernames, other personal data, and we have to indicate
     # if it's an HTML view that the Cookie header is part of the cache key

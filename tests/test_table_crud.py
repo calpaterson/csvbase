@@ -70,28 +70,34 @@ def test_read__etag_cache_hit(client, ten_rows, test_user, content_type):
     )
     assert first_resp.status_code == 200, first_resp.data
     assert content_type.value in first_resp.headers["Content-Type"]
-    etag = first_resp.headers["ETag"]
+    etag = first_resp.headers.get("ETag", None)
 
-    assert etag.startswith("W/")
     first_cc = first_resp.cache_control
     if content_type == ContentType.HTML:
-        assert first_cc.must_revalidate
+        assert etag is None
+        assert first_cc.max_age == 0
         assert first_cc.private
     else:
-        assert first_cc.must_revalidate
+        assert etag.startswith("W/")
+        assert first_cc.max_age == 0
         assert not first_cc.private
 
     second_resp = client.get(
         f"/{test_user.username}/{ten_rows.table_name}",
         headers={"Accept": content_type.value, "If-None-Match": etag},
     )
-    assert second_resp.status_code == 304
-    # You're obliged to send the ETag with the 304
-    second_etag = second_resp.headers["ETag"]
-    assert second_etag == etag
+    if content_type == ContentType.HTML:
+        assert second_resp.status_code == 200
+    else:
+        assert second_resp.status_code == 304
+        # You're obliged to send the ETag with the 304
+        second_etag = second_resp.headers["ETag"]
+        assert second_etag == etag
 
 
 def test_read__etag_cache_miss(client, ten_rows, test_user, content_type):
+    if content_type == ContentType.HTML:
+        pytest.skip("not relevant for html")
     first_resp = client.get(
         f"/{test_user.username}/{ten_rows.table_name}",
         headers={"Accept": content_type.value, "If-None-Match": "wrong etag"},
@@ -106,6 +112,8 @@ def test_read__etag_cache_miss(client, ten_rows, test_user, content_type):
 def test_read__last_changed_updates_the_etag(
     client, ten_rows, test_user, content_type, sesh
 ):
+    if content_type == ContentType.HTML:
+        pytest.skip("not relevant for html")
     first_resp = client.get(
         f"/{test_user.username}/{ten_rows.table_name}",
         headers={"Accept": content_type.value},
