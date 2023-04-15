@@ -85,6 +85,8 @@ def peek_csv(
     if size == 0:
         raise exc.CSVException("empty file!")
 
+    # FIXME: There is almost certainly a missing seek back here
+
     dialect = sniff_csv(csv_buf)
 
     # FIXME: it's probably best that this consider the entire CSV file rather
