@@ -86,7 +86,7 @@ class IntegerConverter:
 
 
 class FloatConverter:
-    FLOAT_REGEX = re.compile(r"^-?(\d|,|\.| )+$")
+    FLOAT_REGEX = re.compile(r"^-?(\d|,|\.| )+(e[-\+]\d+)?$")
 
     def sniff(self, values: Iterable[str]) -> bool:
         return sniff_and_allow_blanks(self.FLOAT_REGEX, values)

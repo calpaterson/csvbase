@@ -104,6 +104,8 @@ def test_IntegerConverter__convert_failure():
         pytest.param(["1,000.0"], True, id="financial thousand"),
         pytest.param([" 1,000.0 "], True, id="whitespace"),
         pytest.param(["-1,000.0 "], True, id="negative financial"),
+        pytest.param(["9.999999974e-07"], True, id="scientific"),
+        pytest.param(["9.999999974e+07"], True, id="scientific 2"),
     ],
 )
 def test_FloatConverter__sniff(inp, expected):
@@ -122,6 +124,8 @@ def test_FloatConverter__sniff(inp, expected):
         pytest.param("1,000.0", 1000.0, id="financial thousand"),
         pytest.param(" 1,000.0 ", 1000.0, id="whitespace"),
         pytest.param("-1,000.0 ", -1000.0, id="negative financial"),
+        pytest.param("9.999999974e-07", 9.999999974e-07, id="scientific"),
+        pytest.param("9.999999974e+07", 9.999999974e07, id="scientific"),
         pytest.param(" ", None, id="whitespace"),
         pytest.param("", None, id="blank"),
     ],
