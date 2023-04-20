@@ -238,7 +238,7 @@ class PGUserdataAdapter:
         cls,
         sesh: Session,
         table_uuid: UUID,
-    ) -> Iterable[Collection[PythonType]]:
+    ) -> Iterable[Sequence[PythonType]]:
         table_clause = cls._get_userdata_tableclause(sesh, table_uuid)
         columns = cls.get_columns(sesh, table_uuid)
         q = select([getattr(table_clause.c, c.name) for c in columns]).order_by(
@@ -252,7 +252,7 @@ class PGUserdataAdapter:
         sesh: Session,
         table: Table,
         columns: Sequence[Column],
-        rows: Iterable[Collection[PythonType]],
+        rows: Iterable[Sequence[PythonType]],
     ) -> None:
         temp_table_name = cls._make_temp_table_name(prefix="insert")
         main_table_name = cls._make_userdata_table_name(

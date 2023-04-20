@@ -1,6 +1,6 @@
 import json
 import csv
-from typing import List, Iterable, Mapping, Collection, Tuple, Sequence, IO, Dict, Any
+from typing import List, Iterable, Mapping, Set, Tuple, Sequence, IO, Dict, Any
 import io
 
 import xlsxwriter
@@ -28,7 +28,7 @@ PARQUET_READ_TYPE_MAP: Mapping[Tuple[str, str], ColumnType] = {
     ("BOOLEAN", "NONE"): ColumnType.BOOLEAN,
 }
 
-UnmappedRow = Collection[PythonType]
+UnmappedRow = Sequence[PythonType]
 
 
 def rows_to_parquet(
@@ -52,8 +52,8 @@ def rows_to_parquet(
 def csv_to_rows(
     csv_buf: UserSubmittedCSVData, columns: Sequence[Column], dialect
 ) -> Iterable[UnmappedRow]:
-    # FIXME: check that contents of this headers
     reader = csv.reader(csv_buf, dialect)
+    # FIXME: check that contents of this header matches the columns
     header = next(reader)  # pop the header, which is not useful
     row_gen = (
         [conv.from_string_to_python(col.type_, v) for col, v in zip(columns, line)]
@@ -90,8 +90,23 @@ def rows_to_csv(
     csv_buf = io.StringIO()
     writer = csv.writer(csv_buf, delimiter=delimiter)
     writer.writerow([col.name for col in columns])
-    for row in rows:
-        writer.writerow(row)
+
+    # This little section is to prevent scientific notation making it into the
+    # csv.  Some csv parsers handle this but many choke.
+    float_mask: Set[int] = {
+        index
+        for index, column in enumerate(columns)
+        if column.type_ == ColumnType.FLOAT
+    }
+    rows_without_sci: Iterable[UnmappedRow] = (
+        [
+            (f"{cell:f}" if index in float_mask and cell is not None else cell)
+            for index, cell in enumerate(row)
+        ]
+        for row in rows
+    )
+
+    writer.writerows(rows_without_sci)
     csv_buf.seek(0)
     return csv_buf
 

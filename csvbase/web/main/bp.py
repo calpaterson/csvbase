@@ -499,7 +499,9 @@ def make_table_view_etag(
     return etag
 
 
-def add_table_view_cache_headers(response: Response, etag: Optional[str] = None) -> Response:
+def add_table_view_cache_headers(
+    response: Response, etag: Optional[str] = None
+) -> Response:
     """Set the ETag and xkey (varnish) cache headers relevant to table views."""
     # Don't set private here - that should already have been done above (and we
     # don't know, here, whether a given table is private or not)
