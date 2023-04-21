@@ -2,10 +2,11 @@
 
 import os
 from logging import getLogger
-from typing import Union, Tuple, Type, List, Dict, Set
+from typing import Union, Tuple, Type, List, Dict, Set, IO
 import codecs
 import csv
 import io
+import contextlib
 
 from cchardet import UniversalDetector
 import werkzeug
@@ -116,3 +117,21 @@ def peek_csv(
 
     csv_buf.seek(0)
     return dialect, cols
+
+
+class rewind:
+    """Ensure that a stream is rewound after doing something.
+
+    This is a common error and usually subtly messes up a sequence of
+    operations eg reading from a csv (eg string encoding is broken, but
+    delimiter detection is not).
+    """
+
+    def __init__(self, stream: IO) -> None:
+        self.stream = stream
+
+    def __enter__(self) -> None:
+        pass
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.stream.seek(0)

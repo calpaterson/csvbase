@@ -1,10 +1,11 @@
 from pathlib import Path
+from io import StringIO
 
 import pytest
 
 from csvbase import exc
 from csvbase.value_objs import Column, ColumnType
-from csvbase.streams import peek_csv
+from csvbase.streams import peek_csv, rewind
 
 test_data = Path(__file__).resolve().parent / "test-data"
 
@@ -50,3 +51,13 @@ def test_peek_csv_with_junk(input_filename, expected_exception):
     with input_path.open() as input_f:
         with pytest.raises(expected_exception):
             peek_csv(input_f)
+
+
+def test_rewind():
+    buf = StringIO("hello")
+    with rewind(buf):
+        first_three = buf.read(3)
+        assert first_three == "hel"
+        assert buf.tell() == 3
+
+    assert buf.tell() == 0
