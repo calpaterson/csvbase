@@ -35,7 +35,7 @@ setup(
         "flask-babel==3.1.0",
         "flask-cors==3.0.10",
         "flask-sqlalchemy==3.0.3",
-        "flask==2.2.3",
+        "flask==2.3.2",
         "gunicorn==20.1.0",
         "inflect==6.0.4",
         "marko[codehilite]==1.3.0",
