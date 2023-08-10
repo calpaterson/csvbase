@@ -145,7 +145,6 @@ class ConvertForm(MethodView):
         if from_content_type == ContentType.CSV:
             str_buf = streams.byte_buf_to_str_buf(request.files["file"])
             dialect, columns = streams.peek_csv(str_buf)
-            str_buf.seek(0)
             rows = table_io.csv_to_rows(str_buf, columns, dialect)
         elif from_content_type == ContentType.PARQUET:
             pf = table_io.buf_to_pf(cast(IO[bytes], request.files["file"]))

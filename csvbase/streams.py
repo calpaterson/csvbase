@@ -2,12 +2,13 @@
 
 import os
 from logging import getLogger
-from typing import Union, Tuple, Type, List, Dict, Set, IO
+from typing import Union, Tuple, Type, List, Dict, Set, IO, Optional
 import codecs
 import csv
 import io
 import contextlib
 
+from typing_extensions import Protocol
 from cchardet import UniversalDetector
 import werkzeug
 
@@ -36,15 +37,15 @@ def byte_buf_to_str_buf(byte_buf: UserSubmittedBytes) -> codecs.StreamReader:
 
     Tries to detect the character set along the way, falling back to utf-8."""
     detector = UniversalDetector()
-    for line in byte_buf.readlines():
-        detector.feed(line)
-        if detector.done:
-            break
-        if byte_buf.tell() > 1_000_000:
-            logger.warning("unable to detect after 1mb, giving up")
-            break
-    logger.info("detected: %s after %d bytes", detector.result, byte_buf.tell())
-    byte_buf.seek(0)
+    with rewind(byte_buf):
+        for line in byte_buf.readlines():
+            detector.feed(line)
+            if detector.done:
+                break
+            if byte_buf.tell() > 1_000_000:
+                logger.warning("unable to detect after 1mb, giving up")
+                break
+        logger.info("detected: %s after %d bytes", detector.result, byte_buf.tell())
     if detector.result["encoding"] is not None:
         encoding = detector.result["encoding"]
     else:
@@ -61,14 +62,13 @@ def sniff_csv(
     a header."""
     sniffer = csv.Sniffer()
 
-    try:
-        dialect = sniffer.sniff(csv_buf.read(sample_size_hint))
-        logger.info("sniffed dialect: %s", dialect)
-    except csv.Error:
-        logger.warning("unable to sniff dialect, falling back to excel")
-        dialect = csv.excel
-
-    csv_buf.seek(0)
+    with rewind(csv_buf):
+        try:
+            dialect = sniffer.sniff(csv_buf.read(sample_size_hint))
+            logger.info("sniffed dialect: %s", dialect)
+        except csv.Error:
+            logger.warning("unable to sniff dialect, falling back to excel")
+            dialect = csv.excel
 
     return dialect
 
@@ -81,42 +81,50 @@ def peek_csv(
 
     """
     # FIXME: this should be part of a more robust way to check the size of files
-    csv_buf.seek(0, os.SEEK_END)
-    size = csv_buf.tell()
-    if size == 0:
-        raise exc.CSVException("empty file!")
+    with rewind(csv_buf):
+        csv_buf.seek(0, os.SEEK_END)
+        size = csv_buf.tell()
+        if size == 0:
+            raise exc.CSVException("empty file!")
 
-    # FIXME: There is almost certainly a missing seek back here
+    with rewind(csv_buf):
+        dialect = sniff_csv(csv_buf)
 
-    dialect = sniff_csv(csv_buf)
+        # FIXME: it's probably best that this consider the entire CSV file rather
+        # than just the start of it.  there are many, many csv files that, halfway
+        # down, switch out "YES" for "YES (but only <...>)"
+        reader = csv.reader(csv_buf, dialect)
+        headers = [
+            header or f"col{i}" for i, header in enumerate(next(reader), start=1)
+        ]
+        first_few = zip(*(row for row, _ in zip(reader, range(1000))))
+        as_dict: Dict[str, Set[str]] = dict(zip(headers, (set(v) for v in first_few)))
+        cols = []
+        ic = conv.IntegerConverter()
+        dc = conv.DateConverter()
+        fc = conv.FloatConverter()
+        bc = conv.BooleanConverter()
+        for key, values in as_dict.items():
+            if ic.sniff(values):
+                cols.append(Column(key, ColumnType.INTEGER))
+            elif fc.sniff(values):
+                cols.append(Column(key, ColumnType.FLOAT))
+            elif bc.sniff(values):
+                cols.append(Column(key, ColumnType.BOOLEAN))
+            elif dc.sniff(values):
+                cols.append(Column(key, ColumnType.DATE))
+            else:
+                cols.append(Column(key, ColumnType.TEXT))
+        logger.info("inferred: %s", cols)
 
-    # FIXME: it's probably best that this consider the entire CSV file rather
-    # than just the start of it.  there are many, many csv files that, halfway
-    # down, switch out "YES" for "YES (but only <...>)"
-    reader = csv.reader(csv_buf, dialect)
-    headers = [header or f"col{i}" for i, header in enumerate(next(reader), start=1)]
-    first_few = zip(*(row for row, _ in zip(reader, range(1000))))
-    as_dict: Dict[str, Set[str]] = dict(zip(headers, (set(v) for v in first_few)))
-    cols = []
-    ic = conv.IntegerConverter()
-    dc = conv.DateConverter()
-    fc = conv.FloatConverter()
-    bc = conv.BooleanConverter()
-    for key, values in as_dict.items():
-        if ic.sniff(values):
-            cols.append(Column(key, ColumnType.INTEGER))
-        elif fc.sniff(values):
-            cols.append(Column(key, ColumnType.FLOAT))
-        elif bc.sniff(values):
-            cols.append(Column(key, ColumnType.BOOLEAN))
-        elif dc.sniff(values):
-            cols.append(Column(key, ColumnType.DATE))
-        else:
-            cols.append(Column(key, ColumnType.TEXT))
-    logger.info("inferred: %s", cols)
-
-    csv_buf.seek(0)
     return dialect, cols
+
+
+class Seekable(Protocol):
+    """A file that support seeking (don't care whether text or binary)."""
+
+    def seek(self, offset: int, whence: int = 0) -> int:
+        pass
 
 
 class rewind:
@@ -127,7 +135,7 @@ class rewind:
     delimiter detection is not).
     """
 
-    def __init__(self, stream: IO) -> None:
+    def __init__(self, stream: Seekable) -> None:
         self.stream = stream
 
     def __enter__(self) -> None:
