@@ -806,7 +806,8 @@ def create_row(username: str, table_name: str) -> Response:
                 "csvbase.table_view",
                 username=username,
                 table_name=table_name,
-                n=row_id - 1,
+                n=row_id + 1,
+                op="lt",
             )
         )
 
