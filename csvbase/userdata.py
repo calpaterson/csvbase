@@ -1,5 +1,14 @@
 import csv
-from typing import TYPE_CHECKING, Iterable, List, Optional, Sequence, Type, Collection
+from typing import (
+    TYPE_CHECKING,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Type,
+    Collection,
+    Tuple,
+)
 from uuid import UUID, uuid4
 
 from pgcopy import CopyManager
@@ -121,6 +130,27 @@ class PGUserdataAdapter:
             return 0
         else:
             return row_id
+
+    @classmethod
+    def row_id_bounds(
+        cls, sesh: Session, table_uuid: UUID
+    ) -> Tuple[Optional[int], Optional[int]]:
+        """Returns the min and max row id.
+
+        These may be negative if the user has used negative ids.
+
+        An empty table will return (None, None).
+
+        """
+        table_clause = cls._get_userdata_tableclause(sesh, table_uuid)
+        stmt = select(
+            [
+                func.min(table_clause.c.csvbase_row_id),
+                func.max(table_clause.c.csvbase_row_id),
+            ]
+        )
+        cursor = sesh.execute(stmt)
+        return cursor.fetchone()
 
     @classmethod
     def get_a_sample_row(cls, sesh: Session, table_uuid: UUID) -> Row:

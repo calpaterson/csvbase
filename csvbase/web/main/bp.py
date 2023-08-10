@@ -416,9 +416,12 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
         page = PGUserdataAdapter.table_page(sesh, table, keyset)
         ensure_not_over_the_top(table, keyset, page)
         if content_type is ContentType.HTML:
-            min_row_id = PGUserdataAdapter.min_row_id(sesh, table.table_uuid)
-            row_ids_in_page = set(row[ROW_ID_COLUMN] for row in page.rows)
-            is_first_page = min_row_id == 0 or (min_row_id in row_ids_in_page)
+            min_row_id, max_row_id = PGUserdataAdapter.row_id_bounds(
+                sesh, table.table_uuid
+            )
+            row_ids = page.row_ids()
+            is_first_page = min_row_id is None or (min_row_id in row_ids)
+            is_last_page = max_row_id is None or (max_row_id in row_ids)
 
             template_kwargs = dict(
                 page_title=f"{table.username}/{table.table_name}",
@@ -427,6 +430,9 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                 keyset=keyset,
                 ROW_ID_COLUMN=ROW_ID_COLUMN,
                 praise_id=get_praise_id_if_exists(table),
+                is_first_page=is_first_page,
+                is_last_page=is_last_page,
+                max_row_id=max_row_id,
             )
 
             if is_first_page:

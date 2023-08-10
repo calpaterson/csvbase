@@ -7,6 +7,8 @@ from typing import (
     Mapping,
     List,
     Tuple,
+    Set,
+    cast,
 )
 from typing_extensions import Literal
 from uuid import UUID
@@ -59,6 +61,9 @@ class Page:
     has_less: bool
     has_more: bool
     rows: Sequence[Row]
+
+    def row_ids(self) -> Set[int]:
+        return cast(Set[int], {row[ROW_ID_COLUMN] for row in self.rows})
 
 
 @dataclass

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Iterable
 from datetime import datetime
 import random
 import string
@@ -11,7 +11,7 @@ import pandas as pd
 
 from csvbase.userdata import PGUserdataAdapter
 from csvbase import svc
-from csvbase.value_objs import DataLicence, Table, User
+from csvbase.value_objs import DataLicence, Table, User, Column
 from csvbase.web.billing import svc as billing_svc
 
 from .value_objs import ExtendedUser
@@ -55,7 +55,7 @@ def get_df_as_csv(client, url: str) -> pd.DataFrame:
 def create_table(
     sesh: Session,
     user: User,
-    columns,
+    columns: Iterable[Column],
     table_name=None,
     is_public=True,
     caption="",
