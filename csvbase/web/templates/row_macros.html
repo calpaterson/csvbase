@@ -39,6 +39,9 @@
   {%- elif col.type_.name == "DATE" -%}
     date
   {%- else -%}
+    {# the number form type is specifically not used:
+    https://technology.blog.gov.uk/2020/02/24/why-the-gov-uk-design-system-team-changed-the-input-type-for-numbers/
+    #}
     text
   {%- endif -%}
 {%- endmacro -%}
@@ -48,6 +51,17 @@
     {{ val }}
   {%- endif -%}
 {% endmacro %}
+
+
+{%- macro form_inputmode(col) -%}
+  {%- if col.type_.name == "INTEGER" -%}
+    numeric
+  {%- elif col.type_.name == "FLOAT" -%}
+    decimal
+  {%- else -%}
+    text
+  {%- endif -%}
+{%- endmacro -%}
 
 
 {% macro column_value_input(col, val) %}
@@ -75,6 +89,7 @@
       {% if col.name == "csvbase_row_id" %}readonly{% endif %}
       id="{{col.name}}-input"
       type="{{ form_type(col) }}"
+      inputmode="{{ form_inputmode(col) }}"
       name="{{ col.name }}"
       value="{{ form_text(val) }}"
       >
