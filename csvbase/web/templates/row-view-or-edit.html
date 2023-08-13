@@ -20,6 +20,7 @@
                 {% else %}
                   <label class="col-form-label" for="{{col.name}}-input">{{ col.name }}</label>
                 {% endif %}
+                <span class="form-text form-type-hint">{{ col.type_.pretty_type() }}</span>
               </div>
               <div class="col-auto">
                 {{ row_macros.column_value_input(col, v) }}

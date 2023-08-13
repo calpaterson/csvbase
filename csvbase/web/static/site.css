@@ -103,3 +103,7 @@
 .blog-post-2 pre {
     white-space: pre-wrap;
 }
+
+.form-type-hint {
+    font-size: smaller;
+}
