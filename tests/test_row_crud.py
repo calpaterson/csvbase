@@ -1,10 +1,16 @@
 from datetime import datetime
 import pytest
 
+from csvbase.value_objs import ContentType
 from .utils import make_user
 
 
-def test_create__happy(client, ten_rows, test_user):
+@pytest.fixture(scope="module", params=[ContentType.JSON, ContentType.HTML])
+def content_type(request):
+    yield request.param
+
+
+def test_create__happy(client, ten_rows, test_user, content_type):
     expected_resource = {
         "row_id": 11,
         "row": {
@@ -26,19 +32,27 @@ def test_create__happy(client, ten_rows, test_user):
                 "as_float": 11.5,
             }
         },
-        headers={"Authorization": test_user.basic_auth()},
+        headers={"Authorization": test_user.basic_auth(), "Accept": content_type.value},
     )
-    assert post_resp.status_code == 201
-    assert post_resp.json == expected_resource
+    if content_type == ContentType.HTML:
+        assert post_resp.status_code == 302
+        assert (
+            post_resp.headers["Location"]
+            == f"/{test_user.username}/{ten_rows.table_name}?n=12&op=lt&highlight=11"
+        )
+    elif content_type == ContentType.JSON:
+        assert post_resp.status_code == 201
+        assert post_resp.json == expected_resource
 
-    row_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}/rows/11")
-    assert row_resp.status_code == 200, row_resp.data
-    assert row_resp.json == expected_resource
+        row_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}/rows/11")
+        assert row_resp.status_code == 200, row_resp.data
+        assert row_resp.json == expected_resource
 
-    table_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}.json")
-    assert (
-        datetime.fromisoformat(table_resp.json["last_changed"]) > ten_rows.last_changed
-    )
+        table_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}.json")
+        assert (
+            datetime.fromisoformat(table_resp.json["last_changed"])
+            > ten_rows.last_changed
+        )
 
 
 def test_create__table_does_not_exist(client, test_user):

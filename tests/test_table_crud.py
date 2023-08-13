@@ -10,6 +10,13 @@ from .conftest import ROMAN_NUMERALS
 from . import utils
 
 
+@pytest.fixture(
+    scope="module", params=[ContentType.JSON, ContentType.HTML, ContentType.CSV]
+)
+def content_type(request):
+    yield request.param
+
+
 def test_read__happy(client, ten_rows, test_user, content_type):
     resp = client.get(
         f"/{test_user.username}/{ten_rows.table_name}",

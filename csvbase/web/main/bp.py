@@ -433,6 +433,7 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                 is_first_page=is_first_page,
                 is_last_page=is_last_page,
                 max_row_id=max_row_id,
+                highlight=request.args.get("highlight", None, type=int),
             )
 
             if is_first_page:
@@ -808,6 +809,7 @@ def create_row(username: str, table_name: str) -> Response:
                 table_name=table_name,
                 n=row_id + 1,
                 op="lt",
+                highlight=row_id,
             )
         )
 
