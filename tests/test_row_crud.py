@@ -165,7 +165,7 @@ def test_update__happy(client, ten_rows, test_user):
         "row": {
             "roman_numeral": "i",
             "is_even": True,
-            "as_date": "2018-01-01",
+            "as_date": "2018-02-01",
             "as_float": 1.5,
         },
         "url": f"http://localhost/{test_user.username}/{ten_rows.table_name}/rows/1",
@@ -176,6 +176,38 @@ def test_update__happy(client, ten_rows, test_user):
 
     resp = client.get(url)
     assert resp.json == new
+
+    table_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}.json")
+    assert (
+        datetime.fromisoformat(table_resp.json["last_changed"]) > ten_rows.last_changed
+    )
+
+
+def test_update_by_form_post__happy(client, ten_rows, test_user):
+    url = f"/{test_user.username}/{ten_rows.table_name}/rows/1/edit"
+    form = {
+        "csvbase_row_id": 1,
+        "roman_numeral": "i",
+        "is_even": "on",
+        "as_date": "2018-02-01",
+        "as_float": "1.5",
+    }
+    resp = client.post(url, data=form)
+    assert resp.status_code == 302
+
+    expected = {
+        "row_id": 1,
+        "row": {
+            "roman_numeral": "i",
+            "is_even": True,
+            "as_date": "2018-02-01",
+            "as_float": 1.5,
+        },
+        "url": f"http://localhost/{test_user.username}/{ten_rows.table_name}/rows/1",
+    }
+
+    resp = client.get(f"/{test_user.username}/{ten_rows.table_name}/rows/1")
+    assert resp.json == expected
 
     table_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}.json")
     assert (
@@ -202,6 +234,7 @@ def test_update__row_does_not_exist(client, ten_rows, test_user):
 @pytest.mark.xfail(reason="test (and functionality!) not implemented")
 def test_update__row_does_not_match():
     """Test that where the row columns are wrong you get some kind of 4xx error"""
+    assert False
 
 
 def test_update__row_id_does_not_match(client, ten_rows, test_user):

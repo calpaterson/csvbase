@@ -1,11 +1,16 @@
-from typing import Optional
+from typing import Optional, Callable, Mapping, Tuple
+from logging import getLogger
+from urllib.parse import urlsplit
 
 import werkzeug
-from flask import request, g
+import werkzeug.exceptions
+from flask import request, g, current_app, Request
 
 from .. import exc
 from .. import sentry
 from ..value_objs import User
+
+logger = getLogger(__name__)
 
 
 def is_browser() -> bool:
@@ -45,3 +50,17 @@ def get_current_user_or_401() -> User:
     if current_user is None:
         raise exc.NotAuthenticatedException()
     return current_user
+
+
+def reverse_url_for(
+    url: str, method: str = "GET"
+) -> Optional[Tuple[Callable, Mapping]]:
+    """Returns the view function that would handle a given url"""
+    adapter = current_app.url_map.bind_to_environ(request.environ)
+    path = urlsplit(url)[2]
+    try:
+        view_func, view_args = adapter.match(path, method=method)
+    except werkzeug.exceptions.HTTPException:
+        logger.warning("'%s' didn't match any routes", url)
+        return None
+    return current_app.view_functions[view_func], view_args

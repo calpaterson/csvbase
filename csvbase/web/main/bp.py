@@ -17,10 +17,11 @@ from typing import (
     Iterator,
     IO,
 )
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import hashlib
 
 import itsdangerous.serializer
+from werkzeug.datastructures import OrderedMultiDict
 import werkzeug.http
 from flask import (
     Blueprint,
@@ -45,6 +46,7 @@ from ..func import (
     set_current_user,
     get_current_user_or_401,
     get_current_user,
+    reverse_url_for,
 )
 from ... import exc, svc, streams, table_io
 from ...json import value_to_json, json_to_value
@@ -936,6 +938,34 @@ def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Resp
     "/<username>/<table_name:table_name>/rows/<int:row_id>/edit", methods=["POST"]
 )
 def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Response:
+    """The view that handles form submissions to edit rows."""
+    # after editing, we return them back to where they came from (or a table
+    # page with this row on it)
+    # FIXME: need some better, more consistent way to get whence
+    whence = request.args.get(
+        "whence",
+        url_for(
+            "csvbase.table_view",
+            username=username,
+            table_name=table_name,
+            n=row_id + 1,
+            op="lt",
+        ),
+    )
+
+    # if they came from the table view page for this table and are being sent
+    # back there via whence, then set this row as the highlight
+    whence_view_func_and_args = reverse_url_for(whence)
+    if whence_view_func_and_args is not None:
+        vf = whence_view_func_and_args[0]
+        vf_username = whence_view_func_and_args[1].get("username")
+        vf_table_name = whence_view_func_and_args[1].get("table_name")
+        if vf == table_view and vf_username == username and vf_table_name == table_name:
+            s, n, p, q, f = urlsplit(whence)
+            query_md: OrderedMultiDict[str, str] = OrderedMultiDict(parse_qsl(q))  # type: ignore
+            query_md.setlist("highlight", [str(row_id)])
+            whence = urlunsplit((s, n, p, urlencode(query_md), f))
+
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
     row: Row = {
@@ -946,11 +976,7 @@ def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Resp
     svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()
     flash(f"Updated row {row_id}")
-    return redirect(
-        url_for(
-            "csvbase.get_row", username=username, table_name=table_name, row_id=row_id
-        )
-    )
+    return redirect(whence)
 
 
 # FIXME: assert table name and user name match regex
