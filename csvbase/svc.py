@@ -27,6 +27,7 @@ from sqlalchemy import column as sacolumn, func, update, types as satypes, cast
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import table as satable
+from sqlalchemy.dialects.postgresql import insert as pginsert
 
 from .web.billing.svc import get_quota
 from . import data, exc, models
@@ -79,6 +80,7 @@ def user_by_name(sesh: Session, username: str) -> User:
             models.User.registered,
             models.APIKey.api_key,
             models.UserEmail.email_address,
+            models.User.timezone,
         )
         .join(models.APIKey)
         .outerjoin(models.UserEmail)
@@ -88,13 +90,14 @@ def user_by_name(sesh: Session, username: str) -> User:
     if rp is None:
         raise exc.UserDoesNotExistException(username)
     else:
-        user_uuid, registered, api_key, email = rp
+        user_uuid, registered, api_key, email, timezone = rp
         return User(
             user_uuid=user_uuid,
             username=username,
             registered=registered,
             api_key=api_key,
             email=email,
+            timezone=timezone,
         )
 
 
@@ -106,6 +109,7 @@ def user_by_user_uuid(sesh, user_uuid: UUID) -> User:
             models.User.registered,
             models.APIKey.api_key,
             models.UserEmail.email_address,
+            models.User.timezone,
         )
         .join(models.APIKey)
         .outerjoin(models.UserEmail)
@@ -115,14 +119,52 @@ def user_by_user_uuid(sesh, user_uuid: UUID) -> User:
     if rp is None:
         raise exc.UserDoesNotExistException(str(user_uuid))
     else:
-        username, registered, api_key, email = rp
+        username, registered, api_key, email, timezone = rp
         return User(
             user_uuid=user_uuid,
             username=username,
             registered=registered,
             api_key=api_key,
             email=email,
+            timezone=timezone,
         )
+
+
+def update_user(sesh, new_user: User) -> None:
+    current_user = user_by_user_uuid(sesh, new_user.user_uuid)
+    update_fields = {"timezone"}
+    update_arg = {
+        field: getattr(new_user, field)
+        for field in update_fields
+        if getattr(new_user, field) != getattr(current_user, field)
+    }
+    if len(update_arg) > 0:
+        sesh.query(models.User).filter(
+            models.User.user_uuid == new_user.user_uuid
+        ).update(update_arg)
+        logger.info("updated %s for %s", update_arg, new_user.username)
+    if new_user.email != current_user.email:
+        update_user_email(sesh, new_user)
+
+
+def update_user_email(sesh, user: User) -> None:
+    if user.email == "":
+        # breakpoint()
+        logger.warning("empty string email address")
+    if user.email is None:
+        sesh.query(models.UserEmail).filter(
+            models.UserEmail.user_uuid == user.user_uuid
+        ).delete()
+        logger.info("removed email address for %s", user.username)
+    else:
+        insert_stmt = pginsert(models.UserEmail).values(
+            user_uuid=user.user_uuid, email_address=user.email
+        )
+        upsert_stmt = insert_stmt.on_conflict_do_update(
+            index_elements=["user_uuid"], set_={"email_address": user.email}
+        )
+        sesh.execute(upsert_stmt)
+        logger.info("updated email address for %s", user.username)
 
 
 def table_exists(sesh: Session, user_uuid: UUID, table_name: str) -> bool:
@@ -274,8 +316,7 @@ def create_user(
         user_uuid=user_uuid,
         username=username,
         password_hash=password_hashed,
-        # FIXME: hardcoded default
-        timezone="Europe/London",
+        timezone="UTC",
         registered=registered,
     )
 
@@ -291,6 +332,7 @@ def create_user(
         registered=user.registered,
         api_key=user.api_key.api_key,
         email=email,
+        timezone="UTC",
     )
 
 

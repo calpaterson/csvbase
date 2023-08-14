@@ -1,3 +1,4 @@
+from logging import getLogger
 from typing import (
     Optional,
     Sequence,
@@ -9,6 +10,7 @@ from typing import (
     Tuple,
     Set,
     cast,
+    Any,
 )
 from typing_extensions import Literal
 from uuid import UUID
@@ -17,8 +19,10 @@ from dataclasses import dataclass
 import enum
 import binascii
 
+from dateutil.tz import gettz
 from sqlalchemy import types as satypes
 
+logger = getLogger(__name__)
 
 # Preliminary version of a Row.  Another option would be to subclass tuple and
 # implement __getattr__ to provide access by column
@@ -32,9 +36,17 @@ class User:
     email: Optional[str]
     registered: datetime
     api_key: bytes
+    timezone: str
 
     def hex_api_key(self) -> str:
         return binascii.hexlify(self.api_key).decode("utf-8")
+
+    def tzfile(self) -> Any:
+        try:
+            return gettz(self.timezone)
+        except Exception as e:
+            logger.exception("unable to load timezone for user, using UTC")
+            return timezone.utc
 
 
 @dataclass

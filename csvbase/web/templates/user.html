@@ -9,6 +9,10 @@
 
     <p>Registered {{ user.registered|dateformat }}</p>
 
+    {% if g.current_username == user.username %}
+      <p><a href="{{ url_for('csvbase.user_settings', username=user.username) }}">Edit your settings</a></p>
+    {% endif %}
+
     {% if show_manage_subscription %}
       <h2>Your subscription</h2>
       <p>You are currently subscribed. <a href="{{ url_for('billing.manage') }}">Manage your subscription</a>.</p>

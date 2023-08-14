@@ -1,0 +1,43 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "app_base.html" %}
+
+{% block main %}
+  <div class="container">
+    <h1 class="py-2">Edit user settings</h1>
+
+    <form method="POST">
+      <div class="mb-3 row g-3">
+        <div class="col-2">
+          <label for="email" class="form-label">Email address</label>
+        </div>
+        <div class="col-auto">
+          <input type="email" class="form-control" name="email" value="{{ user.email }}">
+        </div>
+        <div class="col-auto">
+          <div class="form-text">Optional.  Can help if you forget your password.</div>
+        </div>
+      </div>
+
+      <div class="mb-3 row g-3">
+        <div class="col-2">
+          <label for="timezone" class="form-label">Timezone</label>
+        </div>
+        <div class="col-auto">
+          <select class="form-select" type="select" name="timezone">
+            {% for timezone in timezones %}
+              <option value="{{ timezone }}" {% if timezone == user.timezone %} selected {% endif %}
+                      >{{ timezone }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-auto">
+          <div class="form-text">Datetimes will be shown in your timezone, and your timezone will be the default for datetimes you enter.</div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+
+    </form>
+  </div>
+{% endblock %}

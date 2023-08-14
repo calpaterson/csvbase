@@ -20,6 +20,7 @@ from typing import (
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import hashlib
 
+from dateutil.zoneinfo import get_zonefile_instance
 import itsdangerous.serializer
 from werkzeug.datastructures import OrderedMultiDict
 import werkzeug.http
@@ -1029,6 +1030,33 @@ def user(username: str) -> Response:
             show_manage_subscription=has_subscription,
         )
     )
+
+
+@bp.route("/<username>/settings", methods=["GET", "POST"])
+def user_settings(username: str) -> Response:
+    am_user_or_400(username)
+    sesh = get_sesh()
+    user = svc.user_by_name(sesh, username)
+    timezones = sorted(get_zonefile_instance().zones)
+    if request.method == "GET":
+        return make_response(
+            render_template(
+                "user-settings.html",
+                user=user,
+                page_title=f"{username} settings",
+                timezones=timezones,
+            )
+        )
+    else:
+        timezone = request.form["timezone"]
+        if timezone not in timezones:
+            raise exc.InvalidRequest()
+        user.timezone = timezone
+        user.email = request.form["email"]
+        svc.update_user(sesh, user)
+        sesh.commit()
+        flash("Updated settings")
+        return redirect(url_for("csvbase.user_settings", username=username))
 
 
 @bp.get("/robots.txt")

@@ -31,6 +31,7 @@ setup(
         "bleach==6.0.0",
         "cchardet==2.1.7",
         "click==8.1.3",
+        "python-dateutil==2.8.2",
         "feedgen==0.9.0",
         "flask-babel==3.1.0",
         "flask-cors==3.0.10",
