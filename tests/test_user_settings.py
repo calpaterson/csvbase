@@ -18,7 +18,7 @@ def test_user_settings__updating(sesh, client, test_user):
     post_resp = client.post(
         settings_url, data={"timezone": new_timezone, "email": new_email}
     )
-    assert post_resp.status_code == 200, post_resp.data
+    assert post_resp.status_code == 302, post_resp.data
 
     new_user_obj = svc.user_by_name(sesh, test_user.username)
     assert new_user_obj.timezone == new_timezone
