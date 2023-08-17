@@ -3,6 +3,8 @@
 
 {% import 'table_macros.html' as table_macros %}
 
+{% import 'value_macros.html' as value_macros %}
+
 {% macro data_licence_badge(data_licence) %}
   <span
     style="font-size: 0.75rem"
@@ -30,11 +32,12 @@
     <div class="row">
       <div class="col-auto">
         <p class="table-topline">
-          {% if table.has_caption() %}
+          {%- if table.has_caption() -%}
             <span class="table-caption">{{table.caption}}</span> &mdash; {{ table_macros.render_row_count(table) }} rows
-          {% else %}
+          {%- else -%}
             <span class="table-caption">No caption provided</span>, {{ table_macros.render_row_count(table) }} rows
-          {% endif %}
+          {%- endif -%}
+          , last changed {{ value_macros.render_human_datetime(table.last_changed) }} ago
         </p>
       </div>
       <div class="col-auto">

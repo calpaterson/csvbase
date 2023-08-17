@@ -30,7 +30,7 @@ from passlib.context import CryptContext
 from werkzeug.routing import BaseConverter
 from werkzeug.wrappers.response import Response
 
-from .func import set_current_user
+from .func import set_current_user, user_timezone_or_utc, format_timedelta
 from .. import exc, svc
 from .blog.bp import bp as blog_bp
 from ..config import get_config
@@ -86,7 +86,12 @@ def init_app() -> Flask:
         app.logger.warning("CSVBASE_SECRET_KEY not set, using a random secret")
         app.config["SECRET_KEY"] = secrets.token_hex()
 
-    Babel(app, default_locale="en_GB", default_timezone="Europe/London")
+    Babel(
+        app,
+        default_locale="en_GB",
+        default_timezone="Europe/London",
+        timezone_selector=user_timezone_or_utc,
+    )
 
     class TableNameConverter(BaseConverter):
         regex = r"[A-z][-A-z0-9]+"
@@ -106,6 +111,7 @@ def init_app() -> Flask:
 
     app.jinja_env.filters["snake_case"] = snake_case
     app.jinja_env.filters["ppjson"] = ppjson
+    app.jinja_env.filters["timedeltaformat"] = format_timedelta
 
     app.config["SQLALCHEMY_DATABASE_URI"] = get_db_url()
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False

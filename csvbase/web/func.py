@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Optional, Callable, Mapping, Tuple
 from logging import getLogger
 from urllib.parse import urlsplit
@@ -5,6 +6,7 @@ from urllib.parse import urlsplit
 import werkzeug
 import werkzeug.exceptions
 from flask import request, g, current_app, Request
+from flask_babel import get_locale, dates
 
 from .. import exc
 from .. import sentry
@@ -64,3 +66,44 @@ def reverse_url_for(
         logger.warning("'%s' didn't match any routes", url)
         return None
     return current_app.view_functions[view_func], view_args
+
+
+def user_timezone_or_utc() -> str:
+    user = get_current_user()
+    if user is not None:
+        return user.timezone
+    else:
+        return "UTC"
+
+
+# FIXME: upstream this
+def format_timedelta(
+    datetime_or_timedelta,
+    granularity: str = "second",
+    add_direction=False,
+    threshold=0.85,
+):
+    """Format the elapsed time from the given date to now or the given
+    timedelta.
+
+    This function is also available in the template context as filter
+    named `timedeltaformat`.
+    """
+    if isinstance(datetime_or_timedelta, datetime):
+        is_aware = (
+            datetime_or_timedelta.tzinfo is not None
+            and datetime_or_timedelta.tzinfo.utcoffset(datetime_or_timedelta)
+            is not None
+        )
+        if is_aware:
+            now = datetime.now(timezone.utc)
+        else:
+            now = datetime.utcnow()
+        datetime_or_timedelta = now - datetime_or_timedelta
+    return dates.format_timedelta(
+        datetime_or_timedelta,
+        granularity,
+        threshold=threshold,
+        add_direction=add_direction,
+        locale=get_locale(),
+    )
