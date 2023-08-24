@@ -34,7 +34,7 @@ def make_user(sesh: Session, crypt_context) -> ExtendedUser:
         registered=user.registered,
         api_key=user.api_key,
         email=user.email,
-        timezone="Europe/London",
+        timezone=user.timezone,
     )
 
 
