@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from unittest.mock import ANY
 
+import pandas as pd
 import pytest
 
 from csvbase import svc
@@ -278,3 +279,16 @@ def test_upsert__csv_header_doesnt_match(client, test_user, ten_rows):
         headers={"Authorization": test_user.basic_auth()},
     )
     assert resp.status_code != 200
+
+
+def test_create__happy(client, test_user):
+    new_csv = """a,b,c,d,e
+hello,1,1.5,FALSE,2018-01-03
+"""
+    table_name = utils.random_string()
+    resp = client.put(
+        f"/{test_user.username}/{table_name}",
+        data=new_csv,
+        headers={"Authorization": test_user.basic_auth(), "Content-Type": "text/csv"},
+    )
+    assert resp.status_code == 201

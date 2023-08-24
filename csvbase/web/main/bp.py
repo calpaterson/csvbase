@@ -980,30 +980,48 @@ def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Resp
     return redirect(whence)
 
 
-# FIXME: assert table name and user name match regex
+# FIXME: this needs renaming
 @bp.put("/<username>/<table_name:table_name>")
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
 def upsert_table(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     am_user_or_400(username)
+    user = svc.user_by_name(sesh, username)
+
+    response_content_type = negotiate_content_type(
+        [ContentType.JSON], default=ContentType.JSON
+    )
 
     # FIXME: add checking for forms here
     byte_buf = io.BytesIO()
     shutil.copyfileobj(request.stream, byte_buf)
     str_buf = streams.byte_buf_to_str_buf(byte_buf)
     dialect, columns = streams.peek_csv(str_buf)
-    table = svc.get_table(sesh, username, table_name)
     rows = table_io.csv_to_rows(str_buf, columns, dialect)
 
-    PGUserdataAdapter.upsert_table_data(
-        sesh,
-        table,
-        columns,
-        rows,
-    )
+    if svc.table_exists(sesh, user.user_uuid, table_name):
+        table = svc.get_table(sesh, username, table_name)
+        PGUserdataAdapter.upsert_table_data(
+            sesh,
+            table,
+            columns,
+            rows,
+        )
+        status = 200
+        message = f"upserted {username}/{table_name}"
+    else:
+        table_uuid = svc.create_table_metadata(
+            sesh, user.user_uuid, table_name, False, "", DataLicence.ALL_RIGHTS_RESERVED
+        )
+        PGUserdataAdapter.create_table(sesh, table_uuid, columns)
+        table = svc.get_table(sesh, username, table_name)
+        status = 201
+        message = f"created {username}/{table_name}"
     svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()
-    return make_text_response(f"upserted {username}/{table_name}")
+    response = jsonify({"message": message})
+    response.status_code = status
+    return response
 
 
 @bp.get("/<username>")
@@ -1189,13 +1207,6 @@ def am_user_or_400(username: str) -> bool:
 def am_a_user_or_400():
     if not am_a_user():
         raise exc.NotAuthenticatedException()
-
-
-def make_text_response(text: str, status=200):
-    # need a trailing newline else shells get confused
-    resp = make_response("200 OK: " + text + "\n")
-    resp.headers["Content-Type"] = "text/plain"
-    return resp
 
 
 def make_download_filename(username: str, table_name: str, extension: str) -> str:
