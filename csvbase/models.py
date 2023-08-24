@@ -35,6 +35,10 @@ METADATA_SCHEMA_TABLE_ARG = {"schema": "metadata"}
 class User(Base):
     __tablename__ = "users"
     __table_args__ = (
+        # FIXME: this regex is incorrect - A-z allows other characters, such as _
+        # the correct regex should be ^[A-z][-A-Za-z0-9]+$ but first
+        # implementing this ban at application level before correcting this
+        # here.
         CheckConstraint("username ~ '^[A-z][-A-z0-9]+$'", "username_format"),
         CheckConstraint("char_length(username) <= 200", "username_length"),
         METADATA_SCHEMA_TABLE_ARG,

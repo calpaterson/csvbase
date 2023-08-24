@@ -1,6 +1,8 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "app_base.html" %}
 
+{% from 'value_macros.html' import id_input_validation_attrs %}
+
 {% block main %}
   <div class="container">
     <h1>Convert a file</h1>
@@ -43,8 +45,7 @@
         <p>As you&apos;re not logged in, please create an account.  (If you already have an account, <a href="{{ url_for('csvbase.sign_in') }}">sign in</a>.)</p>
       <p>
         <label>Username</label>
-        <input type="text" name="username" required pattern="^[A-z][-A-z0-9]+"
-               title="Letters, numbers and dashes only.  Must start with a letter">
+        <input type="text" name="username" required {{id_input_validation_attrs()}}>
       </p>
       <p>
         <label>(Optional) Email</label>

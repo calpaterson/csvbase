@@ -44,3 +44,21 @@ def test_registering_a_banned_username(client, banned_username):
     )
     assert resp.status_code == 400, resp.data
     assert resp.json == {"error": "that username is not allowed"}
+
+
+@pytest.mark.parametrize(
+    "invalid_username",
+    [
+        pytest.param("1", id="starts with number(1)"),
+        pytest.param("2cool4school", id="starts with number(2)"),
+        pytest.param("cool_guy", id="underscores"),
+        pytest.param("_leader", id="leading underscore"),
+        pytest.param("f" * 300, id="too long"),
+    ],
+)
+def test_registering_an_invalid_username(client, invalid_username):
+    resp = client.post(
+        "/register", data=dict(username=invalid_username, password="password")
+    )
+    assert resp.status_code == 400, resp.data
+    assert resp.json == {"error": "that username is not allowed"}

@@ -3,3 +3,11 @@
 {% macro render_human_datetime(dt) %}
   <span title="{{ dt|datetimeformat(format='full') }}" data-bs-toggle="tooltip" data-bs-placement="top">{{ dt|timedeltaformat }} ago</span>
 {% endmacro %}
+
+
+{%- macro id_input_validation_attrs() -%}
+  {# HTML5 validation attributes for csvbase id parts (usernames and table names) #}
+  {# Note this uses A-Za-z and NOT A-z (which allows underscore) #}
+  pattern="^[A-Za-z][\-A-Za-z0-9]+$" title="Letters, numbers and dashes only.  Must start with a letter"
+{%- endmacro -%}
+

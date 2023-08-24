@@ -43,7 +43,7 @@ def test_new_blank_table_form(client, query, kwargs):
 
 def test_uploading_a_table_when_not_logged_in(client):
     table_name = f"test-table-{random_string()}"
-    username = f"test_{random_string()}"
+    username = f"test-{random_string()}"
     resp = client.post(
         "/new-table",
         data={

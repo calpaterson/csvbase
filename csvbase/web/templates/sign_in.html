@@ -1,6 +1,8 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "base.html" %}
 
+{% from 'value_macros.html' import id_input_validation_attrs %}
+
 {% block main %}
   <div class="container">
     <h1>Sign in to your account</h1>
@@ -10,9 +12,7 @@
       {% endif %}
       <p>
         <label>Username</label>
-        <input type="text" name="username" required pattern="^[A-z][-A-z0-9]+"
-               title="Letters, numbers and dashes only.  Must start with a letter"
-               autofocus>
+        <input type="text" name="username" required {{id_input_validation_attrs()}} autofocus>
       </p>
       <p>
         <label>Password</label>

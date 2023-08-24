@@ -50,6 +50,8 @@ FLOAT_REGEX = re.compile(r"^(\d+\.)|(\.\d+)|(\d+\.\d?)$")
 
 BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
 
+USERNAME_REGEX = re.compile(r"^[A-Za-z][-A-Za-z0-9]+$")
+
 
 def username_exists(sesh: Session, username: str) -> bool:
     """Whether the given username exists."""
@@ -337,10 +339,12 @@ def create_user(
 
 
 def check_username_is_allowed(sesh: Session, username: str) -> None:
+    too_long = len(username) >= 200
+    invalid = not USERNAME_REGEX.match(username)
     is_prohibited: bool = sesh.query(
         exists().where(models.ProhibitedUsername.username == username.lower())
     ).scalar()
-    if is_prohibited:
+    if any([too_long, invalid, is_prohibited]):
         logger.warning("username prohibited: %s", username)
         raise exc.ProhibitedUsernameException()
 
