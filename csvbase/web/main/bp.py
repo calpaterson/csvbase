@@ -78,27 +78,6 @@ bp = Blueprint("csvbase", __name__)
 
 CORS_EXPIRY = timedelta(hours=8)
 
-EXCEPTION_MESSAGE_CODE_MAP = {
-    exc.UserDoesNotExistException: ("that user does not exist", 404),
-    exc.RowDoesNotExistException: ("that row does not exist", 404),
-    exc.PageDoesNotExistException: ("that page does not exist", 404),
-    exc.TableDoesNotExistException: ("that table does not exist", 404),
-    exc.NotAuthenticatedException: ("you need to sign in to do that", 401),
-    exc.NotAllowedException: ("that's not allowed", 403),
-    exc.WrongAuthException: ("that's the wrong password or api key", 400),
-    exc.InvalidAPIKeyException: ("invalid api key", 400),
-    exc.InvalidRequest: ("invalid request", 400),
-    exc.CantNegotiateContentType: ("can't agree with you on a content type", 406),
-    exc.WrongContentType: ("you sent the wrong content type", 400),
-    exc.ProhibitedUsernameException: ("that username is not allowed", 400),
-    exc.UsernameAlreadyExistsException: ("that username is taken", 400),
-    exc.UsernameAlreadyExistsInDifferentCaseException: (
-        "that username is taken (in a different case)",
-        400,
-    ),
-    exc.CSVException: ("Unable to parse that csv file", 400),
-}
-
 
 @bp.route("/")
 def index() -> str:
