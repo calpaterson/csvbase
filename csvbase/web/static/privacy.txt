@@ -1,46 +1,48 @@
 # csvbase privacy policy
 
-This policy was last updated on 2023-03-23
+This policy was last updated on 2023-08-25
 
 ## Contact details
 
-Cal Paterson
+Data controller: Cal Paterson
 
-cal@calpaterson.com
+Email address: cal@calpaterson.com
 
-## The type of personal information we collect
+## Personal information we collect
 
 We currently collect the following personal information from users who choose
 to register:
 
-- username
+- a username
+- a timezone, if you change from the default of UTC
 - and, optionally, an email address
 
-If you experience a crash we collect extra, impersonal, information about your
-configuration, strictly for the purposes of debugging that crash.  That is
-shared with Sentry (https://sentry.io/) and retained for 30 days.  Personal
-information is shared with Sentry.
+If you experience a crash (eg a 500 error) we collect extra information about
+your configuration, strictly for the purposes of debugging that crash.  That is
+shared with Sentry (https://sentry.io/) and they retain it for 30 days.
 
-If you subscribe our payment provider (Stripe) collects your payment data -
-credit card details, name, address, etc.  We don't have access to that data
-except to see if your payments are going through.
+For subscription purposes, our payment provider Stripe collects your payment
+data, including credit card details, name, and address. We do not have access
+to this data; it's solely used to process your payments.
 
 ## How we get the personal information and why we have it
 
-We only collect personal information directly, when you register.
+We collect personal information directly during registration.
 
 We use the information that you have given us to give your account a unique
-name.  In future we hope to use the email address to provide password reset and
-(opt-in) email notifications.
+name.  The email address is used if you forget your password.
 
-We do not share this information with any other parties.
+Sentry collects data about users who experience a crash.  And Stripe only
+collect data you provide to them.
 
-Under the UK GDPR the lawful basis we rely on for processing this information
-is:
+We do not share this information with any other other parties.
 
-- your consent.  You can withdraw your consent at any time by contacting us.
+## Legal basis for processing
 
-## How we store your personal information
+Our processing of your personal information is based on your consent, which you
+can withdraw at any time by contacting us.
+
+## Storage
 
 Your information is securely stored and not accessible to anyone else.
 
@@ -62,9 +64,9 @@ You can contact us to make a complaint.
 You can also contact the Information Commissioner's Office if you are unhappy
 with how we have used your data.  The contact details for the ICO are below:
 
-Information Commissioner’s Office Wycliffe House Water Lane Wilmslow Cheshire
+Information Commissioner’s Office
+Wycliffe House, Water Lane
+Wilmslow Cheshire
 SK9 5AF
-
-0303 123 1113
-
-https://www.ico.org.uk
+Phone: 0303 123 1113
+Website: https://www.ico.org.uk
