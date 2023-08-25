@@ -21,7 +21,7 @@ from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import hashlib
 
 from dateutil.zoneinfo import get_zonefile_instance
-import itsdangerous.serializer
+import itsdangerous.url_safe
 from werkzeug.datastructures import OrderedMultiDict
 import werkzeug.http
 from flask import (
@@ -482,8 +482,10 @@ def make_table_view_etag(
     key = hash_.hexdigest()
     # and we sign to avoid people fishing for other people's cache'd versions
     # with etags
-    serializer = itsdangerous.serializer.Serializer(current_app.config["SECRET_KEY"])
-    etag = "W/" + str(serializer.dumps(key))
+    serializer = itsdangerous.url_safe.URLSafeSerializer(
+        current_app.config["SECRET_KEY"]
+    )
+    etag = f'W/"{serializer.dumps(key)}"'
     return etag
 
 
