@@ -67,6 +67,8 @@ EXCEPTION_MESSAGE_CODE_MAP = {
     exc.CSVException: ("Unable to parse that csv file", 400),
     exc.UnknownPaymentReferenceUUIDException: ("unknown payment reference", 404),
     exc.NotEnoughQuotaException: ("this would exceed your quota", 400),
+    exc.InvalidTableNameException: ("that table name is invalid", 400),
+    exc.InvalidUsernameNameException: ("that username is invalid", 400),
 }
 
 
@@ -94,7 +96,9 @@ def init_app() -> Flask:
     )
 
     class TableNameConverter(BaseConverter):
-        regex = r"[A-z][-A-z0-9]+"
+        # FIXME: Not sure it is a good idea to reject invalid table names on a
+        # url-map level
+        regex = r"[A-Za-z][-A-Za-z0-9]+"
 
     app.url_map.converters["table_name"] = TableNameConverter
 

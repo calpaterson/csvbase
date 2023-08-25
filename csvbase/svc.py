@@ -50,7 +50,7 @@ FLOAT_REGEX = re.compile(r"^(\d+\.)|(\.\d+)|(\d+\.\d?)$")
 
 BOOL_REGEX = re.compile("^(yes|no|true|false|y|n|t|f)$", re.I)
 
-USERNAME_REGEX = re.compile(r"^[A-Za-z][-A-Za-z0-9]+$")
+ID_REGEX = re.compile(r"^[A-Za-z][-A-Za-z0-9]+$")
 
 
 def username_exists(sesh: Session, username: str) -> bool:
@@ -224,6 +224,7 @@ def create_table_metadata(
     including assigning the table uuid.
 
     """
+    check_table_name_is_allowed(table_name)
     table_uuid = uuid4()
     table_obj = models.Table(
         table_uuid=table_uuid, table_name=table_name, user_uuid=user_uuid
@@ -338,13 +339,27 @@ def create_user(
     )
 
 
+def check_table_name_is_allowed(table_name: str) -> None:
+    too_long = len(table_name) >= 200
+    invalid = not ID_REGEX.match(table_name)
+    if any([too_long, invalid]):
+        logger.warning("table name prohibited: %s", table_name)
+        raise exc.InvalidTableNameException()
+    # FIXME: it would probably be good to prohibit some table names
+    # is_prohibited: bool = sesh.query(
+    #     exists().where(models.ProhibitedUsername.username == username.lower())
+    # ).scalar()
+
+
 def check_username_is_allowed(sesh: Session, username: str) -> None:
     too_long = len(username) >= 200
-    invalid = not USERNAME_REGEX.match(username)
+    invalid = not ID_REGEX.match(username)
+    if too_long or invalid:
+        raise exc.InvalidUsernameNameException()
     is_prohibited: bool = sesh.query(
         exists().where(models.ProhibitedUsername.username == username.lower())
     ).scalar()
-    if any([too_long, invalid, is_prohibited]):
+    if is_prohibited:
         logger.warning("username prohibited: %s", username)
         raise exc.ProhibitedUsernameException()
 

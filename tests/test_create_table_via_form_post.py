@@ -30,6 +30,16 @@ def render_template_to_json():
 TESTCASES: Any = [({}, {"cols": [("", ColumnType.TEXT)]})]
 
 
+@pytest.mark.parametrize("url", ["/new-table", "/new-table/blank"])
+def test_new_table_with_invalid_name(client, url, test_user):
+    set_current_user(test_user)
+
+    resp = client.post(url, data={"table-name": "some table", "data-licence": 1})
+
+    assert resp.status_code == 400
+    assert resp.json == {"error": "that table name is invalid"}
+
+
 @pytest.mark.parametrize("query, kwargs", TESTCASES)
 def test_new_blank_table_form(client, query, kwargs):
     resp = client.get(url_for("csvbase.blank_table"))

@@ -57,7 +57,7 @@ def test_create__happy(client, ten_rows, test_user, content_type):
 
 def test_create__table_does_not_exist(client, test_user):
     post_resp = client.post(
-        f"/{test_user.username}/ten_rows/rows/",
+        f"/{test_user.username}/ten-rows/rows/",
         json={"row": {"roman_numeral": "XI"}},
         headers={"Authorization": test_user.basic_auth()},
     )
@@ -67,7 +67,7 @@ def test_create__table_does_not_exist(client, test_user):
 
 def test_create__user_does_not_exist(client, test_user):
     post_resp = client.post(
-        "/somebody/ten_rows/rows/",
+        "/somebody/ten-rows/rows/",
         json={"row": {"roman_numeral": "XI"}},
         headers={"Authorization": test_user.basic_auth()},
     )

@@ -292,3 +292,17 @@ hello,1,1.5,FALSE,2018-01-03
         headers={"Authorization": test_user.basic_auth(), "Content-Type": "text/csv"},
     )
     assert resp.status_code == 201
+
+
+def test_create__invalid_name(client, test_user):
+    new_csv = """a,b,c,d,e
+hello,1,1.5,FALSE,2018-01-03
+"""
+    table_name = "some table"
+    resp = client.put(
+        f"/{test_user.username}/{table_name}",
+        data=new_csv,
+        headers={"Authorization": test_user.basic_auth(), "Content-Type": "text/csv"},
+    )
+    assert resp.status_code == 400, resp.data
+    assert resp.json == {"error": "that table name is invalid"}

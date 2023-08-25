@@ -61,4 +61,4 @@ def test_registering_an_invalid_username(client, invalid_username):
         "/register", data=dict(username=invalid_username, password="password")
     )
     assert resp.status_code == 400, resp.data
-    assert resp.json == {"error": "that username is not allowed"}
+    assert resp.json == {"error": "that username is invalid"}

@@ -201,18 +201,13 @@ def new_table_form_submission() -> Response:
         raise exc.NotEnoughQuotaException()
 
     table_name = request.form["table-name"]
-    textarea = request.form.get("csv-textarea")
     csv_buf: UserSubmittedCSVData
-    if textarea:
-        csv_buf = io.StringIO(textarea)
-    else:
-        csv_buf = streams.byte_buf_to_str_buf(request.files["csv-file"])
+
     if "private" in request.form:
         is_public = False
     else:
         is_public = True
     data_licence = DataLicence(request.form.get("data-licence", type=int))
-    dialect, columns = streams.peek_csv(csv_buf)
     table_uuid = svc.create_table_metadata(
         sesh,
         current_user.user_uuid,
@@ -221,6 +216,14 @@ def new_table_form_submission() -> Response:
         "",
         data_licence,
     )
+
+    textarea = request.form.get("csv-textarea")
+    if textarea:
+        csv_buf = io.StringIO(textarea)
+    else:
+        csv_buf = streams.byte_buf_to_str_buf(request.files["csv-file"])
+    dialect, columns = streams.peek_csv(csv_buf)
+
     PGUserdataAdapter.create_table(sesh, table_uuid, columns)
     table = svc.get_table(sesh, current_user.username, table_name)
     rows = table_io.csv_to_rows(csv_buf, columns, dialect)
@@ -962,7 +965,7 @@ def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Resp
 
 
 # FIXME: this needs renaming
-@bp.put("/<username>/<table_name:table_name>")
+@bp.put("/<username>/<table_name>")
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
 def upsert_table(username: str, table_name: str) -> Response:
     sesh = get_sesh()
