@@ -488,7 +488,8 @@ def make_table_view_etag(
     serializer = itsdangerous.url_safe.URLSafeSerializer(
         current_app.config["SECRET_KEY"]
     )
-    etag = f'W/"{serializer.dumps(key)}"'
+    etag_key = cast(str, serializer.dumps(key))
+    etag = f'W/"{etag_key}"'
     return etag
 
 
