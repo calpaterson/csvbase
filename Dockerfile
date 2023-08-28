@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.4
-FROM python:3.7-slim-buster as builder
+FROM python:3.8-slim-buster as builder
 RUN apt-get update && apt-get install -y \
         libpq-dev python3-dev libsystemd-dev build-essential pkg-config curl unzip
 COPY ./ ./
@@ -10,7 +10,7 @@ RUN make static-deps
 
 RUN python -m pip wheel -w wheelhouse .
 
-FROM python:3.7-slim-buster
+FROM python:3.8-slim-buster
 
 ENV PYTHONUNBUFFERED=1
 ENV TZ=UTC
