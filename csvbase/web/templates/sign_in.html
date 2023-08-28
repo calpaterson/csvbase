@@ -5,23 +5,36 @@
 
 {% block main %}
   <div class="container">
-    <h1>Sign in to your account</h1>
-    <form method="POST">
-      {% if whence %}
-        <input type="hidden" name="whence" value="{{ whence }}">
-      {% endif %}
-      <p>
-        <label>Username</label>
-        <input type="text" name="username" required {{id_input_validation_attrs()}} autofocus>
-      </p>
-      <p>
-        <label>Password</label>
-        <input type="password" required name="password">
-      </p>
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <h1>Sign in to your account</h1>
+        <form method="POST" class="mb-3">
+          {% if whence %}
+            <input type="hidden" name="whence" value="{{ whence }}">
+          {% endif %}
 
-      <p>If you don&apos;t already have an account, why not <a href="{{url_for('csvbase.register')}}">register</a>?</p>
+          <div class="form-floating mb-3">
+            <input class="form-control"
+                   type="text"
+                   name="username"
+                   required {{id_input_validation_attrs()}} autofocus placeholder="">
+                   <label>Username</label>
+          </div>
 
-      <input class="btn btn-primary" type="submit" value="Sign in">
-    </form>
+          <div class="form-floating mb-3">
+            <input class="form-control"
+                   type="password"
+                   required
+                   name="password"
+                   placeholder="...">
+            <label>Password</label>
+          </div>
+
+          <input class="btn btn-success" type="submit" value="Sign in">
+        </form>
+
+        <p>If you don&apos;t already have an account, why not <a href="{{url_for('csvbase.register')}}">register</a>?</p>
+      </div>
+    </div>
   </div>
 {% endblock %}
