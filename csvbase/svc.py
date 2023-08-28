@@ -208,6 +208,9 @@ def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> 
     sesh.query(models.Praise).filter(
         models.Praise.table_uuid == table_model.table_uuid
     ).delete()
+    sesh.query(models.TableReadme).filter(
+        models.TableReadme.table_uuid == table_model.table_uuid
+    ).delete()
     sesh.delete(table_model)
     PGUserdataAdapter.drop_table(sesh, table_model.table_uuid)
 
@@ -264,7 +267,7 @@ def get_readme_markdown(sesh: Session, table_uuid: UUID) -> Optional[str]:
 def set_readme_markdown(
     sesh, user_uuid: UUID, table_name: str, readme_markdown: str
 ) -> None:
-    # if it's empty or ws-only, don't store it
+    # if it's empty or ws-only, don't store it and indeed remove it
     if readme_markdown.strip() == "":
         DELETE_STMT = """
         DELETE FROM metadata.table_readmes as tr

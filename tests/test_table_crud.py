@@ -6,6 +6,7 @@ import pytest
 
 from csvbase import svc
 from csvbase.value_objs import ContentType
+from csvbase.web.func import set_current_user
 
 from .conftest import ROMAN_NUMERALS
 from . import utils
@@ -306,3 +307,69 @@ hello,1,1.5,FALSE,2018-01-03
     )
     assert resp.status_code == 400, resp.data
     assert resp.json == {"error": "that table name is invalid"}
+
+
+def test_delete__happy(client, test_user, ten_rows):
+    set_current_user(test_user)
+    resp = client.post(
+        f"{test_user.username}/{ten_rows.table_name}/delete-table-form-post"
+    )
+    assert resp.status_code == 302
+    assert resp.headers["Location"] == f"/{test_user.username}"
+
+
+def test_delete__has_readme(sesh, client, test_user, ten_rows):
+    set_current_user(test_user)
+    svc.set_readme_markdown(sesh, test_user.user_uuid, ten_rows.table_name, "something")
+    sesh.commit()
+    resp = client.post(
+        f"{test_user.username}/{ten_rows.table_name}/delete-table-form-post"
+    )
+    assert resp.status_code == 302
+    assert resp.headers["Location"] == f"/{test_user.username}"
+
+
+@pytest.mark.parametrize("is_public", [True, False])
+def test_delete__am_authed(sesh, client, test_user, is_public):
+    set_current_user(test_user)
+    table = utils.create_table(sesh, test_user, is_public=is_public)
+    sesh.commit()
+
+    set_current_user(test_user)
+    resp = client.post(
+        f"{test_user.username}/{table.table_name}/delete-table-form-post"
+    )
+    assert resp.status_code == 302
+    assert resp.headers["Location"] == f"/{test_user.username}"
+
+
+@pytest.mark.parametrize("is_public", [True, False])
+def test_delete__not_authed(sesh, client, test_user, is_public, crypt_context):
+    table = utils.create_table(sesh, test_user, is_public=is_public)
+    sesh.commit()
+
+    set_current_user(utils.make_user(sesh, crypt_context))
+    resp = client.post(
+        f"{test_user.username}/{table.table_name}/delete-table-form-post"
+    )
+    assert resp.status_code == 401
+
+
+@pytest.mark.parametrize("is_public", [True, False])
+def test_delete__wrong_user(sesh, client, test_user, is_public, crypt_context):
+    table = utils.create_table(sesh, test_user, is_public=is_public)
+    sesh.commit()
+
+    set_current_user(utils.make_user(sesh, crypt_context))
+    resp = client.post(
+        f"{test_user.username}/{table.table_name}/delete-table-form-post"
+    )
+    assert resp.status_code == 401
+
+
+def test_delete__does_not_exist(client, test_user):
+    set_current_user(test_user)
+    resp = client.post(
+        f"{test_user.username}/{utils.random_string()}/delete-table-form-post"
+    )
+    assert resp.status_code == 404

@@ -11,7 +11,14 @@ import pandas as pd
 
 from csvbase.userdata import PGUserdataAdapter
 from csvbase import svc
-from csvbase.value_objs import DataLicence, Table, User, Column
+from csvbase.value_objs import (
+    DataLicence,
+    Table,
+    User,
+    Column,
+    ROW_ID_COLUMN,
+    ColumnType,
+)
 from csvbase.web.billing import svc as billing_svc
 
 from .value_objs import ExtendedUser
@@ -56,7 +63,7 @@ def get_df_as_csv(client, url: str) -> pd.DataFrame:
 def create_table(
     sesh: Session,
     user: User,
-    columns: Iterable[Column],
+    columns: Iterable[Column] = [ROW_ID_COLUMN, Column("a", type_=ColumnType.INTEGER)],
     table_name=None,
     is_public=True,
     caption="",

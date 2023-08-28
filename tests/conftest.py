@@ -18,13 +18,18 @@ from .utils import make_user, create_table
 
 
 @pytest.fixture(scope="session")
-def app():
+def crypt_context():
+    return CryptContext(["plaintext"])
+
+
+@pytest.fixture(scope="session")
+def app(crypt_context):
     # enable the blog (but with a blank table ref!)
     with patch.object(get_config(), "blog_ref", ""):
         a = init_app()
     a.config["TESTING"] = True
     # Speeds things up considerably when testing
-    a.config["CRYPT_CONTEXT"] = CryptContext(["plaintext"])
+    a.config["CRYPT_CONTEXT"] = crypt_context
     return a
 
 

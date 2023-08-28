@@ -644,6 +644,11 @@ def table_settings(username: str, table_name: str) -> str:
 
 @bp.post("/<username>/<table_name:table_name>/delete-table-form-post")
 def delete_table_form_post(username: str, table_name: str) -> Response:
+    """Delete a table, from a form post.
+
+    For now, there is no REST API for this.
+
+    """
     sesh = get_sesh()
     svc.user_by_name(sesh, username)
     svc.get_table(sesh, username, table_name)
