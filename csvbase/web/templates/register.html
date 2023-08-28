@@ -5,30 +5,54 @@
 
 {% block main %}
   <div class="container">
-    <h1>Register a new account</h1>
-    <form method="POST">
-      {% if whence %}
-        <input type="hidden" name="whence" value="{{ whence }}">
-      {% endif %}
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <h1>Register a new account</h1>
+        <form method="POST">
+          {% if whence %}
+            <input type="hidden" name="whence" value="{{ whence }}">
+          {% endif %}
 
-      <p>
-        <label>Username</label>
-        <input type="text" name="username" required {{id_input_validation_attrs()}}>
-      </p>
-      <p>
-        <label>(Optional) Email</label>
-        <input type="text" name="email" pattern=".*@.*"
-               title="Must contain an @-sign">
-      </p>
-      <p>
-        <label>Password</label>
-        <input type="password" required name="password">
-      </p>
+          <div class="form-floating mb-3">
+            <input id="username-input"
+                   class="form-control"
+                   type="text"
+                   name="username"
+                   required {{id_input_validation_attrs()}}
+                   placeholder="..."
+                   autofocus>
+            <label for="username-input">Username</label>
+            <div class="form-text">Usernames should start with a letter, and
+            then have only letters, numbers and dashes (-).</div>
+          </div>
 
-      <p>If you already have an account, <a href="{{url_for('csvbase.sign_in')}}">sign in</a></p>
+          <div class="form-floating mb-3">
+            <input class="form-control"
+                   type="text"
+                   name="email"
+                   pattern=".*@.*"
+                   title="Must contain an @-sign"
+                   placeholder="">
+            <label>Email</label>
+            <div class="form-text">Optional - used only for password reset.</div>
+          </div>
 
-      <input class="btn btn-primary" type="submit" value="Register">
+          <div class="form-floating mb-3">
+            <input class="form-control"
+                   type="password"
+                   required
+                   name="password"
+                   placeholder="">
+          <label>Password</label>
+          </div>
 
-    </form>
+          <input class="btn btn-primary" type="submit" value="Register">
+        </form>
+
+        <p>If you already have an
+          account, <a href="{{url_for('csvbase.sign_in')}}">sign in
+          instead</a</p>
+      </div>
+    </div>
   </div>
 {% endblock %}
