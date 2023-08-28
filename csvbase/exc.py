@@ -74,10 +74,11 @@ class UsernameAlreadyExistsInDifferentCaseException(UsernameAlreadyExistsExcepti
 
 
 class ProhibitedUsernameException(CSVBaseException):
-    """"'Invalid' names don't match the allowed regex.  Prohibited ones are on
+    """ "'Invalid' names don't match the allowed regex.  Prohibited ones are on
     a blacklist - see data/prohibited-username.
 
     """
+
     pass
 
 
