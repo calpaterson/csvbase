@@ -1,5 +1,6 @@
 import pytest
 
+from csvbase.web.func import set_current_user
 from csvbase import svc
 from .utils import random_string
 
@@ -62,3 +63,11 @@ def test_registering_an_invalid_username(client, invalid_username):
     )
     assert resp.status_code == 400, resp.data
     assert resp.json == {"error": "that username is invalid"}
+
+
+def test_going_to_registration_form_when_signed_in(client, test_user):
+    set_current_user(test_user)
+
+    resp = client.get("/register")
+    assert resp.status_code == 302
+    assert resp.headers["Location"] == f"/{test_user.username}"

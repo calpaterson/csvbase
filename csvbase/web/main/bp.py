@@ -1098,6 +1098,11 @@ def sitemap() -> Response:
 @bp.route("/register", methods=["GET", "POST"])
 def register() -> Response:
     if request.method == "GET":
+        current_user = get_current_user()
+        if current_user is not None:
+            flash("You're already registered!")
+            return redirect(url_for("csvbase.user", username=current_user.username))
+
         response = make_response(
             render_template("register.html", whence=request.referrer)
         )

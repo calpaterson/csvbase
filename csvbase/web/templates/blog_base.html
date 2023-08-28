@@ -20,3 +20,12 @@
   </div>
 </div>
 {% endblock %}
+
+{% block navbar_elements %}
+  {{ super() }}
+  <ul class="navbar-nav ms-auto">
+    <li class="nav-item">
+      <a href="{{ url_for('csvbase.register') }}" class="btn btn-success">Register</a>
+    </li>
+  </ul>
+{% endblock %}
