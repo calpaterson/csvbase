@@ -24,6 +24,7 @@ setup(
     version=VERSION,
     packages=find_packages(exclude=["tests.*", "tests"]),
     include_package_data=True,
+    package_data={"csvbase": ["py.typed"]},
     zip_safe=False,
     install_requires=[
         "alembic[tz]==1.7.7",
