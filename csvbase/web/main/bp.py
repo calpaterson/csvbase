@@ -1005,6 +1005,7 @@ def upsert_table(username: str, table_name: str) -> Response:
         )
         PGUserdataAdapter.create_table(sesh, table_uuid, columns)
         table = svc.get_table(sesh, username, table_name)
+        PGUserdataAdapter.insert_table_data(sesh, table, columns, rows)
         status = 201
         message = f"created {username}/{table_name}"
     svc.mark_table_changed(sesh, table.table_uuid)

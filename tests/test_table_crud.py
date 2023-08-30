@@ -1,7 +1,9 @@
+from io import BytesIO
 from datetime import date, datetime
 from unittest.mock import ANY
 
 import pandas as pd
+from pandas.testing import assert_frame_equal
 import pytest
 
 from csvbase import svc
@@ -287,12 +289,24 @@ def test_create__happy(client, test_user):
 hello,1,1.5,FALSE,2018-01-03
 """
     table_name = utils.random_string()
+    url = f"/{test_user.username}/{table_name}"
     resp = client.put(
-        f"/{test_user.username}/{table_name}",
+        url,
         data=new_csv,
         headers={"Authorization": test_user.basic_auth(), "Content-Type": "text/csv"},
     )
     assert resp.status_code == 201
+
+    resp = client.get(
+        url, headers={"Authorization": test_user.basic_auth(), "Accept": "text/csv"}
+    )
+    expected_df = (
+        pd.read_csv(BytesIO(new_csv.encode("utf-8")))
+        .assign(csvbase_row_id=[1])
+        .set_index("csvbase_row_id")
+    )
+    actual_df = pd.read_csv(BytesIO(resp.data), index_col="csvbase_row_id")
+    assert_frame_equal(expected_df, actual_df)
 
 
 def test_create__invalid_name(client, test_user):
