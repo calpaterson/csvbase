@@ -1,7 +1,7 @@
 {# -*- mode: jinja2 -*- #}
 
 {% macro render_human_datetime(dt) %}
-  <span title="{{ dt|datetimeformat(format='full') }}" data-bs-toggle="tooltip" data-bs-placement="top">{{ dt|timedeltaformat }} ago</span>
+  <span title="{{ dt|datetimeformat(format='full') }}" data-bs-toggle="tooltip" data-bs-placement="top">{{ dt|timedeltaformat }}</span>
 {% endmacro %}
 
 
