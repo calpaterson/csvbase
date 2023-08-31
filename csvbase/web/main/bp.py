@@ -2,7 +2,7 @@ import io
 from uuid import UUID
 from pathlib import Path
 import shutil
-from datetime import date, timedelta
+from datetime import date, timedelta, timezone
 from logging import getLogger
 from typing import (
     Any,
@@ -389,7 +389,9 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
     if if_none_match == etag:
         logger.debug("matched etag (%s), returning 304", etag)
         response = Response(status=304)
-        return add_table_view_cache_headers(response, etag)
+        return add_table_metadata_headers(
+            table, add_table_view_cache_headers(response, etag)
+        )
     elif if_none_match is not None:
         logger.info(
             "provided etag (%s) doesn't match current (%s)", if_none_match, etag
@@ -431,32 +433,46 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                 )
             )
             # HTML doesn't get an etag - too hard to key everything that goes in
-            return add_table_view_cache_headers(response)
+            return add_table_metadata_headers(
+                table, add_table_view_cache_headers(response)
+            )
         else:
-            return add_table_view_cache_headers(
-                jsonify(table_to_json_dict(table, page)), etag
+            return add_table_metadata_headers(
+                table,
+                add_table_view_cache_headers(
+                    jsonify(table_to_json_dict(table, page)), etag
+                ),
             )
     elif content_type is ContentType.PARQUET:
         columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
         rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
-        return add_table_view_cache_headers(
-            make_streaming_response(table_io.rows_to_parquet(columns, rows)), etag
+        return add_table_metadata_headers(
+            table,
+            add_table_view_cache_headers(
+                make_streaming_response(table_io.rows_to_parquet(columns, rows)), etag
+            ),
         )
     elif content_type is ContentType.JSON_LINES:
         columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
         rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
-        return add_table_view_cache_headers(
-            make_streaming_response(table_io.rows_to_jsonlines(columns, rows)),
-            etag,
+        return add_table_metadata_headers(
+            table,
+            add_table_view_cache_headers(
+                make_streaming_response(table_io.rows_to_jsonlines(columns, rows)),
+                etag,
+            ),
         )
     else:
         columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
         rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
-        return add_table_view_cache_headers(
-            make_streaming_response(
-                table_io.rows_to_csv(columns, rows), ContentType.CSV
+        return add_table_metadata_headers(
+            table,
+            add_table_view_cache_headers(
+                make_streaming_response(
+                    table_io.rows_to_csv(columns, rows), ContentType.CSV
+                ),
+                etag,
             ),
-            etag,
         )
 
 
@@ -491,6 +507,26 @@ def make_table_view_etag(
     etag_key = cast(str, serializer.dumps(key))
     etag = f'W/"{etag_key}"'
     return etag
+
+
+def add_table_metadata_headers(table: Table, response: Response) -> Response:
+    """Add Link and Last-Modified, which are useful out-of-band information for
+    consumers.
+
+    """
+    # the HTTP spec says only GMT is allowed
+    last_changed = table.last_changed.astimezone(timezone.utc)
+    url = url_for(
+        "csvbase.table_view",
+        username=table.username,
+        table_name=table.table_name,
+        _external=True,
+    )
+    response.headers["Link"] = f'<{ url }>, rel="canonical"'
+    response.headers["Last-Modified"] = last_changed.strftime(
+        "%a, %d %b %Y %H:%M:%S GMT"
+    )
+    return response
 
 
 def add_table_view_cache_headers(

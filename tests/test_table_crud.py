@@ -147,6 +147,25 @@ def test_read__last_changed_updates_the_etag(
     assert first_etag != second_etag
 
 
+def test_read__metadata_headers(client, ten_rows, test_user, content_type, sesh):
+    """Check that Last-Modified and Link headers are there - these are useful to consumers.
+
+    It's also possible that the Link header helps search engines work out that
+    tables with file extensions are duplicates of the un-extensioned path.
+
+    """
+    resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        headers={"Accept": content_type.value},
+    )
+    assert (
+        resp.headers.get("Link")
+        == f'<http://localhost/{test_user.username}/{ten_rows.table_name}>, rel="canonical"'
+    )
+    # HTTP's format doesn't go to the microsecond level
+    assert resp.last_modified == ten_rows.last_changed.replace(microsecond=0)
+
+
 def test_read__with_no_rows(sesh, client, test_user, content_type):
     table = utils.create_table(sesh, test_user, [])
     sesh.commit()
