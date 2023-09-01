@@ -451,7 +451,6 @@ class TableView(MethodView):
         return response
 
 
-
 bp.add_url_rule("/<username>/<table_name>", view_func=TableView.as_view("table_view"))
 
 
