@@ -413,7 +413,9 @@ class PGUserdataAdapter:
         # 1. for removals
         remove_stmt = main_tableclause.delete().where(
             main_tableclause.c.csvbase_row_id.not_in(  # type: ignore
-                select(temp_tableclause.c.csvbase_row_id)  # type: ignore
+                select(temp_tableclause.c.csvbase_row_id).where(  # type: ignore
+                    temp_tableclause.c.csvbase_row_id.isnot(None)
+                )
             )
         )
 

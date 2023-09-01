@@ -285,7 +285,7 @@ def test_read__paging_over_the_top(client, test_user, ten_rows, content_type):
         assert resp.json == {"error": "that page does not exist"}
 
 
-def test_overwrite__happy(client, test_user, ten_rows):
+def test_overwrite__no_ids(client, test_user, ten_rows):
     new_csv = """csvbase_row_id,roman_numeral,is_even,as_date,as_float
 ,X,yes,2018-01-10,10.0
 ,XI,no,2018-01-11,11.0
@@ -296,6 +296,12 @@ def test_overwrite__happy(client, test_user, ten_rows):
         headers={"Content-Type": "text/csv", "Authorization": test_user.basic_auth()},
     )
     assert resp.status_code == 200
+
+    get_resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}", headers={"Accept": "text/csv"}
+    )
+    df = pd.read_csv(BytesIO(get_resp.data))
+    assert len(df) == 2
 
 
 def test_overwrite__no_content_type(client, test_user, ten_rows):
@@ -357,6 +363,12 @@ XV,no,2018-01-15,15.0
         headers={"Authorization": test_user.basic_auth()},
     )
     assert resp.status_code == 200
+
+    get_resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}", headers={"Accept": "text/csv"}
+    )
+    df = pd.read_csv(BytesIO(get_resp.data))
+    assert len(df) == 15
 
 
 def test_delete__happy(client, test_user, ten_rows):
