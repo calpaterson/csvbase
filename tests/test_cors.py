@@ -25,7 +25,7 @@ import pytest
             "csvbase.delete_row",
             {"username": "test", "table_name": "test", "row_id": 1},
         ),
-        ("PUT", "csvbase.upsert_table", {"username": "test", "table_name": "test"}),
+        ("PUT", "csvbase.table_view", {"username": "test", "table_name": "test"}),
     ],
 )
 def test_cors__allowed_urls(client, method, endpoint, endpoint_args):

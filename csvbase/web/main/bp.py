@@ -38,7 +38,7 @@ from flask import (
 )
 from flask.views import MethodView
 from flask import session as flask_session
-from flask_cors import cross_origin
+from flask_cors import cross_origin, CORS
 from typing_extensions import Literal
 from werkzeug.wrappers.response import Response
 
@@ -77,6 +77,17 @@ logger = getLogger(__name__)
 bp = Blueprint("csvbase", __name__)
 
 CORS_EXPIRY = timedelta(hours=8)
+
+CORS(
+    bp,
+    resources={
+        r"/[A-Za-z][-A-Za-z0-9]+/[A-Za-z][-A-Za-z0-9]+": {
+            "origins": "*",
+            "methods": ["GET", "PUT", "POST", "DELETE"],
+            "max_age": CORS_EXPIRY,
+        }
+    },
+)
 
 
 @bp.route("/")
@@ -334,21 +345,104 @@ def blank_table_form_post() -> Response:
     )
 
 
-@bp.get("/<username>/<table_name:table_name>")
-@cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
-def table_view(username: str, table_name: str) -> Response:
+class TableView(MethodView):
+    """This covers the "table API" plus the HTML "View" page."""
+
+    def get(self, username: str, table_name: str) -> Response:
+        """Get a table"""
+        sesh = get_sesh()
+        user = svc.user_by_name(sesh, username)
+        if not svc.is_public(sesh, username, table_name) and not am_user(user.username):
+            raise exc.TableDoesNotExistException(username, table_name)
+
+        content_type = negotiate_content_type(
+            [ContentType.HTML, ContentType.JSON], default=ContentType.CSV
+        )
+
+        table = svc.get_table(sesh, username, table_name)
+
+        return make_table_view_response(sesh, content_type, table)
+
+    def put(self, username: str, table_name: str) -> Response:
+        """Create or overwrite a table."""
+        sesh = get_sesh()
+        am_user_or_400(username)
+        user = svc.user_by_name(sesh, username)
+
+        response_content_type = negotiate_content_type(
+            [ContentType.JSON], default=ContentType.JSON
+        )
+
+        # FIXME: add checking for forms here
+        byte_buf = io.BytesIO()
+        shutil.copyfileobj(request.stream, byte_buf)
+        str_buf = streams.byte_buf_to_str_buf(byte_buf)
+        dialect, columns = streams.peek_csv(str_buf)
+        rows = table_io.csv_to_rows(str_buf, columns, dialect)
+
+        if svc.table_exists(sesh, user.user_uuid, table_name):
+            table = svc.get_table(sesh, username, table_name)
+            PGUserdataAdapter.upsert_table_data(
+                sesh,
+                table,
+                columns,
+                rows,
+            )
+            status = 200
+            message = f"upserted {username}/{table_name}"
+        else:
+            table_uuid = svc.create_table_metadata(
+                sesh,
+                user.user_uuid,
+                table_name,
+                False,
+                "",
+                DataLicence.ALL_RIGHTS_RESERVED,
+            )
+            PGUserdataAdapter.create_table(sesh, table_uuid, columns)
+            table = svc.get_table(sesh, username, table_name)
+            PGUserdataAdapter.insert_table_data(sesh, table, columns, rows)
+            status = 201
+            message = f"created {username}/{table_name}"
+        svc.mark_table_changed(sesh, table.table_uuid)
+        sesh.commit()
+        response = jsonify({"message": message})
+        response.status_code = status
+        return response
+
+    def delete(self, username: str, table_name: str) -> Response:
+        """Create or overwrite a table."""
+        sesh = get_sesh()
+        am_user_or_400(username)
+        svc.get_table(sesh, username, table_name)
+        svc.delete_table_and_metadata(sesh, username, table_name)
+        sesh.commit()
+
+        message = f"deleted {username}/{table_name}"
+
+        response = jsonify({"message": message})
+        response.status_code = 204
+        return response
+
+
+bp.add_url_rule("/<username>/<table_name>", view_func=TableView.as_view("table_view"))
+
+
+@bp.post("/<username>/<table_name:table_name>/delete-table-form-post")
+def delete_table_form_post(username: str, table_name: str) -> Response:
+    """Delete a table, from a form post.
+
+    For now, there is no REST API for this.
+
+    """
     sesh = get_sesh()
-    user = svc.user_by_name(sesh, username)
-    if not svc.is_public(sesh, username, table_name) and not am_user(user.username):
-        raise exc.TableDoesNotExistException(username, table_name)
-
-    content_type = negotiate_content_type(
-        [ContentType.HTML, ContentType.JSON], default=ContentType.CSV
-    )
-
-    table = svc.get_table(sesh, username, table_name)
-
-    return make_table_view_response(sesh, content_type, table)
+    svc.user_by_name(sesh, username)
+    svc.get_table(sesh, username, table_name)
+    am_user_or_400(username)
+    svc.delete_table_and_metadata(sesh, username, table_name)
+    sesh.commit()
+    flash(f"Deleted {username}/{table_name}")
+    return redirect(url_for("csvbase.user", username=username))
 
 
 @bp.get("/<username>/<table_name:table_name>.<extension>")
@@ -678,23 +772,6 @@ def table_settings(username: str, table_name: str) -> str:
     )
 
 
-@bp.post("/<username>/<table_name:table_name>/delete-table-form-post")
-def delete_table_form_post(username: str, table_name: str) -> Response:
-    """Delete a table, from a form post.
-
-    For now, there is no REST API for this.
-
-    """
-    sesh = get_sesh()
-    svc.user_by_name(sesh, username)
-    svc.get_table(sesh, username, table_name)
-    am_user_or_400(username)
-    svc.delete_table_and_metadata(sesh, username, table_name)
-    sesh.commit()
-    flash(f"Deleted {username}/{table_name}")
-    return redirect(url_for("csvbase.user", username=username))
-
-
 @bp.post("/<username>/<table_name:table_name>/settings")
 def post_table_settings(username: str, table_name: str) -> Response:
     sesh = get_sesh()
@@ -987,7 +1064,12 @@ def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Resp
         vf = whence_view_func_and_args[0]
         vf_username = whence_view_func_and_args[1].get("username")
         vf_table_name = whence_view_func_and_args[1].get("table_name")
-        if vf == table_view and vf_username == username and vf_table_name == table_name:
+        if (
+            hasattr(vf, "view_class")
+            and vf.view_class == TableView  # type: ignore
+            and vf_username == username
+            and vf_table_name == table_name
+        ):
             s, n, p, q, f = urlsplit(whence)
             query_md: OrderedMultiDict[str, str] = OrderedMultiDict(parse_qsl(q))  # type: ignore
             query_md.setlist("highlight", [str(row_id)])
@@ -1004,51 +1086,6 @@ def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Resp
     sesh.commit()
     flash(f"Updated row {row_id}")
     return redirect(whence)
-
-
-# FIXME: this needs renaming
-@bp.put("/<username>/<table_name>")
-@cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
-def upsert_table(username: str, table_name: str) -> Response:
-    sesh = get_sesh()
-    am_user_or_400(username)
-    user = svc.user_by_name(sesh, username)
-
-    response_content_type = negotiate_content_type(
-        [ContentType.JSON], default=ContentType.JSON
-    )
-
-    # FIXME: add checking for forms here
-    byte_buf = io.BytesIO()
-    shutil.copyfileobj(request.stream, byte_buf)
-    str_buf = streams.byte_buf_to_str_buf(byte_buf)
-    dialect, columns = streams.peek_csv(str_buf)
-    rows = table_io.csv_to_rows(str_buf, columns, dialect)
-
-    if svc.table_exists(sesh, user.user_uuid, table_name):
-        table = svc.get_table(sesh, username, table_name)
-        PGUserdataAdapter.upsert_table_data(
-            sesh,
-            table,
-            columns,
-            rows,
-        )
-        status = 200
-        message = f"upserted {username}/{table_name}"
-    else:
-        table_uuid = svc.create_table_metadata(
-            sesh, user.user_uuid, table_name, False, "", DataLicence.ALL_RIGHTS_RESERVED
-        )
-        PGUserdataAdapter.create_table(sesh, table_uuid, columns)
-        table = svc.get_table(sesh, username, table_name)
-        PGUserdataAdapter.insert_table_data(sesh, table, columns, rows)
-        status = 201
-        message = f"created {username}/{table_name}"
-    svc.mark_table_changed(sesh, table.table_uuid)
-    sesh.commit()
-    response = jsonify({"message": message})
-    response.status_code = status
-    return response
 
 
 @bp.get("/<username>")

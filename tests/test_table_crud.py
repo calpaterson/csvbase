@@ -21,6 +21,45 @@ def content_type(request):
     yield request.param
 
 
+def test_create__happy(client, test_user):
+    new_csv = """a,b,c,d,e
+hello,1,1.5,FALSE,2018-01-03
+"""
+    table_name = utils.random_string()
+    url = f"/{test_user.username}/{table_name}"
+    resp = client.put(
+        url,
+        data=new_csv,
+        headers={"Authorization": test_user.basic_auth(), "Content-Type": "text/csv"},
+    )
+    assert resp.status_code == 201
+
+    resp = client.get(
+        url, headers={"Authorization": test_user.basic_auth(), "Accept": "text/csv"}
+    )
+    expected_df = (
+        pd.read_csv(BytesIO(new_csv.encode("utf-8")))
+        .assign(csvbase_row_id=[1])
+        .set_index("csvbase_row_id")
+    )
+    actual_df = pd.read_csv(BytesIO(resp.data), index_col="csvbase_row_id")
+    assert_frame_equal(expected_df, actual_df)
+
+
+def test_create__invalid_name(client, test_user):
+    new_csv = """a,b,c,d,e
+hello,1,1.5,FALSE,2018-01-03
+"""
+    table_name = "some table"
+    resp = client.put(
+        f"/{test_user.username}/{table_name}",
+        data=new_csv,
+        headers={"Authorization": test_user.basic_auth(), "Content-Type": "text/csv"},
+    )
+    assert resp.status_code == 400, resp.data
+    assert resp.json == {"error": "that table name is invalid"}
+
+
 def test_read__happy(client, ten_rows, test_user, content_type):
     resp = client.get(
         f"/{test_user.username}/{ten_rows.table_name}",
@@ -246,7 +285,7 @@ def test_read__paging_over_the_top(client, test_user, ten_rows, content_type):
         assert resp.json == {"error": "that page does not exist"}
 
 
-def test_upsert__happy(client, test_user, ten_rows):
+def test_overwrite__happy(client, test_user, ten_rows):
     new_csv = """csvbase_row_id,roman_numeral,is_even,as_date,as_float
 ,X,yes,2018-01-10,10.0
 ,XI,no,2018-01-11,11.0
@@ -259,7 +298,7 @@ def test_upsert__happy(client, test_user, ten_rows):
     assert resp.status_code == 200
 
 
-def test_upsert__no_content_type(client, test_user, ten_rows):
+def test_overwrite__no_content_type(client, test_user, ten_rows):
     new_csv = """csvbase_row_id,roman_numeral,is_even,as_date,as_float
 ,X,yes,2018-01-10,10.0
 ,XI,no,2018-01-11,11.0
@@ -272,7 +311,7 @@ def test_upsert__no_content_type(client, test_user, ten_rows):
     assert resp.status_code == 200
 
 
-def test_upsert__without_csvbase_row_id_column(client, test_user, ten_rows):
+def test_overwrite__without_csvbase_row_id_column(client, test_user, ten_rows):
     new_csv = """roman_numeral,is_even,as_date,as_float
 X,yes,2018-01-10,10.0
 XI,no,2018-01-11,11.0
@@ -287,12 +326,12 @@ XI,no,2018-01-11,11.0
 
 
 @pytest.mark.xfail(reason="not implemented")
-def test_upsert__wrong_content_type(client, test_user, ten_rows):
+def test_overwrite__wrong_content_type(client, test_user, ten_rows):
     assert False
 
 
 @pytest.mark.xfail(reason="not implemented")
-def test_upsert__csv_header_doesnt_match(client, test_user, ten_rows):
+def test_overwrite__csv_header_doesnt_match(client, test_user, ten_rows):
     new_csv = """a,b,c
 """
     resp = client.put(
@@ -303,46 +342,30 @@ def test_upsert__csv_header_doesnt_match(client, test_user, ten_rows):
     assert resp.status_code != 200
 
 
-def test_create__happy(client, test_user):
-    new_csv = """a,b,c,d,e
-hello,1,1.5,FALSE,2018-01-03
+@pytest.mark.xfail(reason="not implemented")
+def test_append__happy(client, test_user, ten_rows):
+    new_csv = """roman_numeral,is_even,as_date,as_float
+XI,no,2018-01-11,11.0
+XII,yes,2018-01-12,12.0
+XIII,no,2018-01-13,13.0
+XIV,yes,2018-01-14,14.0
+XV,no,2018-01-15,15.0
 """
-    table_name = utils.random_string()
-    url = f"/{test_user.username}/{table_name}"
-    resp = client.put(
-        url,
+    resp = client.post(
+        f"/{test_user.username}/{ten_rows.table_name}",
         data=new_csv,
-        headers={"Authorization": test_user.basic_auth(), "Content-Type": "text/csv"},
+        headers={"Authorization": test_user.basic_auth()},
     )
-    assert resp.status_code == 201
-
-    resp = client.get(
-        url, headers={"Authorization": test_user.basic_auth(), "Accept": "text/csv"}
-    )
-    expected_df = (
-        pd.read_csv(BytesIO(new_csv.encode("utf-8")))
-        .assign(csvbase_row_id=[1])
-        .set_index("csvbase_row_id")
-    )
-    actual_df = pd.read_csv(BytesIO(resp.data), index_col="csvbase_row_id")
-    assert_frame_equal(expected_df, actual_df)
-
-
-def test_create__invalid_name(client, test_user):
-    new_csv = """a,b,c,d,e
-hello,1,1.5,FALSE,2018-01-03
-"""
-    table_name = "some table"
-    resp = client.put(
-        f"/{test_user.username}/{table_name}",
-        data=new_csv,
-        headers={"Authorization": test_user.basic_auth(), "Content-Type": "text/csv"},
-    )
-    assert resp.status_code == 400, resp.data
-    assert resp.json == {"error": "that table name is invalid"}
+    assert resp.status_code == 200
 
 
 def test_delete__happy(client, test_user, ten_rows):
+    set_current_user(test_user)
+    resp = client.delete(f"{test_user.username}/{ten_rows.table_name}")
+    assert resp.status_code == 204
+
+
+def test_delete_via_post__happy(client, test_user, ten_rows):
     set_current_user(test_user)
     resp = client.post(
         f"{test_user.username}/{ten_rows.table_name}/delete-table-form-post"
@@ -351,7 +374,7 @@ def test_delete__happy(client, test_user, ten_rows):
     assert resp.headers["Location"] == f"/{test_user.username}"
 
 
-def test_delete__has_readme(sesh, client, test_user, ten_rows):
+def test_delete_via_post__has_readme(sesh, client, test_user, ten_rows):
     set_current_user(test_user)
     svc.set_readme_markdown(sesh, test_user.user_uuid, ten_rows.table_name, "something")
     sesh.commit()
@@ -363,7 +386,7 @@ def test_delete__has_readme(sesh, client, test_user, ten_rows):
 
 
 @pytest.mark.parametrize("is_public", [True, False])
-def test_delete__am_authed(sesh, client, test_user, is_public):
+def test_delete_via_post__am_authed(sesh, client, test_user, is_public):
     set_current_user(test_user)
     table = utils.create_table(sesh, test_user, is_public=is_public)
     sesh.commit()
@@ -377,7 +400,7 @@ def test_delete__am_authed(sesh, client, test_user, is_public):
 
 
 @pytest.mark.parametrize("is_public", [True, False])
-def test_delete__not_authed(sesh, client, test_user, is_public, crypt_context):
+def test_delete_via_post__not_authed(sesh, client, test_user, is_public, crypt_context):
     table = utils.create_table(sesh, test_user, is_public=is_public)
     sesh.commit()
 
@@ -389,7 +412,7 @@ def test_delete__not_authed(sesh, client, test_user, is_public, crypt_context):
 
 
 @pytest.mark.parametrize("is_public", [True, False])
-def test_delete__wrong_user(sesh, client, test_user, is_public, crypt_context):
+def test_delete_via_post__wrong_user(sesh, client, test_user, is_public, crypt_context):
     table = utils.create_table(sesh, test_user, is_public=is_public)
     sesh.commit()
 
@@ -400,7 +423,7 @@ def test_delete__wrong_user(sesh, client, test_user, is_public, crypt_context):
     assert resp.status_code == 401
 
 
-def test_delete__does_not_exist(client, test_user):
+def test_delete_via_post__does_not_exist(client, test_user):
     set_current_user(test_user)
     resp = client.post(
         f"{test_user.username}/{utils.random_string()}/delete-table-form-post"
