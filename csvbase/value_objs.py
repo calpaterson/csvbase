@@ -63,6 +63,29 @@ class KeySet:
     size: int = 10
 
 
+# sketch for filters
+# @dataclass
+# class KeySetNG:
+#     filters: Sequence["BinaryFilter"]
+#     size: Optional[int] = 10
+
+
+# @dataclass
+# class BinaryFilter:
+#     lhs: Union["Column", "PythonType"]
+#     rhs: Union["Column", "PythonType"]
+#     op: "BinaryOp"
+
+
+# @enum.unique
+# class BinaryOp(enum.Enum):
+#     EQ = 1
+#     GT = 2
+#     LT = 3
+#     GTE = 4
+#     LTE = 5
+
+
 @dataclass
 class Page:
     """A page from a table"""
