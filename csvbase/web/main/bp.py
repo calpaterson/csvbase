@@ -419,10 +419,37 @@ class TableView(MethodView):
         sesh.commit()
 
         message = f"deleted {username}/{table_name}"
-
         response = jsonify({"message": message})
         response.status_code = 204
         return response
+
+    def post(self, username: str, table_name: str) -> Response:
+        """Append some new rows to a table."""
+        sesh = get_sesh()
+        am_user_or_400(username)
+        table = svc.get_table(sesh, username, table_name)
+
+        response_content_type = negotiate_content_type(
+            [ContentType.JSON], default=ContentType.JSON
+        )
+
+        # FIXME: add checking for forms here
+        byte_buf = io.BytesIO()
+        shutil.copyfileobj(request.stream, byte_buf)
+        str_buf = streams.byte_buf_to_str_buf(byte_buf)
+        dialect, columns = streams.peek_csv(str_buf)
+        rows = table_io.csv_to_rows(str_buf, columns, dialect)
+
+        # FIXME: check that columns is a subset of table_columns
+        # table_columns = PGUserdataAdapter.get_columns(sesh, columns)
+
+        PGUserdataAdapter.insert_table_data(sesh, table, columns, rows)
+
+        message = f"Updated {username}/{table_name}"
+        response = jsonify({"message": message})
+        response.status_code = 204
+        return response
+
 
 
 bp.add_url_rule("/<username>/<table_name>", view_func=TableView.as_view("table_view"))

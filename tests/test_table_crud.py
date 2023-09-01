@@ -348,7 +348,6 @@ def test_overwrite__csv_header_doesnt_match(client, test_user, ten_rows):
     assert resp.status_code != 200
 
 
-@pytest.mark.xfail(reason="not implemented")
 def test_append__happy(client, test_user, ten_rows):
     new_csv = """roman_numeral,is_even,as_date,as_float
 XI,no,2018-01-11,11.0
@@ -362,7 +361,7 @@ XV,no,2018-01-15,15.0
         data=new_csv,
         headers={"Authorization": test_user.basic_auth()},
     )
-    assert resp.status_code == 200
+    assert resp.status_code == 204
 
     get_resp = client.get(
         f"/{test_user.username}/{ten_rows.table_name}", headers={"Accept": "text/csv"}
