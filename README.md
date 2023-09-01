@@ -4,7 +4,7 @@
 
 # csvbase
 
-A website for sharing data tables.
+A simple web database.
 
 ## What it's about
 
