@@ -46,6 +46,24 @@ hello,1,1.5,FALSE,2018-01-03
     assert_frame_equal(expected_df, actual_df)
 
 
+def test_create__public(client, test_user):
+    new_csv = """a,b,c,d,e
+hello,1,1.5,FALSE,2018-01-03
+"""
+    """Provide a way to set the public/private status for creation only."""
+    table_name = utils.random_string()
+    url = f"/{test_user.username}/{table_name}?public=yes"
+    resp = client.put(
+        url,
+        data=new_csv,
+        headers={"Authorization": test_user.basic_auth(), "Content-Type": "text/csv"},
+    )
+    assert resp.status_code == 201
+
+    get_resp = client.get(f"/{test_user.username}/{table_name}.json")
+    assert get_resp.json["is_public"], "not public"
+
+
 def test_create__invalid_name(client, test_user):
     new_csv = """a,b,c,d,e
 hello,1,1.5,FALSE,2018-01-03

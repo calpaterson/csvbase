@@ -391,11 +391,12 @@ class TableView(MethodView):
             status = 200
             message = f"upserted {username}/{table_name}"
         else:
+            is_public = request.args.get("public", default=False, type=bool)
             table_uuid = svc.create_table_metadata(
                 sesh,
                 user.user_uuid,
                 table_name,
-                False,
+                is_public,
                 "",
                 DataLicence.ALL_RIGHTS_RESERVED,
             )
