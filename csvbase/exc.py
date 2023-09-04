@@ -106,6 +106,10 @@ class CSVException(CSVBaseException):
         self.message = message
 
 
+class BlankCSVException(CSVBaseException):
+    pass
+
+
 class BillingException(CSVBaseException):
     pass
 
@@ -116,4 +120,8 @@ class UnknownPaymentReferenceUUIDException(BillingException):
 
 
 class NotEnoughQuotaException(BillingException):
+    pass
+
+
+class TableDefinitionMismatchException(CSVBaseException):
     pass

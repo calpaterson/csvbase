@@ -78,6 +78,36 @@ hello,1,1.5,FALSE,2018-01-03
     assert resp.json == {"error": "that table name is invalid"}
 
 
+def test_create__with_a_blank_csv(client, test_user):
+    new_csv = ""
+
+    table_name = "some-table"
+    resp = client.put(
+        f"/{test_user.username}/{table_name}",
+        data=new_csv,
+        headers={"Authorization": test_user.basic_auth(), "Content-Type": "text/csv"},
+    )
+    assert resp.status_code == 400, resp.data
+    assert resp.json == {"error": "that csv file is blank"}
+
+
+def test_create__blank_column_name(client, test_user):
+    new_csv = """a,,c
+1,2,3"""
+
+    table_name = "some-table"
+    resp = client.put(
+        f"/{test_user.username}/{table_name}?public=yes",
+        data=new_csv,
+        headers={"Authorization": test_user.basic_auth(), "Content-Type": "text/csv"},
+    )
+    assert resp.status_code == 201, resp.data
+
+    get_resp = client.get(f"/{test_user.username}/{table_name}.parquet?public=yes")
+    df = pd.read_parquet(BytesIO(get_resp.data))
+    assert list(df.columns) == ["csvbase_row_id", "a", "col2", "c"]
+
+
 def test_read__happy(client, ten_rows, test_user, content_type):
     resp = client.get(
         f"/{test_user.username}/{ten_rows.table_name}",
@@ -354,7 +384,6 @@ def test_overwrite__wrong_content_type(client, test_user, ten_rows):
     assert False
 
 
-@pytest.mark.xfail(reason="not implemented")
 def test_overwrite__csv_header_doesnt_match(client, test_user, ten_rows):
     new_csv = """a,b,c
 """
@@ -363,7 +392,40 @@ def test_overwrite__csv_header_doesnt_match(client, test_user, ten_rows):
         data=new_csv,
         headers={"Authorization": test_user.basic_auth()},
     )
-    assert resp.status_code != 200
+    assert resp.status_code == 400
+    assert resp.json == {"error": "columns or types don't match existing"}
+
+
+def test_overwrite__with_blank_no_headers(client, test_user, ten_rows):
+    """Sending a just blank csv is not allowed, partly because that is a very
+    common curl error.  "Truncate" is done with a single csv with just the
+    header.
+
+    """
+    new_csv = ""
+    resp = client.put(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        data=new_csv,
+        headers={"Authorization": test_user.basic_auth()},
+    )
+    assert resp.status_code == 400
+    assert resp.json == {"error": "that csv file is blank"}
+
+
+def test_overwrite__with_just_header(client, test_user, ten_rows):
+    new_csv = """roman_numeral,is_even,as_date,as_float
+"""
+    resp = client.put(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        data=new_csv,
+        headers={"Authorization": test_user.basic_auth()},
+    )
+    assert resp.status_code == 200
+    get_resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}.parquet",
+    )
+    df = pd.read_parquet(BytesIO(get_resp.data))
+    assert len(df) == 0
 
 
 def test_append__happy(client, test_user, ten_rows):

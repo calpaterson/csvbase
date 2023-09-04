@@ -44,7 +44,7 @@ def test_peek_csv(input_filename, expected_columns):
 
 @pytest.mark.parametrize(
     "input_filename, expected_exception",
-    [("empty.csv", exc.CSVException)],
+    [("empty.csv", exc.BlankCSVException)],
 )
 def test_peek_csv_with_junk(input_filename, expected_exception):
     input_path = test_data / input_filename

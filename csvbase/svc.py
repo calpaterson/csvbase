@@ -151,7 +151,6 @@ def update_user(sesh, new_user: User) -> None:
 
 def update_user_email(sesh, user: User) -> None:
     if user.email == "":
-        # breakpoint()
         logger.warning("empty string email address")
     if user.email is None:
         sesh.query(models.UserEmail).filter(

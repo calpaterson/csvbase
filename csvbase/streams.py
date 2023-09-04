@@ -2,7 +2,7 @@
 
 import os
 from logging import getLogger
-from typing import Union, Tuple, Type, List, Dict, Set, IO, Optional
+from typing import Union, Tuple, Type, List, Dict, Set, IO, Optional, Sequence
 import codecs
 import csv
 import io
@@ -74,18 +74,20 @@ def sniff_csv(
 
 
 def peek_csv(
-    csv_buf: UserSubmittedCSVData,
+    csv_buf: UserSubmittedCSVData, existing_columns: Optional[Sequence[Column]] = None
 ) -> Tuple[Type[csv.Dialect], List[Column]]:
     """Infer the csv dialect (usually: excel) and the column names/types) by
     looking at the top of it.
 
+    If this is a csv for an existing table, the existing columns are provided
+    and those are used instead of inferring..
+
     """
     # FIXME: this should be part of a more robust way to check the size of files
     with rewind(csv_buf):
-        csv_buf.seek(0, os.SEEK_END)
-        size = csv_buf.tell()
-        if size == 0:
-            raise exc.CSVException("empty file!")
+        buf = csv_buf.read(2048)
+        if len(buf) == 0 or buf.isspace():
+            raise exc.BlankCSVException("blank csv file!")
 
     with rewind(csv_buf):
         dialect = sniff_csv(csv_buf)
@@ -97,15 +99,33 @@ def peek_csv(
         headers = [
             header or f"col{i}" for i, header in enumerate(next(reader), start=1)
         ]
+
+        # If we know what the types should be, don't infer, just return them
+        # (in column order)
+        if existing_columns is not None:
+            existing_map = {
+                existing_column.name: existing_column
+                for existing_column in existing_columns
+            }
+            columns = []
+            for header in headers:
+                try:
+                    columns.append(existing_map[header])
+                except KeyError:
+                    # a extra column is present
+                    raise exc.TableDefinitionMismatchException()
+            return dialect, columns
+
         first_few = zip(*(row for row, _ in zip(reader, range(1000))))
         as_dict: Dict[str, Set[str]] = dict(zip(headers, (set(v) for v in first_few)))
+
         cols = []
         ic = conv.IntegerConverter()
         dc = conv.DateConverter()
         fc = conv.FloatConverter()
         bc = conv.BooleanConverter()
         for key, values in as_dict.items():
-            if ic.sniff(values):
+            if key == "csvbase_row_id" or ic.sniff(values):
                 cols.append(Column(key, ColumnType.INTEGER))
             elif fc.sniff(values):
                 cols.append(Column(key, ColumnType.FLOAT))

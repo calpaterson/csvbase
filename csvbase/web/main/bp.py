@@ -377,11 +377,12 @@ class TableView(MethodView):
         byte_buf = io.BytesIO()
         shutil.copyfileobj(request.stream, byte_buf)
         str_buf = streams.byte_buf_to_str_buf(byte_buf)
-        dialect, columns = streams.peek_csv(str_buf)
-        rows = table_io.csv_to_rows(str_buf, columns, dialect)
 
         if svc.table_exists(sesh, user.user_uuid, table_name):
             table = svc.get_table(sesh, username, table_name)
+            dialect, columns = streams.peek_csv(str_buf, table.columns)
+            rows = table_io.csv_to_rows(str_buf, columns, dialect)
+
             PGUserdataAdapter.upsert_table_data(
                 sesh,
                 table,
@@ -391,6 +392,8 @@ class TableView(MethodView):
             status = 200
             message = f"upserted {username}/{table_name}"
         else:
+            dialect, columns = streams.peek_csv(str_buf)
+            rows = table_io.csv_to_rows(str_buf, columns, dialect)
             is_public = request.args.get("public", default=False, type=bool)
             table_uuid = svc.create_table_metadata(
                 sesh,
@@ -438,7 +441,7 @@ class TableView(MethodView):
         byte_buf = io.BytesIO()
         shutil.copyfileobj(request.stream, byte_buf)
         str_buf = streams.byte_buf_to_str_buf(byte_buf)
-        dialect, columns = streams.peek_csv(str_buf)
+        dialect, columns = streams.peek_csv(str_buf, table.columns)
         rows = table_io.csv_to_rows(str_buf, columns, dialect)
 
         # FIXME: check that columns is a subset of table_columns
