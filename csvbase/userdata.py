@@ -411,12 +411,18 @@ class PGUserdataAdapter:
         temp_tableclause = cls._get_tableclause(temp_table_name, table.columns)
 
         # 1. for removals
-        remove_stmt = main_tableclause.delete().where(
-            main_tableclause.c.csvbase_row_id.not_in(  # type: ignore
-                select(temp_tableclause.c.csvbase_row_id).where(  # type: ignore
-                    temp_tableclause.c.csvbase_row_id.isnot(None)
-                )
-            )
+        # FIXME: there are ways to do a similar query with the sqlalchemy core
+        # layer, but they are much slower.  can't see a way to do this from the
+        # core layer at the moment.
+        main_fullname = main_tableclause.fullname  # type: ignore
+        temp_fullname = temp_tableclause.fullname  # type: ignore
+        remove_stmt = text(
+            f"""DELETE FROM {main_fullname}
+        USING {main_fullname} as main
+        LEFT OUTER JOIN {temp_fullname} as temp
+        ON main.csvbase_row_id = temp.csvbase_row_id
+        WHERE temp.csvbase_row_id IS NULL;
+        """
         )
 
         # 2. updates
