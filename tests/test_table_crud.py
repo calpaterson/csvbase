@@ -1,4 +1,4 @@
-from io import BytesIO
+from io import BytesIO, SEEK_END
 from datetime import date, datetime
 from unittest.mock import ANY
 
@@ -350,6 +350,31 @@ def test_overwrite__no_ids(client, test_user, ten_rows):
     )
     df = pd.read_csv(BytesIO(get_resp.data))
     assert len(df) == 2
+
+
+def test_overwrite__some_ids(client, test_user, ten_rows):
+    url = f"/{test_user.username}/{ten_rows.table_name}"
+    get_resp = client.get(url)
+
+    buf = BytesIO(get_resp.data)
+    buf.seek(0, SEEK_END)
+    buf.write(
+        b""",XI,no,2018-01-11,11.0
+,XII,yes,2018-01-12,12.0
+"""
+    )
+    buf.seek(0)
+
+    post_resp = client.put(
+        url,
+        data=buf.getvalue(),
+        headers={"Content-Type": "text/csv", "Authorization": test_user.basic_auth()},
+    )
+    assert post_resp.status_code == 200
+
+    new_get_resp = client.get(url)
+    df = pd.read_csv(BytesIO(new_get_resp.data))
+    assert list(df.csvbase_row_id) == list(range(1, 13))
 
 
 def test_overwrite__no_content_type(client, test_user, ten_rows):
