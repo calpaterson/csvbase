@@ -4,7 +4,6 @@ VERSION = open("csvbase/VERSION").read().strip()
 
 # The tests test the blog, so it must be installed
 test_reqs = [
-    "bandit==1.7.4",
     "black==22.3.0",
     "bpython~=0.22.1",
     "feedparser==6.0.2",
