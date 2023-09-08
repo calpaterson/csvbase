@@ -98,7 +98,9 @@ def index() -> str:
 
 @bp.route("/about")
 def about() -> str:
-    return render_template("about.html", page_title="About csvbase, a simple web database")
+    return render_template(
+        "about.html", page_title="About csvbase, a simple web database"
+    )
 
 
 class ConvertForm(MethodView):
