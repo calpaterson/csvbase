@@ -42,6 +42,8 @@ class User:
         return binascii.hexlify(self.api_key).decode("utf-8")
 
     def tzfile(self) -> Any:
+        """Returns the timezone "object" which you can pass as an argument into
+        datetime.replace or datetime.now."""
         try:
             return gettz(self.timezone)
         except Exception as e:
@@ -72,7 +74,7 @@ class KeySet:
 
 # @dataclass
 # class BinaryFilter:
-#     lhs: Union["Column", "PythonType"]
+#     lhs: Union["Column"]
 #     rhs: Union["Column", "PythonType"]
 #     op: "BinaryOp"
 
@@ -80,10 +82,11 @@ class KeySet:
 # @enum.unique
 # class BinaryOp(enum.Enum):
 #     EQ = 1
-#     GT = 2
-#     LT = 3
+#     NQE = 2
+#     GT = 3
 #     GTE = 4
-#     LTE = 5
+#     LT = 5
+#     LTE = 6
 
 
 @dataclass
