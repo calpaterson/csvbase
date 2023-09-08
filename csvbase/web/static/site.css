@@ -1,6 +1,6 @@
 /* Navbar bg colour */
 #csvbase-nav {
-    background-color: #ffffff;
+    background-color: --bs-body-bg;
 }
 
 .table-card {
