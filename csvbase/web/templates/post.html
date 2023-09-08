@@ -34,37 +34,35 @@
 {% block main %}
   <div class="container blog-post">
     <div class="row">
-      <div class="col-lg-8 offset-lg-2 blog-post-{{post.id}}">
+      <div class="col-lg-6 offset-lg-3 blog-post-{{post.id}} text-center">
         <h1 class="py-2">{{ post.title }}</h1>
-        <figure class="figure">
-          <img class="figure-img img-fluid rounded" src="{{ post.cover_image_url}}" alt="{{ post.cover_image_alt}}">
-        </figure>
+        <img class="figure-img img-fluid rounded" src="{{ post.cover_image_url}}" alt="{{ post.cover_image_alt}}">
       </div>
     </div>
     <div class="row">
-      <div class="col-lg-8 offset-lg-2 text-center">
+      <div class="col-lg-6 offset-lg-3 text-center">
         <p class="blog-post-description">{{ post.description }}</p>
     </div>
     <div class="row">
-      <div class="col-lg-8 offset-lg-2 text-center">
+      <div class="col-lg-6 offset-lg-3 text-center">
         <p class="blog-post-description">{{ post.render_posted() }}</p>
       </div>
     </div>
     <div class="row">
-      <div class="col-lg-8 offset-lg-2 text-center">
+      <div class="col-lg-6 offset-lg-3 text-center">
         {# FIXME: this should come from the post object somehow #}
         <p class="blog-post-description">by <a href="https://calpaterson.com">Cal Paterson</a></p>
       </div>
     </div>
     <div class="row">
-      <div class="col-lg-8 offset-lg-2 text-center">
+      <div class="col-lg-6 offset-lg-3 text-center">
         {% if post.draft %}
           <p class="blog-post-draft">DRAFT</p>
         {% endif %}
       </div>
     </div>
     <div class="row">
-      <div class="col-lg-8 offset-lg-2">
+      <div class="col-lg-6 offset-lg-3">
         {{ rendered|safe }}
       </div>
     </div>

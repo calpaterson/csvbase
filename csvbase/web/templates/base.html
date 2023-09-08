@@ -1,4 +1,5 @@
 {# -*- mode: jinja2 -*- #}
+{%- import 'other_macros.html' as other_macros -%}
 <!doctype html>
 <html lang="en">
   <head>
@@ -73,6 +74,7 @@
         </nav>
 
         {% block explainer %}
+          {{ other_macros.about_and_try() }}
         {% endblock %}
 
         {% with messages = get_flashed_messages() %}

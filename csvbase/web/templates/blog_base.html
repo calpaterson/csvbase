@@ -7,20 +7,6 @@
         href="{{ url_for('blog.rss', _external=True) }}">
 {% endblock %}
 
-{% block explainer %}
-<div class="container">
-  <div id='explain-alert' class="alert alert-light" role="alert" style="text-align: center; padding-top: 0; padding-bottom: 0">
-    {% if table %}
-    <p>csvbase is a <mark>simple web database</mark>. Exporting this table to pandas is dead easy, run:</p>
-
-    <p><code>import pandas as pd; {{table.table_name|snake_case}} = pd.read_csv("{{url_for('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True)}}", index_col=0)</code></p>
-    {% else %}
-    <p>csvbase is a <mark>simple web database</mark>.  For more details see the <a href="{{ url_for('csvbase.about') }}">about page.</a>
-      {% endif %}
-  </div>
-</div>
-{% endblock %}
-
 {% block navbar_elements %}
   {{ super() }}
   <ul class="navbar-nav ms-auto">

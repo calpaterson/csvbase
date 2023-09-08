@@ -30,7 +30,7 @@
       >{{ table.table_name }}</a> {{ data_licence_badge(table.data_licence) }} {{ privacy_badge(table) }}</h1>
 
     <div class="row">
-      <div class="col-auto">
+      <div class="col-9">
         <p class="table-topline">
           {%- if table.has_caption() -%}
             <span class="table-caption">{{table.caption}}</span> &mdash; {{ table_macros.render_row_count(table) }} rows
@@ -40,8 +40,16 @@
           , last changed {{ value_macros.render_human_datetime(table.last_changed) }} ago
         </p>
       </div>
-      <div class="col-auto">
+      <div class="col-3 text-end">
         {{ table_macros.praise_button(table, praise_id) }}
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="input-group">
+          <input class="form-control w-100" type="text" value="import pandas as pd; {{table.table_name|snake_case}} = pd.read_csv('{{url_for('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True)}}', index_col=0)" readonly>
+        </div>
       </div>
     </div>
 

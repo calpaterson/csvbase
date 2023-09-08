@@ -1,0 +1,11 @@
+{# -*- mode: jinja2 -*- #}
+
+{% macro about_and_try() %}
+  {% if "current_user" not in g %}
+    <div class="container">
+      <div id='explain-alert' class="alert alert-light" role="alert">
+        <p>csvbase is a <mark>simple web database</mark>.  Learn more on the <a href="{{ url_for('csvbase.about') }}">about page.</a></p>
+      </div>
+    </div>
+  {% endif %}
+{% endmacro %}
