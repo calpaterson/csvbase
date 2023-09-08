@@ -6,7 +6,7 @@
     {% block head %}
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css' ) }}" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3">
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css' ) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='codehilite.css' ) }}">
     <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='logo/192x192.png') }}">
@@ -115,7 +115,7 @@
       </div>
     </footer>
 
-    <script src="{{ url_for('static', filename='bootstrap.bundle.js' ) }}" integrity="sha384-8fq7CZc5BnER+jVlJI2Jafpbn4A9320TKhNJfYP33nneHep7sUg/OD30x7fK09pS"></script>
+    <script src="{{ url_for('static', filename='bootstrap.bundle.js' ) }}"></script>
     <script src="{{ url_for('static', filename='bootstrap-enables.js') }}"></script>
   </body>
 </html>
