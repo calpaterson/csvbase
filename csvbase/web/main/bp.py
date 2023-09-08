@@ -647,7 +647,9 @@ def add_table_metadata_headers(table: Table, response: Response) -> Response:
         _external=True,
     )
     response.headers["Link"] = f'<{ url }>, rel="canonical"'
-    response.headers["Last-Modified"] = last_changed.strftime(
+    # setting the 'Last-Modified' seems to make varnish get it badly wrong, so
+    # set this for now
+    response.headers["CSVBase-Last-Modified"] = last_changed.strftime(
         "%a, %d %b %Y %H:%M:%S GMT"
     )
     return response

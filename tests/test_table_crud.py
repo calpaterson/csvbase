@@ -1,5 +1,5 @@
 from io import BytesIO, SEEK_END
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from unittest.mock import ANY
 
 import pandas as pd
@@ -249,8 +249,16 @@ def test_read__metadata_headers(client, ten_rows, test_user, content_type, sesh)
         resp.headers.get("Link")
         == f'<http://localhost/{test_user.username}/{ten_rows.table_name}>, rel="canonical"'
     )
+
     # HTTP's format doesn't go to the microsecond level
-    assert resp.last_modified == ten_rows.last_changed.replace(microsecond=0)
+    # FIXME: using Last-Modified is currently disabled because it makes Varnish
+    # too aggressive
+    # last_mod = resp.last_modified
+    last_mod = datetime.strptime(
+        resp.headers["CSVBase-Last-Modified"], "%a, %d %b %Y %H:%M:%S GMT"
+    )
+    last_mod = last_mod.replace(tzinfo=timezone.utc)
+    assert last_mod == ten_rows.last_changed.replace(microsecond=0)
 
 
 def test_read__with_no_rows(sesh, client, test_user, content_type):
