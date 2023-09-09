@@ -23,7 +23,7 @@ import bleach
 import pyarrow as pa
 import pyarrow.parquet as pq
 import xlsxwriter
-from sqlalchemy import column as sacolumn, func, update, types as satypes, cast
+from sqlalchemy import column as sacolumn, func, update, types as satypes, cast, text
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import table as satable
@@ -429,7 +429,8 @@ def _make_table(
 
 def get_top_n(sesh: Session, n: int = 10) -> Iterable[Table]:
     # FIXME: Put this in a materialized view and refresh every N minutes
-    stmt = """
+    stmt = text(
+        """
 SELECT
     table_uuid,
     username,
@@ -450,6 +451,7 @@ ORDER BY
     created DESC
 LIMIT :n;
     """
+    )
     rp = sesh.execute(stmt, dict(n=n))
     for (
         table_uuid,
@@ -540,12 +542,15 @@ def load_prohibited_usernames(sesh: Session) -> None:
         "temp_prohibited_usernames",
         *[sacolumn("username", type_=satypes.String)],
     )
-    create_table_stmt = """
+    create_table_stmt = text(
+        """
 CREATE TEMP TABLE temp_prohibited_usernames (
     username text
 ) ON COMMIT DROP;
     """
-    remove_stmt = """
+    )
+    remove_stmt = text(
+        """
 DELETE FROM metadata.prohibited_usernames
 WHERE username NOT IN (
         SELECT
@@ -555,7 +560,9 @@ WHERE username NOT IN (
 RETURNING
     username;
     """
-    add_stmt = """
+    )
+    add_stmt = text(
+        """
 INSERT INTO metadata.prohibited_usernames (username)
 SELECT
     username
@@ -569,6 +576,7 @@ FROM
 RETURNING
     username;
     """
+    )
     with closing(importlib.resources.open_text(data, "prohibited-usernames")) as text_f:
         words = [line.strip() for line in text_f if "#" not in line]
     p = inflect.engine()
