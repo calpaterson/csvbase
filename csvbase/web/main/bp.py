@@ -382,20 +382,26 @@ class TableView(MethodView):
 
         if svc.table_exists(sesh, user.user_uuid, table_name):
             table = svc.get_table(sesh, username, table_name)
-            dialect, columns = streams.peek_csv(str_buf, table.columns)
-            rows = table_io.csv_to_rows(str_buf, columns, dialect)
+            dialect, csv_columns = streams.peek_csv(str_buf, table.columns)
+            rows = table_io.csv_to_rows(str_buf, csv_columns, dialect)
 
-            PGUserdataAdapter.upsert_table_data(
-                sesh,
-                table,
-                columns,
-                rows,
-            )
+            # If there is no csvbase_row_id column, don't try to correlate
+            # updates, just wipe the table and insert everything.
+            if "csvbase_row_id" not in set(c.name for c in csv_columns):
+                PGUserdataAdapter.delete_table_data(sesh, table)
+                PGUserdataAdapter.insert_table_data(sesh, table, csv_columns, rows)
+            else:
+                PGUserdataAdapter.upsert_table_data(
+                    sesh,
+                    table,
+                    csv_columns,
+                    rows,
+                )
             status = 200
             message = f"upserted {username}/{table_name}"
         else:
-            dialect, columns = streams.peek_csv(str_buf)
-            rows = table_io.csv_to_rows(str_buf, columns, dialect)
+            dialect, csv_columns = streams.peek_csv(str_buf)
+            rows = table_io.csv_to_rows(str_buf, csv_columns, dialect)
             is_public = request.args.get("public", default=False, type=bool)
             table_uuid = svc.create_table_metadata(
                 sesh,
@@ -405,9 +411,9 @@ class TableView(MethodView):
                 "",
                 DataLicence.ALL_RIGHTS_RESERVED,
             )
-            PGUserdataAdapter.create_table(sesh, table_uuid, columns)
+            PGUserdataAdapter.create_table(sesh, table_uuid, csv_columns)
             table = svc.get_table(sesh, username, table_name)
-            PGUserdataAdapter.insert_table_data(sesh, table, columns, rows)
+            PGUserdataAdapter.insert_table_data(sesh, table, csv_columns, rows)
             status = 201
             message = f"created {username}/{table_name}"
         svc.mark_table_changed(sesh, table.table_uuid)

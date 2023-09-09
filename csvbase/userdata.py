@@ -342,6 +342,20 @@ class PGUserdataAdapter:
         sesh.execute(add_stmt_blanks)
 
     @classmethod
+    def delete_table_data(cls, sesh: Session, table: Table) -> None:
+        """Delete all data in the table.
+
+        The csvbase_row_id sequence is not reset in this case to avoid confusion.
+
+        """
+        main_tableclause = cls._get_userdata_tableclause(sesh, table.table_uuid)
+        main_fullname = main_tableclause.fullname  # type: ignore
+        # FIXME: should consider DELETE if table is small - that's faster in
+        # that case
+        truncate_stmt = text(f"TRUNCATE {main_fullname};")
+        sesh.execute(truncate_stmt)
+
+    @classmethod
     def drop_table(cls, sesh: Session, table_uuid: UUID) -> None:
         sa_table = cls._get_userdata_tableclause(sesh, table_uuid)
         sesh.execute(DropTable(sa_table))  # type: ignore

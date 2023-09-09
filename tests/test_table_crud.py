@@ -356,8 +356,8 @@ def test_overwrite__no_ids(client, test_user, ten_rows):
     get_resp = client.get(
         f"/{test_user.username}/{ten_rows.table_name}", headers={"Accept": "text/csv"}
     )
-    df = pd.read_csv(BytesIO(get_resp.data))
-    assert len(df) == 2
+    df = pd.read_csv(BytesIO(get_resp.data), index_col="csvbase_row_id")
+    assert list(df.index) == [11, 12]
 
 
 def test_overwrite__some_ids(client, test_user, ten_rows):
@@ -399,6 +399,7 @@ def test_overwrite__no_content_type(client, test_user, ten_rows):
 
 
 def test_overwrite__without_csvbase_row_id_column(client, test_user, ten_rows):
+    """This follows a faster path than a normal upsert."""
     new_csv = """roman_numeral,is_even,as_date,as_float
 X,yes,2018-01-10,10.0
 XI,no,2018-01-11,11.0
