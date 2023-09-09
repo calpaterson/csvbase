@@ -5,7 +5,11 @@ from sqlalchemy import Column, ForeignKey, UniqueConstraint, func
 from sqlalchemy import types as satypes
 from sqlalchemy.dialects.postgresql import BYTEA
 from sqlalchemy.dialects.postgresql import UUID as _PGUUID
-from sqlalchemy.ext.declarative import declarative_base
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.declarative import declarative_base
+else:
+    from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import RelationshipProperty, relationship
 from sqlalchemy.schema import CheckConstraint, Identity, MetaData  # type: ignore
 

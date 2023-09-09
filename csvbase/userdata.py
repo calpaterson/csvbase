@@ -113,7 +113,7 @@ class PGUserdataAdapter:
         if row is None:
             return None
         else:
-            return {c: row[c.name] for c in columns}
+            return {c: row._mapping[c.name] for c in columns}
 
     @classmethod
     def min_row_id(cls, sesh: Session, table_uuid: UUID) -> int:
@@ -144,10 +144,8 @@ class PGUserdataAdapter:
         """
         table_clause = cls._get_userdata_tableclause(sesh, table_uuid)
         stmt = select(
-            [
-                func.min(table_clause.c.csvbase_row_id),
-                func.max(table_clause.c.csvbase_row_id),
-            ]
+            func.min(table_clause.c.csvbase_row_id),
+            func.max(table_clause.c.csvbase_row_id),
         )
         cursor = sesh.execute(stmt)
         return cursor.fetchone()
@@ -166,7 +164,7 @@ class PGUserdataAdapter:
             # return something made-up
             return {c: c.type_.example() for c in columns}
         else:
-            return {c: row[c.name] for c in columns}
+            return {c: row._mapping[c.name] for c in columns}
 
     @classmethod
     def insert_row(cls, sesh: Session, table_uuid: UUID, row: Row) -> int:
@@ -255,7 +253,10 @@ class PGUserdataAdapter:
                 ).scalar()
                 has_less = False
 
-        rows = [{c: row_tup[c.name] for c in table.columns} for row_tup in row_tuples]
+        rows = [
+            {c: row_tup._mapping[c.name] for c in table.columns}
+            for row_tup in row_tuples
+        ]
 
         return Page(
             has_less=has_less,
@@ -271,7 +272,7 @@ class PGUserdataAdapter:
     ) -> Iterable[Sequence[PythonType]]:
         table_clause = cls._get_userdata_tableclause(sesh, table_uuid)
         columns = cls.get_columns(sesh, table_uuid)
-        q = select([getattr(table_clause.c, c.name) for c in columns]).order_by(
+        q = select(*[getattr(table_clause.c, c.name) for c in columns]).order_by(
             table_clause.c.csvbase_row_id
         )
         yield from sesh.execute(q)
