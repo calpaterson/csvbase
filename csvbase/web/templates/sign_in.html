@@ -3,6 +3,8 @@
 
 {% from 'value_macros.html' import id_input_validation_attrs %}
 
+{% import 'other_macros.html' as other_macros %}
+
 {% block main %}
   <div class="container">
     <div class="row">
@@ -13,22 +15,8 @@
             <input type="hidden" name="whence" value="{{ whence }}">
           {% endif %}
 
-          <div class="form-floating mb-3">
-            <input class="form-control"
-                   type="text"
-                   name="username"
-                   required {{id_input_validation_attrs()}} autofocus placeholder="">
-                   <label>Username</label>
-          </div>
-
-          <div class="form-floating mb-3">
-            <input class="form-control"
-                   type="password"
-                   required
-                   name="password"
-                   placeholder="...">
-            <label>Password</label>
-          </div>
+          {{ other_macros.username_form_field() }}
+          {{ other_macros.password_form_field() }}
 
           <input class="btn btn-success" type="submit" value="Sign in">
         </form>

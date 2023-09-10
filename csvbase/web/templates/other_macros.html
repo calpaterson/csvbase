@@ -1,13 +1,58 @@
 {# -*- mode: jinja2 -*- #}
 
+{% from 'value_macros.html' import id_input_validation_attrs %}
+
 {% macro about_and_try() %}
   {% if "current_user" not in g %}
     <div class="container">
       <div class="row">
-        <div class="text-center mb-3">
+        <div class="text-center">
           csvbase is a <mark>simple web database</mark>.  Learn more on the <a href="{{ url_for('csvbase.about') }}">about page.</a>
         </div>
       </div>
     </div>
   {% endif %}
+{% endmacro %}
+
+
+{% macro username_form_field(autofocus=False) %}
+  <div class="form-floating mb-3">
+    <input id="username-input"
+           class="form-control"
+           type="text"
+           name="username"
+           required {{id_input_validation_attrs()}}
+           placeholder="..."
+           {%- if autofocus -%}
+             autofocus
+           {%- endif -%}
+           >
+           <label for="username-input">Username</label>
+           <div class="form-text">Usernames should start with a letter, and
+             then have only letters, numbers and dashes (-).</div>
+  </div>
+{% endmacro %}
+
+{% macro password_form_field() %}
+  <div class="form-floating mb-3">
+    <input class="form-control"
+           type="password"
+           required
+           name="password"
+           placeholder="...">
+           <label>Password</label>
+  </div>
+{% endmacro %}
+
+{% macro email_form_field() %}
+  <div class="form-floating mb-3">
+    <input class="form-control"
+           type="text"
+           name="email"
+           pattern=".*@.*"
+           title="Must contain an @-sign"
+           placeholder="">
+           <label>Email</label>
+           <div class="form-text">Optional - used only for password reset.</div>
+  </div>
 {% endmacro %}

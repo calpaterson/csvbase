@@ -3,19 +3,9 @@
 
 {% import 'table_macros.html' as table_macros %}
 
-{% block explainer %}
-  <div class="container">
-    <div class="row">
-      <div class="col-md-8 offset-md-2">
-        {{ super() }}
-      </div>
-    </div>
-  </div>
-{% endblock %}
-
 {% block main %}
   <div class="container">
-    <div class="row">
+    <div class="row my-2">
       <div class="col-md-8 offset-md-2">
         {% for table in top_ten %}
           {{ table_macros.table_card(table) }}

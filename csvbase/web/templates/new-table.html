@@ -3,102 +3,115 @@
 
 {% from 'value_macros.html' import id_input_validation_attrs %}
 
+{% import 'other_macros.html' as other_macros %}
+
 {% block main %}
   <div class="container">
-    <h1>Create a new table</h1>
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <h1>Create a new table</h1>
 
-    <div class="mb-3">
-      <ul class="nav nav-tabs">
-        <li class="nav-item">
-          <a class="nav-link {% if method == 'paste' %}active{%endif%}"
-             href="{{ url_for('csvbase.paste') }}">Paste</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link {% if method == 'upload-file' %}active{%endif%}"
-             href="{{ url_for('csvbase.upload_file') }}">Upload file</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link {% if request.endpoint == 'csvbase.blank_table' %}active{%endif%}"
-             href="{{ url_for('csvbase.blank_table') }}">Blank table</a>
-        </li>
-      </ul>
-    </div>
-
-    <form action="{{ action_url }}" method="POST" enctype="multipart/form-data">
-      <div class="row mb-3 align-items-center">
-        <div class="col-auto">
-          <label class="col-form-label" for="table-name">Table name</label>
-        </div>
-        <div class="col-auto">
-          <input type="text"
-                 id="table-name"
-                 class="form-control"
-                 name="table-name"
-                 required
-                 {% if table_name %}
-                 value="{{ table_name }}"
-                 {% endif %}
-                 {{id_input_validation_attrs()}}>
-        </div>
-        <div class="col-auto">
-          <div class="form-text">Start with a letter, and then letters, numbers and dashes (-).</div>
-        </div>
-      </div>
-
-      {% block form_section %}
-      {% if method == 'paste' %}
         <div class="mb-3">
-          <textarea name="csv-textarea" class="form-control csv-paste-textarea" rows="10" cols="50" autofocus></textarea>
-          <div class="form-text">Either CSV or TSV works but be sure to include the header row</div>
+          <ul class="nav nav-tabs">
+            <li class="nav-item">
+              <a class="nav-link {% if method == 'paste' %}active{%endif%}"
+                 href="{{ url_for('csvbase.paste') }}">Paste</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if method == 'upload-file' %}active{%endif%}"
+                 href="{{ url_for('csvbase.upload_file') }}">Upload file</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'csvbase.blank_table' %}active{%endif%}"
+                 href="{{ url_for('csvbase.blank_table') }}">Blank table</a>
+            </li>
+          </ul>
         </div>
-      {% endif %}
 
-      {% if method == 'upload-file' %}
-        <div class="mb-3">
-          <input type="file" class="form-control" name="csv-file" accept=".csv,text/csv">
+        <div class="container">
+          <form action="{{ action_url }}" method="POST" enctype="multipart/form-data">
+            <div class="form-floating mb-3">
+              <input type="text"
+                     id="table-name"
+                     class="form-control"
+                     name="table-name"
+                     placeholder="my-table"
+                     required
+                     {% if table_name %}
+                       value="{{ table_name }}"
+                     {% endif %}
+                     {{id_input_validation_attrs()}}>
+                     <label for="table-name">Table name</label>
+                     <div class="form-text">Start with a letter, and then letters, numbers and dashes (-).</div>
+            </div>
+
+            {% block form_section %}
+              {% if method == 'paste' %}
+                <div class="mb-3">
+                  <textarea name="csv-textarea" class="form-control csv-paste-textarea" rows="10" cols="50" autofocus></textarea>
+                  <div class="form-text"><strong>A maximum of 50 megabytes.</strong> Either CSV or TSV works but be sure to include the header row.</div>
+                </div>
+              {% endif %}
+
+              {% if method == 'upload-file' %}
+                <div class="mb-3">
+                  <input type="file" class="form-control" name="csv-file"
+                         accept=".tsv, .csv, text/csv, text/tab-separated-values">
+                         <div class="form-text"><strong>A maximum of 50 megabytes.</strong> Either CSV or TSV works but be sure to include the header row.</div>
+                </div>
+              {% endif %}
+            {% endblock %}
+
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" name="private" id="is-private">
+              <label class="form-check-label" for="is-private">Private</label>
+            </div>
+
+            <div class="mb-3 row g-3">
+              <div class="col-auto">
+                <label for="licence-select" class="col-form-label">Data licence</label>
+              </div>
+              <div class="col-auto">
+                <select class="form-select" name="data-licence">
+                  {% for data_licence in DataLicence %}
+                    <option {% if data_licence == DataLicence.ALL_RIGHTS_RESERVED %}selected{% endif %}
+                            value="{{ data_licence.value }}">{{ data_licence.render() }}</option>
+                          {% endfor %}
+                </select>
+              </div>
+            </div>
+
+            {% if not g.current_user %}
+              <div class="row">
+                <div class="mx-auto">
+                  <div class="alert alert-info">
+                    <span>Register at the same time:</span>
+                    <span class="float-end">(If you already have an account, <a href="{{ url_for('csvbase.sign_in') }}">sign in</a>.)</span>
+                  </div>
+                </div>
+              </div>
+
+              {{ other_macros.username_form_field() }}
+
+              {{ other_macros.email_form_field() }}
+
+              {{ other_macros.password_form_field() }}
+
+              <div class="row">
+                <div class="mb-3">
+                  <input type="submit" class="btn btn-success" value="Register & create table">
+                </div>
+              </div>
+            {% else %}
+              <div class="row">
+                <div class="mb-3">
+                  <input type="submit" class="btn btn-success" value="Create table">
+                </div>
+              </div>
+            {% endif %}
+          </form>
         </div>
-      {% endif %}
-      {% endblock %}
-
-      <div class="mb-3 form-check">
-        <input type="checkbox" class="form-check-input" name="private" id="is-private">
-        <label class="form-check-label" for="is-private">Private</label>
       </div>
-
-      <div class="mb-3 row g-3">
-        <div class="col-auto">
-          <label for="licence-select" class="col-form-label">Data licence</label>
-        </div>
-        <div class="col-auto">
-          <select class="form-select" name="data-licence">
-            {% for data_licence in DataLicence %}
-              <option {% if data_licence == DataLicence.ALL_RIGHTS_RESERVED %}selected{% endif %}
-                value="{{ data_licence.value }}">{{ data_licence.render() }}</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-
-      {% if not g.current_user %}
-        <p>As you&apos;re not logged in, please create an account.  (If you already have an account, <a href="{{ url_for('csvbase.sign_in') }}">sign in</a>.)</p>
-      <p>
-        <label>Username</label>
-        <input type="text" name="username" required {{id_input_validation_attrs()}}>
-      </p>
-      <p>
-        <label>(Optional) Email</label>
-        <input type="text" name="email" pattern=".*@.*"
-               title="Must contain an @-sign">
-      </p>
-      <p>
-        <label>Password</label>
-        <input type="password" required name="password">
-      </p>
-    {% endif %}
-
-    <div class="mb-3">
-        <input type="submit" class="btn btn-primary" value="Create table">
     </div>
-    </form>
   </div>
 {% endblock %}
