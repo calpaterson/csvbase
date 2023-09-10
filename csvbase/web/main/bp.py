@@ -174,6 +174,7 @@ def paste() -> str:
         method="paste",
         DataLicence=DataLicence,
         action_url=url_for("csvbase.new_table_form_submission"),
+        page_title="Paste a new table",
     )
 
 
@@ -184,6 +185,7 @@ def upload_file() -> str:
         method="upload-file",
         DataLicence=DataLicence,
         action_url=url_for("csvbase.new_table_form_submission"),
+        page_title="Upload a new table",
     )
 
 
@@ -1224,7 +1226,9 @@ def register() -> Response:
             return redirect(url_for("csvbase.user", username=current_user.username))
 
         response = make_response(
-            render_template("register.html", whence=request.referrer)
+            render_template(
+                "register.html", whence=request.referrer, page_title="Register"
+            )
         )
         response.cache_control.max_age = int(timedelta(minutes=30).total_seconds())
         return response
@@ -1256,7 +1260,9 @@ def register() -> Response:
 def sign_in() -> Response:
     if request.method == "GET":
         response = make_response(
-            render_template("sign_in.html", whence=request.referrer)
+            render_template(
+                "sign_in.html", whence=request.referrer, page_title="Sign in"
+            )
         )
         response.cache_control.max_age = int(timedelta(minutes=30).total_seconds())
         return response
