@@ -218,13 +218,13 @@ def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> 
     sesh.query(models.TableReadme).filter(
         models.TableReadme.table_uuid == table_model.table_uuid
     ).delete()
-    sesh.delete(table_model)
     sesh.query(models.Copy).filter(
         or_(
             models.Copy.from_uuid == table_model.table_uuid,
             models.Copy.to_uuid == table_model.table_uuid,
         )
     ).delete()
+    sesh.delete(table_model)
     PGUserdataAdapter.drop_table(sesh, table_model.table_uuid)
 
 
