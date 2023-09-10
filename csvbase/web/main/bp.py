@@ -1230,7 +1230,6 @@ def register() -> Response:
                 "register.html", whence=request.referrer, page_title="Register"
             )
         )
-        response.cache_control.max_age = int(timedelta(minutes=30).total_seconds())
         return response
     else:
         sesh = get_sesh()
@@ -1264,7 +1263,6 @@ def sign_in() -> Response:
                 "sign_in.html", whence=request.referrer, page_title="Sign in"
             )
         )
-        response.cache_control.max_age = int(timedelta(minutes=30).total_seconds())
         return response
     else:
         sesh = get_sesh()
