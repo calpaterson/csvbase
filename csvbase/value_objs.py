@@ -211,12 +211,14 @@ class ColumnType(enum.Enum):
         return _SQLA_TYPE_MAP[self]
 
     def pretty_name(self) -> str:
+        """The presentation name of the type.  Intended for UIs."""
         return self.name.capitalize()
 
     def python_type(self) -> Type:
         return _PYTHON_TYPE_MAP[self]
 
     def pretty_type(self) -> str:
+        """The "pretty" name of the type.  Intended for APIs."""
         return _PRETTY_TYPE_MAP[self]
 
 

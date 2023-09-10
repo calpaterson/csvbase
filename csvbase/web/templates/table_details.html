@@ -3,7 +3,7 @@
 
 {% block tab_contents %}
   <div class="container">
-    <h2>Schema</h2>
+    <h2>Columns</h2>
     <div class="table-responsive">
       <table class="table">
         <thead>
@@ -18,11 +18,11 @@
             <tr>
               {% if col.name == "csvbase_row_id" %}
                 <td>Row ID (<code>csvbase_row_id</code>)</td>
-                <td>{{col.type_.pretty_type()}}</td>
+                <td>{{col.type_.pretty_name()}}</td>
                 <td>Not allowed</td>
               {% else %}
                 <td>{{ col.name }}</td>
-                <td>{{col.type_.pretty_type()}}</td>
+                <td>{{col.type_.pretty_name()}}</td>
                 <td>Allowed</td>
             {% endif %}
             </tr>
