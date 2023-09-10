@@ -107,3 +107,8 @@
 .form-type-hint {
     font-size: smaller;
 }
+
+input.table-pastable {
+    font-family: monospace;
+    font-size: smaller;
+}

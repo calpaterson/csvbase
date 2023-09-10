@@ -48,7 +48,7 @@
     <div class="row mb-3">
       <div class="col-12">
         <div class="input-group">
-          <input class="form-control w-100" type="text" value="import pandas as pd; {{table.table_name|snake_case}} = pd.read_csv('{{url_for('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True)}}', index_col=0)" readonly>
+          <input class="form-control w-100 table-pastable" type="text" value="import pandas as pd; {{table.table_name|snake_case}} = pd.read_csv('{{url_for('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True)}}', index_col=0)" readonly autofocus>
         </div>
       </div>
     </div>
