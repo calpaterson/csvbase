@@ -22,33 +22,45 @@
 {% endmacro %}
 
 {% block main %}
+  {{ table_macros.praise_button_form(table, praise_id) }}
   <div class="container">
-    <h1
-      class="py-2"><a
-      href="{{ url_for('csvbase.user', username=table.username) }}">{{ table.username }}</a> / <a
-      href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}"
-      >{{ table.table_name }}</a> {{ data_licence_badge(table.data_licence) }} {{ privacy_badge(table) }}</h1>
-
     <div class="row">
+      <div class="col-auto">
+        <h1><a
+          href="{{ url_for('csvbase.user', username=table.username) }}">{{ table.username }}</a> / <a
+          href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}"
+          >{{ table.table_name }}</a> {{ data_licence_badge(table.data_licence) }} {{ privacy_badge(table) }}</h1>
+      </div>
+
+    <div class="row mb-2">
       <div class="col-9">
-        <p class="table-topline">
+        <span class="table-topline">
           {%- if table.has_caption() -%}
             <span class="table-caption">{{table.caption}}</span> &mdash; {{ table_macros.render_row_count(table) }} rows
           {%- else -%}
             <span class="table-caption">No caption provided</span>, {{ table_macros.render_row_count(table) }} rows
           {%- endif -%}
           , last changed {{ value_macros.render_human_datetime(table.last_changed) }} ago
-        </p>
+        </span>
       </div>
-      <div class="col-3 text-end">
-        {{ table_macros.praise_button(table, praise_id) }}
+      <div class="col-3 text-end d-md-none">
+        <div class="btn-group-vertical">
+        {{ table_macros.copy_button(table) }}
+        {{ table_macros.praise_button(praise_id) }}
+        </div>
+      </div>
+      <div class="col-3 text-end d-none d-md-block">
+        <div class="btn-group">
+        {{ table_macros.copy_button(table) }}
+        {{ table_macros.praise_button(praise_id) }}
+        </div>
       </div>
     </div>
 
-    <div class="row mb-3">
-      <div class="col-12">
+    <div class="row mb-3 d-none d-lg-block">
+      <div class="col-auto">
         <div class="input-group">
-          <input class="form-control w-100 table-pastable" type="text" value="import pandas as pd; {{table.table_name|snake_case}} = pd.read_csv('{{url_for('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True)}}', index_col=0)" readonly autofocus>
+          <input class="form-control w-100 table-pastable" type="text" value="import pandas as pd; {{table.table_name|snake_case}} = pd.read_csv('{{url_for('csvbase.table_view', username=table.username, table_name=table.table_name, _external=True)}}', index_col=0)" readonly>
         </div>
       </div>
     </div>
@@ -58,13 +70,8 @@
       <ul class="nav nav-tabs">
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.table_view' %}active{%endif%}"
-             href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">View</a>
+             href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">Data</a>
         </li>
-        {# FIXME: Commented out - trying something different with READMEs #}
-        {# <li class="nav-item"> #}
-        {#   <a class="nav-link {% if request.endpoint == 'csvbase.table_readme' %}active{%endif%}" #}
-        {#      href="{{ url_for('csvbase.table_readme', username=table.username, table_name=table.table_name) }}">Readme</a> #}
-        {# </li> #}
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.table_details' %}active{%endif%}"
              href="{{ url_for('csvbase.table_details', username=table.username, table_name=table.table_name) }}">Definition</a>
@@ -94,13 +101,8 @@
       <ul class="nav nav-tabs">
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.table_view' %}active{%endif%}"
-             href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">View</a>
+             href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">Data</a>
         </li>
-        {# FIXME: Commented out - trying something different with READMEs #}
-        {# <li class="nav-item"> #}
-        {#   <a class="nav-link {% if request.endpoint == 'csvbase.table_readme' %}active{%endif%}" #}
-        {#      href="{{ url_for('csvbase.table_readme', username=table.username, table_name=table.table_name) }}">Readme</a> #}
-        {# </li> #}
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.table_export' %}active{%endif%}"
              href="{{ url_for('csvbase.table_export', username=table.username, table_name=table.table_name) }}"
@@ -109,7 +111,7 @@
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'csvbase.get_table_apidocs' %}active{%endif%}"
              href="{{ url_for('csvbase.get_table_apidocs', username=table.username, table_name=table.table_name) }}"
-             >REST API</a>
+             >API</a>
         </li>
         {% if table.username == g.current_username %}
           <li class="nav-item">

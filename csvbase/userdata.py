@@ -75,6 +75,24 @@ class PGUserdataAdapter:
             return f"table_{table_uuid.hex}"
 
     @classmethod
+    def _reset_pk_sequence(cls, sesh: Session, tableclause: TableClause) -> None:
+        """Reset the csvbase_row_id sequence (to the max of the column.
+
+        This should be done after inserts that raise the csvbase_row_id.
+
+        """
+        # FIXME: this should probably set it to the max of the current sequence
+        # value or the max of the column
+        fullname = tableclause.fullname  # type: ignore
+        stmt = select(
+            func.setval(
+                func.pg_get_serial_sequence(fullname, "csvbase_row_id"),
+                func.max(tableclause.c.csvbase_row_id),
+            )
+        )
+        sesh.execute(stmt)
+
+    @classmethod
     def count(cls, sesh: Session, table_uuid: UUID) -> RowCount:
         """Count the rows."""
         # we don't need the columns here, just a table
@@ -399,6 +417,16 @@ class PGUserdataAdapter:
         return table_uuid
 
     @classmethod
+    def copy_table_data(
+        cls, sesh: Session, from_table_uuid: UUID, to_table_uuid: UUID
+    ) -> None:
+        from_tableclause = cls._get_userdata_tableclause(sesh, from_table_uuid)
+        to_tableclause = cls._get_userdata_tableclause(sesh, to_table_uuid)
+        stmt = to_tableclause.insert().from_select(from_tableclause.c, from_tableclause)
+        sesh.execute(stmt)
+        cls._reset_pk_sequence(sesh, to_tableclause)
+
+    @classmethod
     def upsert_table_data(
         cls, sesh: Session, table: Table, row_columns: Sequence[Column], rows: Iterable
     ) -> None:
@@ -474,13 +502,8 @@ class PGUserdataAdapter:
             ),
         )
 
-        # 3b. now reseting the sequence that allocates pks
-        reset_serial_stmt = select(
-            func.setval(
-                func.pg_get_serial_sequence(main_table_name, "csvbase_row_id"),
-                func.max(main_tableclause.c.csvbase_row_id),
-            )
-        )
+        # 3b. reset the sequence that allocates pks
+        # <done by _reset_pk_sequence>
 
         # 3c. additions which do not have a csvbase_row_id set
         select_columns = [
@@ -512,7 +535,7 @@ class PGUserdataAdapter:
         sesh.execute(remove_stmt)
         sesh.execute(update_stmt)
         sesh.execute(add_stmt_no_blanks)
-        sesh.execute(reset_serial_stmt)
+        cls._reset_pk_sequence(sesh, main_tableclause)
         sesh.execute(add_stmt_blanks)
 
     @classmethod

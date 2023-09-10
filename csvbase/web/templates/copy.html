@@ -1,0 +1,62 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "app_base.html" %}
+
+{% from 'value_macros.html' import id_input_validation_attrs %}
+
+{% import 'other_macros.html' as other_macros %}
+
+{% block main %}
+  <div class="container">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <h1>Copy {{table.table_name}}/{{table.username}}</h1>
+
+        <div class="my-1">This will create a complete copy of the table and
+        data as it currently is, under your own user.</div>
+
+        <form action="{{ url_for('csvbase.copy_view', username=table.username, table_name=table.table_name) }}"
+              method="POST"
+              enctype="multipart/form-data">
+
+          {{ other_macros.table_name_field(label="New table name", value=table.table_name) }}
+
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" name="private" id="is-private">
+            <label class="form-check-label" for="is-private">Private</label>
+          </div>
+
+
+          {% if not g.current_user %}
+            <div class="row">
+              <div class="mx-auto">
+                <div class="alert alert-info">
+                  <span>Register at the same time:</span>
+                  <span class="float-end">(If you already have an account, <a href="{{ url_for('csvbase.sign_in') }}">sign in</a>.)</span>
+                </div>
+              </div>
+            </div>
+
+            {{ other_macros.username_form_field() }}
+
+            {{ other_macros.email_form_field() }}
+
+            {{ other_macros.password_form_field() }}
+
+            <div class="row">
+              <div class="mb-3">
+                <input type="submit" class="btn btn-success" value="Register & copy table">
+              </div>
+            </div>
+          {% else %}
+            <div class="row">
+              <div class="mb-3">
+                <input type="submit" class="btn btn-success" value="Copy table">
+              </div>
+            </div>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

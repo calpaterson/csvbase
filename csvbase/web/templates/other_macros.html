@@ -14,6 +14,23 @@
   {% endif %}
 {% endmacro %}
 
+{% macro table_name_field(label="Table name", value=None) %}
+  <div class="form-floating mb-3">
+    <input type="text"
+           id="table-name"
+           class="form-control"
+           name="table-name"
+           placeholder="my-table"
+           required
+           {% if value %}
+             value="{{ value }}"
+           {% endif %}
+           {{id_input_validation_attrs()}}>
+           <label for="table-name">{{ label }}</label>
+           <div class="form-text">Start with a letter, and then letters, numbers and dashes (-).</div>
+  </div>
+{% endmacro %}
+
 
 {% macro username_form_field(autofocus=False) %}
   <div class="form-floating mb-3">

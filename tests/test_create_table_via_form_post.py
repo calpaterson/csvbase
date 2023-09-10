@@ -252,3 +252,38 @@ def test_second_blank_table__into_subscription_quota(sesh, client, test_user):
     )
 
     assert resp2.status_code == 302
+
+
+def test_copy__form(client, test_user, ten_rows):
+    resp = client.get(f"{test_user.username}/{ten_rows.table_name}/copy")
+    assert resp.status_code == 200
+
+
+def test_copy__post(client, test_user, ten_rows):
+    set_current_user(test_user)
+    new_table_name = random_string()
+    new_url = f"/{test_user.username}/{new_table_name}"
+    post_resp = client.post(
+        f"{test_user.username}/{ten_rows.table_name}/copy",
+        data={"table-name": new_table_name},
+    )
+    assert post_resp.status_code == 302
+    assert post_resp.headers["Location"] == new_url
+
+    get_resp = client.get(new_url)
+    assert get_resp.status_code == 200
+
+
+def test_copy__post_private(client, test_user, ten_rows):
+    set_current_user(test_user)
+    new_table_name = random_string()
+    new_url = f"/{test_user.username}/{new_table_name}"
+    post_resp = client.post(
+        f"{test_user.username}/{ten_rows.table_name}/copy",
+        data={"table-name": new_table_name, "private": "on"},
+    )
+    assert post_resp.status_code == 302
+    assert post_resp.headers["Location"] == new_url
+
+    get_resp = client.get(new_url, headers={"Accept": "application/json"})
+    assert not get_resp.json["is_public"]

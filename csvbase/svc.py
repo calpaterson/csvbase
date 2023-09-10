@@ -23,7 +23,15 @@ import bleach
 import pyarrow as pa
 import pyarrow.parquet as pq
 import xlsxwriter
-from sqlalchemy import column as sacolumn, func, update, types as satypes, cast, text
+from sqlalchemy import (
+    column as sacolumn,
+    func,
+    update,
+    types as satypes,
+    cast,
+    text,
+    or_,
+)
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import table as satable
@@ -211,6 +219,12 @@ def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> 
         models.TableReadme.table_uuid == table_model.table_uuid
     ).delete()
     sesh.delete(table_model)
+    sesh.query(models.Copy).filter(
+        or_(
+            models.Copy.from_uuid == table_model.table_uuid,
+            models.Copy.to_uuid == table_model.table_uuid,
+        )
+    ).delete()
     PGUserdataAdapter.drop_table(sesh, table_model.table_uuid)
 
 
@@ -527,7 +541,8 @@ def is_praised(sesh: Session, user_uuid: UUID, table_uuid: UUID) -> Optional[int
 
 def unpraise(sesh: Session, praise_id: int) -> None:
     rp = sesh.execute(
-        "DELETE FROM praise where praise_id = :praise_id", dict(praise_id=praise_id)
+        "DELETE FROM metadata.praise where praise_id = :praise_id",
+        dict(praise_id=praise_id),
     )
     if rp.rowcount != 1:
         logger.error("praise could not be removed: %s", praise_id)
@@ -624,3 +639,12 @@ def get_usage(sesh: Session, user_uuid: UUID) -> Usage:
         public_bytes=public_bytes,
         public_tables=public_tables,
     )
+
+
+def record_copy(sesh: Session, existing_uuid: UUID, new_uuid: UUID) -> None:
+    """Record that a copy has been made of a table (and when).
+
+    Note: not currently shown anywhere.
+
+    """
+    sesh.add(models.Copy(from_uuid=existing_uuid, to_uuid=new_uuid))

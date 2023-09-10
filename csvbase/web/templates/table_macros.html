@@ -1,19 +1,40 @@
 {# -*- mode: jinja2 -*- #}
 
-{% macro praise_button(table, praise_id) %}
+{% macro praise_button_form(table, praise_id) %}
+  {# This form is split apart from the praise button for formatting reasons
+  (not able to put a form in a btn-group) #}
   <form
+    id="praise-form"
     method="POST"
-    action="{{ url_for('csvbase.praise_table', username=table.username, table_name=table.table_name)}}">
+    action="{{ url_for('csvbase.praise_table', username=table.username, table_name=table.table_name)}}"
+    style="display: none"
+>
     <input type="hidden" name="whence" value="{{ request.url }}">
     {% if praise_id %}
       <input hidden type="number" name="praise-id" value="{{ praise_id }}">
-      <button type='submit' class="btn btn-warning btn-sm"
-              ><img class="icon" src="{{ url_for('static', filename='praised.svg') }}"> Praised</button>
-      {% else %}
-        <button id="praise-button" type='submit' class="btn btn-secondary btn-sm"
-                ><img class="icon icon-hidden" src="{{ url_for('static', filename='praised.svg') }}"><img class="icon icon-invert" src="{{ url_for('static', filename='praise.svg') }}"> <span id="praise-span">Praise</span></button>
-      {% endif %}
+    {% endif %}
   </form>
+{% endmacro %}
+
+{% macro praise_button(praise_id) %}
+  {% if praise_id %}
+    <button
+      form="praise-form"
+      type='submit'
+      class="btn btn-warning btn-sm"
+      ><img class="icon" src="{{ url_for('static', filename='praised.svg') }}"> Praised</button>
+    {% else %}
+      <button
+        form="praise-form"
+        id="praise-button"
+        type='submit'
+        class="btn btn-secondary btn-sm"
+        ><img class="icon icon-hidden" src="{{ url_for('static', filename='praised.svg') }}"><img class="icon icon-invert" src="{{ url_for('static', filename='praise.svg') }}"> <span id="praise-span">Praise</span></button>
+    {% endif %}
+{% endmacro %}
+
+{% macro copy_button(table) %}
+  <a href="{{ url_for('csvbase.copy_view', username=table.username, table_name=table.table_name) }}" class="btn btn-primary btn-sm">Make a copy</a>
 {% endmacro %}
 
 {% macro table_card(table) %}

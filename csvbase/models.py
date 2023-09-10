@@ -247,3 +247,39 @@ class StripeSubscriptionStatus(Base):
         satypes.SmallInteger, primary_key=True, unique=True, autoincrement=False
     )
     stripe_subscription_status = Column(satypes.String, nullable=False, unique=True)
+
+
+class Copy(Base):
+    __tablename__ = "copies"
+    __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+
+    copy_id = Column(satypes.BigInteger, Identity(), unique=True, index=True)
+    from_uuid = Column(
+        PGUUID,
+        ForeignKey("metadata.tables.table_uuid"),
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+    to_uuid = Column(
+        PGUUID,
+        ForeignKey("metadata.tables.table_uuid"),
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    created = Column(
+        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    )
+
+    from_obj: "RelationshipProperty[Table]" = relationship(
+        "Table",
+        uselist=False,
+        foreign_keys=[from_uuid],
+    )
+    to_obj: "RelationshipProperty[Table]" = relationship(
+        "Table",
+        uselist=False,
+        foreign_keys=[to_uuid],
+    )

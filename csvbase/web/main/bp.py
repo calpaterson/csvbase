@@ -207,7 +207,8 @@ def new_table_form_submission() -> Response:
 
     quota = billing_svc.get_quota(sesh, current_user.user_uuid)
     usage = svc.get_usage(sesh, current_user.user_uuid)
-    if "private" in request.form:
+    private = "private" in request.form
+    if private:
         usage.private_tables += 1
     else:
         usage.public_tables += 1
@@ -218,10 +219,7 @@ def new_table_form_submission() -> Response:
     table_name = request.form["table-name"]
     csv_buf: UserSubmittedCSVData
 
-    if "private" in request.form:
-        is_public = False
-    else:
-        is_public = True
+    is_public = not private
     data_licence = DataLicence(request.form.get("data-licence", type=int))
     table_uuid = svc.create_table_metadata(
         sesh,
@@ -777,6 +775,82 @@ def table_export(username: str, table_name: str) -> str:
         private_table_url=private_table_url,
         praise_id=get_praise_id_if_exists(table),
     )
+
+
+class CopyView(MethodView):
+    """For making copies of tables."""
+
+    def get(self, username: str, table_name: str) -> Response:
+        sesh = get_sesh()
+        table = svc.get_table(sesh, username, table_name)
+        response = make_response(
+            render_template(
+                "copy.html", table=table, page_title=f"Copy {username}/{table_name}"
+            )
+        )
+        return response
+
+    def post(self, username: str, table_name: str) -> Response:
+        sesh = get_sesh()
+
+        # FIXME: refactor to share
+        if "username" in request.form:
+            current_user = svc.create_user(
+                sesh,
+                current_app.config["CRYPT_CONTEXT"],
+                request.form["username"],
+                request.form["password"],
+                request.form.get("email"),
+            )
+            sign_in_user(current_user)
+            flash("Account registered")
+        else:
+            current_user = get_current_user_or_401()
+
+        # FIXME: again, this is copied
+        quota = billing_svc.get_quota(sesh, current_user.user_uuid)
+        usage = svc.get_usage(sesh, current_user.user_uuid)
+        private = "private" in request.form
+        if private:
+            usage.private_tables += 1
+        else:
+            usage.public_tables += 1
+        if usage.exceeds_quota(quota):
+            logger.warning("%s tried to exceed quota", user)
+            raise exc.NotEnoughQuotaException()
+
+        existing_table = svc.get_table(sesh, username, table_name)
+        new_table_name = request.form["table-name"]
+
+        is_public = not private
+        new_table_uuid = svc.create_table_metadata(
+            sesh,
+            current_user.user_uuid,
+            new_table_name,
+            is_public,
+            existing_table.caption,
+            existing_table.data_licence,
+        )
+
+        PGUserdataAdapter.create_table(sesh, new_table_uuid, existing_table.columns)
+        PGUserdataAdapter.copy_table_data(
+            sesh, existing_table.table_uuid, new_table_uuid
+        )
+        svc.record_copy(sesh, existing_table.table_uuid, new_table_uuid)
+        svc.mark_table_changed(sesh, new_table_uuid)
+        sesh.commit()
+        return redirect(
+            url_for(
+                "csvbase.table_view",
+                username=current_user.username,
+                table_name=new_table_name,
+            )
+        )
+
+
+bp.add_url_rule(
+    "/<username>/<table_name>/copy", view_func=CopyView.as_view("copy_view")
+)
 
 
 @bp.get("/<username>/<table_name:table_name>/details")
