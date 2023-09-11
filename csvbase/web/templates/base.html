@@ -8,10 +8,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css' ) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='codehilite.css' ) }}">
+    <link rel="stylesheet" id="codehilite-stylesheet" href="{{ url_for('static', filename='codehilite.css' ) }}">
     <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='logo/192x192.png') }}">
     <link rel="canonical" href="{{ canonical_url or request.base_url }}">
     <title>{{page_title or "csvbase"}}</title>
+    <script>
+      // FIXME: really should not need javascript for this
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
+          document.querySelector('html').setAttribute('data-bs-theme', 'dark');
+          document.getElementById('codehilite-stylesheet').href = "{{ url_for('static', filename='codehilite-dark.css' ) }}";
+      }
+    </script>
     {% endblock %}
   </head>
   <body class="d-flex flex-column min-vh-100">

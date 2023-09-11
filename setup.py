@@ -10,6 +10,7 @@ test_reqs = [
     "mypy==0.982",
     "openpyxl==3.1.2",
     "pandas==1.3.5",
+    "pygments==2.16.1",
     "pytest-flask==1.2.0",
     "pytest==7.1.1",
     "sqlalchemy-stubs==0.4",

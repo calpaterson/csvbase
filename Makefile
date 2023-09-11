@@ -7,7 +7,7 @@ version :=$(file < csvbase/VERSION)
 
 default: tox
 
-static-deps: csvbase/web/static/codehilite.css csvbase/web/static/bootstrap.min.css csvbase/web/static/bootstrap.bundle.js tests/test-data/sitemap.xsd
+static-deps: csvbase/web/static/codehilite.css csvbase/web/static/codehilite-dark.css csvbase/web/static/bootstrap.min.css csvbase/web/static/bootstrap.bundle.js tests/test-data/sitemap.xsd 
 
 .venv: .venv/touchfile
 
@@ -18,6 +18,9 @@ static-deps: csvbase/web/static/codehilite.css csvbase/web/static/bootstrap.min.
 
 csvbase/web/static/codehilite.css: .venv/touchfile
 	. .venv/bin/activate; pygmentize -S default -f html -a .highlight > $@
+
+csvbase/web/static/codehilite-dark.css: .venv/touchfile
+	. .venv/bin/activate; pygmentize -S lightbulb -f html -a .highlight > $@
 
 serve: .venv static-deps
 	. .venv/bin/activate; flask run -p 6001

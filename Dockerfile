@@ -4,8 +4,9 @@ RUN apt-get update && apt-get install -y \
         libpq-dev python3-dev libsystemd-dev build-essential pkg-config curl unzip
 COPY ./ ./
 
-RUN python -m pip install pygments==2.13.0
+RUN python -m pip install pygments==2.16.1
 RUN pygmentize -S default -f html -a .highlight > csvbase/web/static/codehilite.css
+RUN pygmentize -S lightbulb -f html -a .highlight > csvbase/web/static/codehilite-dark.css
 RUN make static-deps
 
 RUN python -m pip wheel -w wheelhouse .
