@@ -38,7 +38,7 @@
           {%- if table.has_caption() -%}
             <span class="table-caption">{{table.caption}}</span> &mdash; {{ table_macros.render_row_count(table) }} rows
           {%- else -%}
-            <span class="table-caption">No caption provided</span>, {{ table_macros.render_row_count(table) }} rows
+            {{ table_macros.render_row_count(table) }} rows
           {%- endif -%}
           , last changed {{ value_macros.render_human_datetime(table.last_changed) }} ago
         </span>

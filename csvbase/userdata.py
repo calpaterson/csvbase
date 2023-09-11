@@ -582,6 +582,23 @@ class RowCountStatement(Executable, ClauseElement):
 @compiles(RowCountStatement, "postgresql")
 def visit_rowcount(element, compiler, **kw):
     # In PG, exact counts are slow, so for bigger tables, do an approximate
-    # count.
-    stmt = "SELECT count(*), count(*) from %s"
-    return stmt % compiler.process(element.table, asfrom=True, **kw)
+    # count and possibly include an exact count as well.
+    stmt = """
+SELECT
+    CASE WHEN reltuples >= 1000 THEN
+        null
+    ELSE
+        (
+            SELECT
+                COUNT(*)
+            FROM
+                %s)
+    END,
+    reltuples::bigint
+FROM
+    pg_class
+WHERE
+    relname = '%s';
+    """
+    x = stmt % (compiler.process(element.table, asfrom=True, **kw), element.table.name)
+    return x

@@ -62,10 +62,10 @@
 
 {%- macro render_row_count(table) -%}
   {%- if table.row_count.exact == None -%}
-    {{ table.row_count.exact }}
+    ~{{ table.row_count.approx|decimalformat('@@@') }}
   {%- elif table.row_count.exact == 0 -%}
     0
   {%- else -%}
-    about {{ table.row_count.approx }}
+    {{ table.row_count.exact }}
   {%- endif -%}
 {%- endmacro -%}
