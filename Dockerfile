@@ -27,11 +27,11 @@ COPY --from=builder wheelhouse wheelhouse
 
 RUN python -m pip --no-cache-dir install csvbase --no-index -f wheelhouse
 
-ENV FLASK_APP=csvbase.web:init_app()
+ENV FLASK_APP=csvbase.web.app:init_app()
 ENV FLASK_DEBUG=0
 COPY alembic.ini .
 COPY migrations migrations
 EXPOSE 6001
 ENTRYPOINT ["/tini", "--"]
-CMD ["gunicorn", "csvbase.web:init_app()", "-b", ":6001"]
+CMD ["gunicorn", "csvbase.web.app:init_app()", "-b", ":6001"]
 
