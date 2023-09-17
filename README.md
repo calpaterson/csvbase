@@ -60,3 +60,35 @@ Csvbase is licensed under the AGPLv3 or later.  You're free to reuse it as you
 like under that licence but please bear in mind the one-man-and-his-dog nature
 of this operation: I can't support you and there is NO warranty; not even for
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+### Using virtual environments for development
+
+The code in this repo can be used with virtual environments such as python's [virtualenv](https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/#installing-virtualenv) or [anaconda](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html):
+
+#### virtualenv
+
+```sh
+virtualenv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+#### anaconda
+
+```sh
+conda create -n csvbase python=3.8
+conda activate csvbase
+pip install -r requirements.txt
+```
+
+Depending on your base system, you may also need these prerequisites for `pip install` to work, which are operating system packages, not python:
+
+- [systemd utility library - development files](https://packages.debian.org/sid/libsystemd-dev)
+- [header files for libpq5 (PostgreSQL library)](https://packages.debian.org/sid/libpq-dev)
+
+On most debian/ubuntu systems, these commands suffice:
+
+```sh
+sudo apt install libsystemd-dev
+sudo apt install libpq-dev
+```
