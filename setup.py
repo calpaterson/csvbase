@@ -2,6 +2,10 @@ from setuptools import setup, find_packages
 
 VERSION = open("csvbase/VERSION").read().strip()
 
+reqs = open("requirements.txt").read().strip().split("\n")
+
+test_reqs = open("requirements-test.txt").read().strip().split("\n")
+
 setup(
     name="csvbase",
     version=VERSION,
@@ -9,6 +13,8 @@ setup(
     include_package_data=True,
     package_data={"csvbase": ["py.typed"]},
     zip_safe=False,
+    install_requires=reqs,
+    extras_require={"tests": test_reqs},
     entry_points={
         "console_scripts": [
             "csvbase-make-tables=csvbase.cli:make_tables",
