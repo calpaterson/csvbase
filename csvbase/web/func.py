@@ -1,7 +1,9 @@
+import re
+import functools
 from datetime import datetime, timezone
 from typing import Optional, Callable, Mapping, Tuple
 from logging import getLogger
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlparse
 
 import werkzeug
 import werkzeug.exceptions
@@ -107,3 +109,27 @@ def format_timedelta(
         add_direction=add_direction,
         locale=get_locale(),
     )
+
+
+_URL_REGEX = re.compile("https?://[^ ]+$")
+
+
+@functools.lru_cache
+def is_url(text_string: str) -> bool:
+    """Returns true if the text string is a url.
+
+    This function is used in the templating to decide whether we should turn
+    something into a hyperlink.  It's fairly conservative - the url needs to be
+    fully qualified and start with http:// or https://
+
+    """
+    # as an optimisation, make sure it vaguely looks like a fully qualified url
+    # before even trying to parse it
+    if _URL_REGEX.match(text_string):
+        try:
+            parsed_url = urlparse(text_string)
+            return True
+        except ValueError:
+            pass
+
+    return False

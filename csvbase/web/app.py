@@ -38,7 +38,7 @@ from ..db import db, get_db_url
 from ..logging import configure_logging
 from .. import sentry
 from ..sesh import get_sesh
-from .func import is_browser
+from .func import is_browser, is_url
 from .billing import bp as billing_bp
 from .main.bp import bp as main_bp
 
@@ -113,10 +113,8 @@ def init_app() -> Flask:
     if config.blog_ref is not None:
         app.register_blueprint(blog_bp)
 
-    @app.context_processor
-    def inject_blueprints() -> Dict:
-        return dict(blueprints=app.blueprints.keys())
-
+    app.jinja_env.globals["is_url"] = is_url
+    app.jinja_env.globals["blueprints"] = app.blueprints.keys()
     app.jinja_env.filters["snake_case"] = snake_case
     app.jinja_env.filters["ppjson"] = ppjson
     app.jinja_env.filters["timedeltaformat"] = format_timedelta

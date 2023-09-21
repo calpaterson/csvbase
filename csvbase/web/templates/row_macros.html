@@ -1,5 +1,16 @@
 {# -*- mode: jinja2 -*- #}
 
+{% macro render_cell(type, value) %}
+  {% if value == None %}
+    <span class="text-muted"><abbr title="No data/blank" class="initialism">&lt;NA&gt;</abbr></span>
+  {% elif type.name == "TEXT" and is_url(value) %}
+    {{ value|urlize(nofollow=True) }}
+  {% else %}
+    {{ value }}
+  {% endif %}
+{% endmacro %}
+
+
 {% macro row_table(row) %}
       <table class="table table-responsive">
         <thead>
@@ -18,19 +29,11 @@
                 <td>{{ col.name }}</td>
               {% endif %}
               <td>{{ col.type_.pretty_type() }}</td>
-              <td>{{ render_cell(v) }}</td>
+              <td>{{ render_cell(col.type_, v) }}</td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
-{% endmacro %}
-
-{% macro render_cell(value) %}
-  {% if value == None %}
-    <span class="text-muted"><abbr title="No data/blank" class="initialism">&lt;NA&gt;</abbr></span>
-  {% else %}
-    {{ value }}
-  {% endif %}
 {% endmacro %}
 
 {%- macro form_type(col) -%}
