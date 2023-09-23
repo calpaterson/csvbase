@@ -147,12 +147,16 @@ class Seekable(Protocol):
         pass
 
 
+class Tellable(Protocol):
+    def tell(self) -> int:
+        pass
+
+
 class rewind:
     """Ensure that a stream is rewound after doing something.
 
     This is a common error and usually subtly messes up a sequence of
-    operations eg reading from a csv (eg string encoding is broken, but
-    delimiter detection is not).
+    operations on a file.
     """
 
     def __init__(self, stream: Seekable) -> None:
@@ -163,3 +167,13 @@ class rewind:
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
         self.stream.seek(0)
+
+
+class TellableAndSeekable(Tellable, Seekable, Protocol):
+    pass
+
+
+def file_length(stream: TellableAndSeekable) -> int:
+    with rewind(stream):
+        stream.seek(0, os.SEEK_END)
+        return stream.tell()

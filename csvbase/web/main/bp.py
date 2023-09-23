@@ -146,7 +146,6 @@ class ConvertForm(MethodView):
             columns = table_io.parquet_file_to_columns(pf)
             rows = table_io.parquet_file_to_rows(pf)
 
-        response_buf: Union[io.StringIO, io.BytesIO]
         if to_content_type == ContentType.PARQUET:
             response_buf = table_io.rows_to_parquet(columns, rows)
         elif to_content_type == ContentType.CSV:
@@ -1402,10 +1401,12 @@ def make_download_filename(username: str, table_name: str, extension: str) -> st
 
 
 def make_streaming_response(
-    response_buf: Union[io.BytesIO, io.StringIO],
+    response_buf: io.BytesIO,
     content_type: Optional[ContentType] = None,
     download_filename: Optional[str] = None,
 ) -> Response:
+    """Turn a stream into an streaming flask response."""
+
     def generate() -> Union[Iterator[bytes], Iterator[str]]:
         minibuf = response_buf.read(COPY_BUFFER_SIZE)
         while minibuf:
@@ -1416,6 +1417,10 @@ def make_streaming_response(
         "application/octet-stream" if content_type is None else content_type.value
     )
     response = current_app.response_class(generate(), mimetype=mimetype)
+
+    # Setting Content-Length is optional but helps clients allocate buffers
+    response.headers["Content-Length"] = str(streams.file_length(response_buf))
+
     if download_filename is not None:
         response.headers[
             "Content-Disposition"

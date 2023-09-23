@@ -115,6 +115,11 @@ def test_read__happy(client, ten_rows, test_user, content_type):
     )
     assert resp.status_code == 200, resp.data
     assert content_type.value in resp.headers["Content-Type"]
+
+    # test that Content-Length is present, and that it matches what was
+    # returned
+    assert resp.headers.get("Content-Length", default=None, type=int) == len(resp.data)
+
     if content_type is ContentType.JSON:
         expected_page_dict = {
             "rows": [

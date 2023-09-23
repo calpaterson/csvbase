@@ -86,9 +86,13 @@ def parquet_file_to_rows(pf: pq.ParquetFile) -> Iterable[UnmappedRow]:
 
 def rows_to_csv(
     columns: Sequence[Column], rows: Iterable[UnmappedRow], delimiter: str = ","
-) -> io.StringIO:
-    csv_buf = io.StringIO()
-    with rewind(csv_buf):
+) -> io.BytesIO:
+    # StringIOs are frustrating to return over http because you can't tell how
+    # long they are (for the Content-Type header), so this follows the
+    # pattern of the others in outputting to bytes
+    csv_byte_buf = io.BytesIO()
+    with rewind(csv_byte_buf):
+        csv_buf = io.TextIOWrapper(csv_byte_buf)
         writer = csv.writer(csv_buf, delimiter=delimiter)
         writer.writerow([col.name for col in columns])
 
@@ -108,7 +112,9 @@ def rows_to_csv(
         )
 
         writer.writerows(rows_without_sci)
-    return csv_buf
+        csv_buf.detach()
+
+    return csv_byte_buf
 
 
 def rows_to_xlsx(
@@ -153,12 +159,14 @@ def rows_to_xlsx(
 
 def rows_to_jsonlines(
     columns: Sequence[Column], rows: Iterable[UnmappedRow]
-) -> io.StringIO:
-    jl_buf = io.StringIO()
+) -> io.BytesIO:
+    jl_byte_buf = io.BytesIO()
 
     column_names = [c.name for c in columns]
-    with rewind(jl_buf):
+    with rewind(jl_byte_buf):
+        jl_buf = io.TextIOWrapper(jl_byte_buf)
         for row in rows:
             json.dump(dict(zip(column_names, (value_to_json(v) for v in row))), jl_buf)
             jl_buf.write("\n")
-    return jl_buf
+        jl_buf.detach()
+    return jl_byte_buf
