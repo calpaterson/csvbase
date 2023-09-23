@@ -15,9 +15,21 @@ from . import utils
 
 
 @pytest.fixture(
-    scope="module", params=[ContentType.JSON, ContentType.HTML, ContentType.CSV]
+    scope="module",
+    params=[
+        ContentType.CSV,
+        ContentType.HTML,
+        ContentType.JSON,
+        # FIXME: Need to have a way to test these as well, even though we can't
+        # (with the exception of XLSX?) put them in an Accept header.  Another
+        # layer of indirection is needed to test extensions
+        # ContentType.JSON_LINES,
+        # ContentType.PARQUET,
+        # ContentType.XLSX,
+    ],
 )
 def content_type(request):
+    # FIXME: this should probably be called "Accept"
     yield request.param
 
 

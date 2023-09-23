@@ -276,12 +276,12 @@ ROW_ID_COLUMN = Column("csvbase_row_id", type_=ColumnType.INTEGER)
 
 @enum.unique
 class ContentType(enum.Enum):
-    HTML = "text/html"
     CSV = "text/csv"
-    JSON = "application/json"
-    PARQUET = "application/parquet"  # this is unofficial, but convenient
-    JSON_LINES = "application/x-jsonlines"  # no consensus
+    HTML = "text/html"
     HTML_FORM = "application/x-www-form-urlencoded"
+    JSON = "application/json"
+    JSON_LINES = "application/x-jsonlines"  # no consensus
+    PARQUET = "application/parquet"  # this is unofficial, but convenient
     XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
     @classmethod
