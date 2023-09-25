@@ -34,8 +34,13 @@ def app(crypt_context):
 
 
 @pytest.fixture(scope="session")
-def session_cls():
-    return sessionmaker(create_engine(get_db_url()))
+def engine():
+    return create_engine(get_db_url(), future=True)
+
+
+@pytest.fixture(scope="session")
+def session_cls(engine):
+    return sessionmaker(engine)
 
 
 @pytest.fixture(scope="session")
