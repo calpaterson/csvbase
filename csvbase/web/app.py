@@ -64,12 +64,11 @@ EXCEPTION_MESSAGE_CODE_MAP = {
         "that username is taken (in a different case)",
         400,
     ),
-    exc.CSVException: ("unable to parse that csv file", 400),
+    exc.CSVParseError: ("unable to parse that csv file", 400),
     exc.UnknownPaymentReferenceUUIDException: ("unknown payment reference", 404),
     exc.NotEnoughQuotaException: ("this would exceed your quota", 400),
     exc.InvalidTableNameException: ("that table name is invalid", 400),
     exc.InvalidUsernameNameException: ("that username is invalid", 400),
-    exc.BlankCSVException: ("that csv file is blank", 400),
     exc.TableDefinitionMismatchException: (
         "columns or types don't match existing",
         400,
@@ -153,7 +152,11 @@ def init_app() -> Flask:
                 resp.status_code = http_code
                 return resp
         else:
-            resp = jsonify({"error": message})
+            if isinstance(e, exc.CSVParseError):
+                doc = {"error": message, "detail": e.message}
+            else:
+                doc = {"error": message}
+            resp = jsonify(doc)
             resp.status_code = http_code
             return resp
 

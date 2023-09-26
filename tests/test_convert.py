@@ -7,6 +7,7 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 import pytest
 
+from csvbase.streams import rewind
 from csvbase.value_objs import ContentType
 
 SAMPLE_DATAFRAME = pd.DataFrame(
@@ -40,8 +41,8 @@ def test_convert__a_to_b(client, test_user, from_format, to_format):
     assert get_resp.status_code == 200
 
     buf = io.BytesIO()
-    methods[from_format](buf)
-    buf.seek(0)
+    with rewind(buf):
+        methods[from_format](buf)
 
     filename = Path("test").with_suffix("." + from_format.file_extension())
 

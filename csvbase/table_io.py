@@ -2,12 +2,13 @@ import json
 import csv
 from typing import List, Iterable, Mapping, Set, Tuple, Sequence, IO, Dict, Any
 import io
+from dataclasses import dataclass
 
 import xlsxwriter
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from . import conv
+from . import conv, exc
 from .streams import UserSubmittedCSVData, rewind
 from .value_objs import ColumnType, PythonType, Column
 from .json import value_to_json
@@ -49,17 +50,43 @@ def rows_to_parquet(
     return parquet_buf
 
 
+@dataclass
+class CSVParseErrorLocation:
+    row: int
+    column: Column
+    value: str
+
+
 def csv_to_rows(
     csv_buf: UserSubmittedCSVData, columns: Sequence[Column], dialect
 ) -> Iterable[UnmappedRow]:
+    """Parse a csv file into rows.
+
+    If there are problems parsing the row values, CSVParseError will be raised
+    with up to 10 error locations.
+
+    """
+    error_locations: List[CSVParseErrorLocation] = []
     reader = csv.reader(csv_buf, dialect)
     # FIXME: check that contents of this header matches the columns
     header = next(reader)  # pop the header, which is not useful
-    row_gen = (
-        [conv.from_string_to_python(col.type_, v) for col, v in zip(columns, line)]
-        for line in reader
-    )
-    return row_gen
+    for index, line in enumerate(reader, start=1):
+        row: UnmappedRow = []
+        for column, cell in zip(columns, line):
+            try:
+                parsed_value = conv.from_string_to_python(column.type_, cell)
+                row.append(parsed_value)
+            except exc.UnconvertableValueException:
+                error_locations.append(CSVParseErrorLocation(index, column, cell))
+        error_count = len(error_locations)
+        # stop yielding if we've encountered errors
+        if error_count == 0:
+            yield row
+        elif error_count > 10:
+            break
+    else:
+        if error_locations:
+            raise exc.CSVParseError("parse error(s)", error_locations)
 
 
 def buf_to_pf(buf: IO[bytes]) -> pq.ParquetFile:

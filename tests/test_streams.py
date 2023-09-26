@@ -43,14 +43,15 @@ def test_peek_csv(input_filename, expected_columns):
 
 
 @pytest.mark.parametrize(
-    "input_filename, expected_exception",
-    [("empty.csv", exc.BlankCSVException)],
+    "input_filename, expected_exception, expected_message",
+    [("empty.csv", exc.CSVParseError, "blank csv")],
 )
-def test_peek_csv_with_junk(input_filename, expected_exception):
+def test_peek_csv_with_junk(input_filename, expected_exception, expected_message):
     input_path = test_data / input_filename
     with input_path.open() as input_f:
-        with pytest.raises(expected_exception):
+        with pytest.raises(expected_exception) as e:
             peek_csv(input_f)
+            assert e.msg == expected_message  # type: ignore
 
 
 def test_rewind():

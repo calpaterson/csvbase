@@ -100,7 +100,10 @@ def test_create__with_a_blank_csv(client, test_user):
         headers={"Authorization": test_user.basic_auth(), "Content-Type": "text/csv"},
     )
     assert resp.status_code == 400, resp.data
-    assert resp.json == {"error": "that csv file is blank"}
+    assert resp.json == {
+        "error": "unable to parse that csv file",
+        "detail": "blank csv file",
+    }
 
 
 def test_create__blank_column_name(client, test_user):
@@ -460,7 +463,10 @@ def test_overwrite__with_blank_no_headers(client, test_user, ten_rows):
         headers={"Authorization": test_user.basic_auth()},
     )
     assert resp.status_code == 400
-    assert resp.json == {"error": "that csv file is blank"}
+    assert resp.json == {
+        "error": "unable to parse that csv file",
+        "detail": "blank csv file",
+    }
 
 
 def test_overwrite__with_just_header(client, test_user, ten_rows):

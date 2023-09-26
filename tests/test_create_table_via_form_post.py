@@ -30,16 +30,6 @@ def render_template_to_json():
 TESTCASES: Any = [({}, {"cols": [("", ColumnType.TEXT)]})]
 
 
-@pytest.mark.parametrize("url", ["/new-table", "/new-table/blank"])
-def test_new_table_with_invalid_name(client, url, test_user):
-    set_current_user(test_user)
-
-    resp = client.post(url, data={"table-name": "some table", "data-licence": 1})
-
-    assert resp.status_code == 400
-    assert resp.json == {"error": "that table name is invalid"}
-
-
 @pytest.mark.parametrize("query, kwargs", TESTCASES)
 def test_new_blank_table_form(client, query, kwargs):
     resp = client.get(url_for("csvbase.blank_table"))
@@ -51,7 +41,17 @@ def test_new_blank_table_form(client, query, kwargs):
     assert template_kwargs == kwargs
 
 
-def test_uploading_a_table_when_not_logged_in(client):
+@pytest.mark.parametrize("url", ["/new-table", "/new-table/blank"])
+def test_uploading_a_table__invalid_name(client, url, test_user):
+    set_current_user(test_user)
+
+    resp = client.post(url, data={"table-name": "some table", "data-licence": 1})
+
+    assert resp.status_code == 400
+    assert resp.json == {"error": "that table name is invalid"}
+
+
+def test_uploading_a_table__not_logged_in(client):
     table_name = f"test-table-{random_string()}"
     username = f"test-{random_string()}"
     resp = client.post(
@@ -69,7 +69,7 @@ def test_uploading_a_table_when_not_logged_in(client):
     assert resp.headers["Location"] == f"/{username}/{table_name}"
 
 
-def test_uploading_a_table_over_quota(client, test_user):
+def test_uploading_a_table__over_quota(client, test_user):
     set_current_user(test_user)
 
     resp1 = client.post(
@@ -114,7 +114,7 @@ def test_uploading_a_table(client, test_user):
     assert resp.headers["Location"] == f"/{test_user.username}/{table_name}"
 
 
-def test_uploading_a_table_with_csvbase_row_ids(client, test_user, ten_rows):
+def test_uploading_a_table__csvbase_row_ids(client, test_user, ten_rows):
     """Test that users can export tables with the row ids in them and then
     re-upload them.
 

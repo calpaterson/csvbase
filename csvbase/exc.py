@@ -94,22 +94,6 @@ class ProhibitedTableNameException(CSVBaseException):
     pass
 
 
-class UnconvertableValueException(CSVBaseException):
-    # FIXME: this also undoubtably needs row and column name
-    def __init__(self, expected_type: ColumnType, string: str):
-        self.expected_type = expected_type
-        self.string = string
-
-
-class CSVException(CSVBaseException):
-    def __init__(self, message: str):
-        self.message = message
-
-
-class BlankCSVException(CSVBaseException):
-    pass
-
-
 class BillingException(CSVBaseException):
     pass
 
@@ -125,3 +109,16 @@ class NotEnoughQuotaException(BillingException):
 
 class TableDefinitionMismatchException(CSVBaseException):
     pass
+
+
+class CSVParseError(CSVBaseException):
+    def __init__(self, message: str, error_locations=[]):
+        self.message = message
+        self.error_locations = error_locations
+
+
+class UnconvertableValueException(CSVBaseException):
+    # FIXME: this also undoubtably needs row and column name
+    def __init__(self, expected_type: ColumnType, string: str):
+        self.expected_type = expected_type
+        self.string = string

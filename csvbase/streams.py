@@ -87,7 +87,7 @@ def peek_csv(
     with rewind(csv_buf):
         buf = csv_buf.read(2048)
         if len(buf) == 0 or buf.isspace():
-            raise exc.BlankCSVException("blank csv file!")
+            raise exc.CSVParseError("blank csv file")
 
     with rewind(csv_buf):
         dialect = sniff_csv(csv_buf)
