@@ -1,8 +1,6 @@
-import pkg_resources
+import importlib.resources
 
 
 def get_version() -> str:
-    version = (
-        pkg_resources.resource_string("csvbase", "VERSION").decode("utf-8").strip()
-    )
+    version = importlib.resources.read_text("csvbase", "VERSION").strip()
     return version
