@@ -71,7 +71,7 @@ def csv_to_rows(
     # FIXME: check that contents of this header matches the columns
     header = next(reader)  # pop the header, which is not useful
     for index, line in enumerate(reader, start=1):
-        row: UnmappedRow = []
+        row: List[PythonType] = []
         for column, cell in zip(columns, line):
             try:
                 parsed_value = conv.from_string_to_python(column.type_, cell)
