@@ -9,9 +9,10 @@ import io
 import contextlib
 
 from typing_extensions import Protocol
-from cchardet import UniversalDetector
+import charset_normalizer
 import werkzeug
 
+from .constants import COPY_BUFFER_SIZE
 from . import conv, exc
 from .value_objs import ColumnType, Column
 
@@ -36,21 +37,20 @@ def byte_buf_to_str_buf(byte_buf: UserSubmittedBytes) -> codecs.StreamReader:
     """Convert a readable byte buffer into a readable str buffer.
 
     Tries to detect the character set along the way, falling back to utf-8."""
-    detector = UniversalDetector()
     with rewind(byte_buf):
-        for line in byte_buf.readlines():
-            detector.feed(line)
-            if detector.done:
-                break
-            if byte_buf.tell() > 1_000_000:
-                logger.warning("unable to detect after 1mb, giving up")
-                break
-        logger.info("detected: %s after %d bytes", detector.result, byte_buf.tell())
-    if detector.result["encoding"] is not None:
-        encoding = detector.result["encoding"]
-    else:
-        logger.warning("unable to detect charset, assuming utf-8")
+        sample = byte_buf.read(COPY_BUFFER_SIZE)
+        charset_matches = charset_normalizer.from_bytes(sample)
+        bytes_read = byte_buf.tell()
+        byte_count = file_length(byte_buf)
+
+    match = charset_matches.best()
+    if match is None:
+        logger.warning("unable to detect encoding: falling back to utf-8")
         encoding = "utf-8"
+    else:
+        encoding = match.encoding
+        logger.info("detected: %s after %d bytes", encoding, bytes_read)
+
     Reader = codecs.getreader(encoding)
     return Reader(byte_buf)
 
@@ -85,7 +85,7 @@ def peek_csv(
     """
     # FIXME: this should be part of a more robust way to check the size of files
     with rewind(csv_buf):
-        buf = csv_buf.read(2048)
+        buf = csv_buf.read(COPY_BUFFER_SIZE)
         if len(buf) == 0 or buf.isspace():
             raise exc.CSVParseError("blank csv file")
 
