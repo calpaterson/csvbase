@@ -59,6 +59,19 @@
                          accept=".tsv, .csv, text/csv, text/tab-separated-values">
                          <div class="form-text"><strong>A maximum of 50 megabytes.</strong> Either CSV or TSV works but be sure to include the header row.</div>
                 </div>
+                <div class="mb-3 row g-3">
+                  <div class="col-auto">
+                    <label for="encoding-select" class="col-form-label">File encoding</label>
+                  </div>
+                  <div class="col-auto">
+                    <select class="form-select" name="encoding" id="encoding-select">
+                      <option {% if not encoding %}selected{% endif %} value="">Auto-detect</option>
+                      {% for encoding in Encoding %}
+                        <option value="{{ encoding.value }}">{{encoding.value }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
               {% endif %}
             {% endblock %}
 

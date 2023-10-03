@@ -1,5 +1,5 @@
 from io import BytesIO
-from typing import Any
+from typing import Any, Sequence
 from unittest.mock import patch
 import pickle
 
@@ -9,7 +9,7 @@ from werkzeug.datastructures import FileStorage
 from flask import url_for
 import pytest
 from csvbase.web import main
-from csvbase.value_objs import ColumnType
+from csvbase.value_objs import ColumnType, Encoding
 from csvbase.web.func import set_current_user
 
 from .conftest import ROMAN_NUMERALS
@@ -158,6 +158,44 @@ def test_uploading_a_table__csvbase_row_ids(client, test_user, ten_rows):
     )
     actual_df = get_df_as_csv(client, resp.headers["Location"])
     assert_frame_equal(expected_df, actual_df[["roman_numeral"]])
+
+
+@pytest.mark.parametrize(
+    "csv_data, encoding, expected_values",
+    [
+        ("foo\n🪿🪿🪿".encode("utf-8"), Encoding.UTF_8, ["🪿🪿🪿"]),
+        ("foo\n£££".encode("latin1"), Encoding.LATIN_1, ["£££"]),
+        ("foo\n£££".encode("latin1"), Encoding.ISO8859_2, ["ŁŁŁ"]),
+    ],
+)
+def test_uploading_a_table__encoding(
+    client,
+    test_user,
+    csv_data: bytes,
+    encoding: Encoding,
+    expected_values: Sequence[str],
+):
+    """Test that users can specify an encoding when uploading a CSV file and
+    that the file data is decoded accordingly.
+    """
+
+    table_name = f"test-table-{random_string()}"
+    set_current_user(test_user)
+    resp = client.post(
+        "/new-table",
+        data={
+            "table-name": table_name,
+            "data-licence": "1",
+            "encoding": encoding.value,
+            "csv-file": (FileStorage(BytesIO(csv_data), "test.csv")),
+        },
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 302
+    assert resp.headers["Location"] == f"/{test_user.username}/{table_name}"
+
+    actual_df = get_df_as_csv(client, resp.headers["Location"])
+    assert actual_df["foo"].values == expected_values
 
 
 def test_blank_table(client, test_user):

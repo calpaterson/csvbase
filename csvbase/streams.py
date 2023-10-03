@@ -14,7 +14,7 @@ import werkzeug
 
 from .constants import COPY_BUFFER_SIZE
 from . import conv, exc
-from .value_objs import ColumnType, Column
+from .value_objs import ColumnType, Column, Encoding
 
 # FIXME: This module needs a lot of work.  It should probably contain:
 #
@@ -33,7 +33,7 @@ UserSubmittedBytes = Union[werkzeug.datastructures.FileStorage, io.BytesIO]
 logger = getLogger(__name__)
 
 
-def detect_encoding(byte_buf: UserSubmittedBytes) -> str:
+def detect_encoding(byte_buf: UserSubmittedBytes) -> Encoding:
     """Attempt to detect the encoding of the provided readable byte buffer.
 
     Falls back to utf-8 if unsuccessful.
@@ -46,20 +46,23 @@ def detect_encoding(byte_buf: UserSubmittedBytes) -> str:
 
     match = charset_matches.best()
     if match is None:
+        encoding = Encoding.UTF_8
         logger.warning("unable to detect encoding: falling back to utf-8")
-        encoding = "utf-8"
     else:
-        encoding = match.encoding
+        encoding = Encoding(match.encoding)
         logger.info("detected: %s after %d bytes", encoding, bytes_read)
 
     return encoding
 
 
-def byte_buf_to_str_buf(byte_buf: UserSubmittedBytes) -> codecs.StreamReader:
+def byte_buf_to_str_buf(
+    byte_buf: UserSubmittedBytes, encoding: Optional[Encoding] = None
+) -> codecs.StreamReader:
     """Convert a readable byte buffer into a readable str buffer.
 
-    Attempts to detect encoding."""
-    Reader = codecs.getreader(detect_encoding(byte_buf))
+    If no encoding is provided then an attempt is made to detect it."""
+    encoding = encoding or detect_encoding(byte_buf)
+    Reader = codecs.getreader(encoding.value)
     return Reader(byte_buf)
 
 

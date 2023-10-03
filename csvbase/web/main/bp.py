@@ -60,6 +60,7 @@ from ...value_objs import (
     Column,
     ColumnType,
     ContentType,
+    Encoding,
     DataLicence,
     KeySet,
     Page,
@@ -183,6 +184,7 @@ def upload_file() -> str:
         "new-table.html",
         method="upload-file",
         DataLicence=DataLicence,
+        Encoding=Encoding,
         action_url=url_for("csvbase.new_table_form_submission"),
         page_title="Upload a new table",
     )
@@ -233,7 +235,9 @@ def new_table_form_submission() -> Response:
     if textarea:
         csv_buf = io.StringIO(textarea)
     else:
-        csv_buf = streams.byte_buf_to_str_buf(request.files["csv-file"])
+        byte_buf = request.files["csv-file"]
+        encoding = request.form.get("encoding", type=Encoding)
+        csv_buf = streams.byte_buf_to_str_buf(byte_buf, encoding)
     dialect, columns = streams.peek_csv(csv_buf)
 
     PGUserdataAdapter.create_table(sesh, table_uuid, columns)
