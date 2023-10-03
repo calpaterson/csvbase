@@ -33,10 +33,11 @@ UserSubmittedBytes = Union[werkzeug.datastructures.FileStorage, io.BytesIO]
 logger = getLogger(__name__)
 
 
-def byte_buf_to_str_buf(byte_buf: UserSubmittedBytes) -> codecs.StreamReader:
-    """Convert a readable byte buffer into a readable str buffer.
+def detect_encoding(byte_buf: UserSubmittedBytes) -> str:
+    """Attempt to detect the encoding of the provided readable byte buffer.
 
-    Tries to detect the character set along the way, falling back to utf-8."""
+    Falls back to utf-8 if unsuccessful.
+    """
     with rewind(byte_buf):
         sample = byte_buf.read(COPY_BUFFER_SIZE)
         charset_matches = charset_normalizer.from_bytes(sample)
@@ -51,7 +52,14 @@ def byte_buf_to_str_buf(byte_buf: UserSubmittedBytes) -> codecs.StreamReader:
         encoding = match.encoding
         logger.info("detected: %s after %d bytes", encoding, bytes_read)
 
-    Reader = codecs.getreader(encoding)
+    return encoding
+
+
+def byte_buf_to_str_buf(byte_buf: UserSubmittedBytes) -> codecs.StreamReader:
+    """Convert a readable byte buffer into a readable str buffer.
+
+    Attempts to detect encoding."""
+    Reader = codecs.getreader(detect_encoding(byte_buf))
     return Reader(byte_buf)
 
 
