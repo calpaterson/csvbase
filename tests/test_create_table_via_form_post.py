@@ -11,6 +11,7 @@ import pytest
 from csvbase.web import main
 from csvbase.value_objs import ColumnType, Encoding
 from csvbase.web.func import set_current_user
+from csvbase import svc
 
 from .conftest import ROMAN_NUMERALS
 from .utils import random_string, get_df_as_csv, subscribe_user
@@ -51,7 +52,7 @@ def test_uploading_a_table__invalid_name(client, url, test_user):
     assert resp.json == {"error": "that table name is invalid"}
 
 
-def test_uploading_a_table__not_logged_in(client):
+def test_uploading_a_table__not_logged_in__happy(client):
     table_name = f"test-table-{random_string()}"
     username = f"test-{random_string()}"
     resp = client.post(
@@ -67,6 +68,52 @@ def test_uploading_a_table__not_logged_in(client):
     )
     assert resp.status_code == 302
     assert resp.headers["Location"] == f"/{username}/{table_name}"
+
+
+def test_uploading_a_table__not_logged_in__username_thats_taken(client, sesh, app):
+    table_name = f"test-table-{random_string()}"
+    username = f"test-{random_string()}"
+
+    svc.create_user(sesh, app.config["CRYPT_CONTEXT"], username, "password")
+    sesh.commit()
+
+    resp = client.post(
+        "/new-table",
+        data={
+            "username": username,
+            "password": "password",
+            "table-name": table_name,
+            "data-licence": "1",
+            "csv-file": (FileStorage(BytesIO(b"a,b,c\n1,2,3"), "test.csv")),
+        },
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 400, resp.data
+    assert resp.json == {"error": "that username is taken"}
+
+
+def test_uploading_a_table__not_logged_in__username_that_differs_only_by_case(
+    client, sesh, app
+):
+    table_name = f"test-table-{random_string()}"
+    username = f"test-{random_string()}"
+
+    svc.create_user(sesh, app.config["CRYPT_CONTEXT"], username, "password")
+    sesh.commit()
+
+    resp = client.post(
+        "/new-table",
+        data={
+            "username": username.capitalize(),
+            "password": "password",
+            "table-name": table_name,
+            "data-licence": "1",
+            "csv-file": (FileStorage(BytesIO(b"a,b,c\n1,2,3"), "test.csv")),
+        },
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 400, resp.data
+    assert resp.json == {"error": "that username is taken (in a different case)"}
 
 
 def test_uploading_a_table__over_quota(client, test_user):
