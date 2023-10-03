@@ -73,6 +73,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
         "columns or types don't match existing",
         400,
     ),
+    exc.WrongEncodingException: ("you sent a file with the wrong encoding", 400),
 }
 
 

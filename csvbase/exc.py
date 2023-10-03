@@ -122,3 +122,7 @@ class UnconvertableValueException(CSVBaseException):
     def __init__(self, expected_type: ColumnType, string: str):
         self.expected_type = expected_type
         self.string = string
+
+
+class WrongEncodingException(CSVBaseException):
+    pass

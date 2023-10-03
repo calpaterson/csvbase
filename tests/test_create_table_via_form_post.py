@@ -198,6 +198,35 @@ def test_uploading_a_table__encoding(
     assert actual_df["foo"].values == expected_values
 
 
+@pytest.mark.parametrize(
+    "csv_data, encoding",
+    [
+        ("foo\n🪿🪿🪿".encode("utf-8"), Encoding.ASCII),
+        ("foo\n£££".encode("latin_1"), Encoding.ASCII),
+    ],
+)
+def test_uploading_a_table__wrong_encoding(
+    client, test_user, csv_data: bytes, encoding: Encoding
+):
+    """Test that an exception is raised when a user attempts to upload a CSV
+    file that does not match the specified encoding."""
+
+    table_name = f"test-table-{random_string()}"
+    set_current_user(test_user)
+    resp = client.post(
+        "/new-table",
+        data={
+            "table-name": table_name,
+            "data-licence": "1",
+            "encoding": encoding.value,
+            "csv-file": (FileStorage(BytesIO(csv_data), "test.csv")),
+        },
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 400
+    assert resp.json == {"error": "you sent a file with the wrong encoding"}
+
+
 def test_blank_table(client, test_user):
     set_current_user(test_user)
     resp1 = client.post(

@@ -238,11 +238,15 @@ def new_table_form_submission() -> Response:
         byte_buf = request.files["csv-file"]
         encoding = request.form.get("encoding", type=Encoding)
         csv_buf = streams.byte_buf_to_str_buf(byte_buf, encoding)
-    dialect, columns = streams.peek_csv(csv_buf)
 
-    PGUserdataAdapter.create_table(sesh, table_uuid, columns)
-    table = svc.get_table(sesh, current_user.username, table_name)
-    rows = table_io.csv_to_rows(csv_buf, columns, dialect)
+    try:
+        dialect, columns = streams.peek_csv(csv_buf)
+        PGUserdataAdapter.create_table(sesh, table_uuid, columns)
+        table = svc.get_table(sesh, current_user.username, table_name)
+        rows = table_io.csv_to_rows(csv_buf, columns, dialect)
+    except UnicodeDecodeError as e:
+        raise exc.WrongEncodingException() from e
+
     PGUserdataAdapter.insert_table_data(
         sesh,
         table,
