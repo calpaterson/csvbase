@@ -378,6 +378,10 @@ def check_username_is_allowed(sesh: Session, username: str) -> None:
     if is_prohibited:
         logger.warning("username prohibited: %s", username)
         raise exc.ProhibitedUsernameException()
+    if username_exists(sesh, username):
+        raise exc.UsernameAlreadyExistsException(username)
+    if username_exists_insensitive(sesh, username):
+        raise exc.UsernameAlreadyExistsInDifferentCaseException(username)
 
 
 def is_correct_password(
