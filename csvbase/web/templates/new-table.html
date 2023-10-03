@@ -67,7 +67,9 @@
                     <select class="form-select" name="encoding" id="encoding-select">
                       <option {% if not encoding %}selected{% endif %} value="">Auto-detect</option>
                       {% for encoding in Encoding %}
-                        <option value="{{ encoding.value }}">{{encoding.value }}</option>
+                        <option value="{{ encoding.value }}">{{encoding.value }}
+                          {% if encoding.aliases %} ({{ encoding.aliases | join(', ') }}){% endif %}
+                        </option>
                       {% endfor %}
                     </select>
                   </div>

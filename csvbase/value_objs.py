@@ -1,3 +1,4 @@
+from collections import defaultdict
 from logging import getLogger
 from typing import (
     Optional,
@@ -18,6 +19,7 @@ from datetime import datetime, date, timedelta, timezone
 from dataclasses import dataclass
 import enum
 import binascii
+import encodings.aliases
 
 from dateutil.tz import gettz
 from sqlalchemy import types as satypes
@@ -440,3 +442,16 @@ class Encoding(enum.Enum):
     UTF_7 = "utf_7"
     UTF_8 = "utf_8"
     UTF_8_SIG = "utf_8_sig"
+
+    @property
+    def aliases(self) -> Sequence[str]:
+        return ENCODING_ALIASES_MAP[self.value]
+
+
+_encoding_aliases = defaultdict(list)
+for alias, encoding_value in encodings.aliases.aliases.items():
+    _encoding_aliases[encoding_value].append(alias)
+
+ENCODING_ALIASES_MAP = {
+    encoding.value: sorted(_encoding_aliases[encoding.value]) for encoding in Encoding
+}
