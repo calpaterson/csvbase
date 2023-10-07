@@ -8,7 +8,7 @@ from .utils import random_string
 def test_registering_no_whence(client):
     username = random_string()
     response = client.post(
-        "/register", data=dict(username=username, password="password")
+        "/register", data=dict(username=username, password="password", email="")
     )
     assert response.status_code == 302
     assert response.headers["Location"] == f"/{username}"
