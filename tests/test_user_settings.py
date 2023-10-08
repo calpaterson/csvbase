@@ -41,7 +41,7 @@ def test_user_settings__updating_delete_email(sesh, client, test_user):
 
     new_user_obj = svc.user_by_name(sesh, test_user.username)
     assert new_user_obj.timezone == new_timezone
-    assert new_user_obj.email == new_email
+    assert new_user_obj.email is None
 
 
 def test_nonsense_timezone(sesh, client, test_user):
