@@ -1315,10 +1315,6 @@ def register() -> Response:
     else:
         sesh = get_sesh()
         username = request.form["username"]
-        if svc.username_exists(sesh, username):
-            raise exc.UsernameAlreadyExistsException(username)
-        if svc.username_exists_insensitive(sesh, username):
-            raise exc.UsernameAlreadyExistsInDifferentCaseException(username)
 
         user = svc.create_user(
             sesh,
