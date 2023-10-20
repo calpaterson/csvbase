@@ -4,7 +4,6 @@ from datetime import timedelta
 from logging import getLogger
 from typing import (
     Any,
-    Dict,
     Mapping,
     Optional,
     Sequence,
@@ -22,6 +21,7 @@ from flask import (
     redirect,
     request,
     url_for,
+    render_template,
 )
 from flask import session as flask_session
 from flask.wrappers import Response as FlaskResponse
@@ -146,9 +146,24 @@ def init_app() -> Flask:
             elif isinstance(e, exc.NotEnoughQuotaException):
                 flash("You need to subscribe in order to do that")
                 return redirect(url_for("billing.pricing"))
+            elif isinstance(e, exc.CSVParseError):
+                resp = make_response(
+                    render_template(
+                        "csv_error.html",
+                        http_code=http_code,
+                        message=message,
+                        csv_parse_error=e,
+                    )
+                )
+                return resp
             else:
-                resp = make_response(f"http error code {http_code}: {message}")
-                resp.status_code = http_code
+                resp = make_response(
+                    render_template(
+                        "error.html",
+                        http_code=http_code,
+                        user_message=message
+                    )
+                )
                 return resp
         else:
             if isinstance(e, exc.CSVParseError):

@@ -63,13 +63,15 @@ def csv_to_rows(
     """Parse a csv file into rows.
 
     If there are problems parsing the row values, CSVParseError will be raised
-    with up to 10 error locations.
+    with up to 11 error locations.
 
     """
     error_locations: List[CSVParseErrorLocation] = []
     reader = csv.reader(csv_buf, dialect)
-    # FIXME: check that contents of this header matches the columns
-    header = next(reader)  # pop the header, which is not useful
+
+    # pop the header, which has already been considered
+    next(reader)
+
     for index, line in enumerate(reader, start=1):
         row: List[PythonType] = []
         for column, cell in zip(columns, line):

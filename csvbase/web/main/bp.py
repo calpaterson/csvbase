@@ -166,6 +166,10 @@ class ConvertForm(MethodView):
 
 bp.add_url_rule("/convert", "convert", view_func=ConvertForm.as_view("convert-form"))
 
+@bp.route("/csvparseerror")
+def xxx():
+    from csvbase.table_io import CSVParseErrorLocation
+    raise exc.CSVParseError("problem", [])
 
 @bp.route("/new-table/paste")
 def paste() -> str:
@@ -454,7 +458,9 @@ class TableView(MethodView):
 
         # FIXME: add checking for forms here
         byte_buf = io.BytesIO()
-        shutil.copyfileobj(request.stream, byte_buf)
+        # this rewind not necessary but here for defensiveness
+        with streams.rewind(byte_buf):
+            shutil.copyfileobj(request.stream, byte_buf)
         str_buf = streams.byte_buf_to_str_buf(byte_buf)
         dialect, columns = streams.peek_csv(str_buf, table.columns)
         rows = table_io.csv_to_rows(str_buf, columns, dialect)

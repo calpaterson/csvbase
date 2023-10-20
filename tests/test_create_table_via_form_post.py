@@ -8,6 +8,8 @@ from pandas.testing import assert_frame_equal
 from werkzeug.datastructures import FileStorage
 from flask import url_for
 import pytest
+
+from csvbase import table_io, exc
 from csvbase.web import main
 from csvbase.value_objs import ColumnType, Encoding
 from csvbase.web.func import set_current_user
@@ -161,6 +163,28 @@ def test_uploading_a_table(client, test_user):
     assert resp.headers["Location"] == f"/{test_user.username}/{table_name}"
 
 
+@patch.object(table_io, "csv_to_rows")
+def test_uploading_a_table__csv_error(fake_csv_to_rows, client, test_user):
+    """Test that our errors in reading a csv file manifest as some kind of
+    error page (with a hint) rather than a generic 500."""
+
+    fake_csv_to_rows.side_effect = exc.CSVParseError("parse error", [])
+
+    table_name = f"test-table-{random_string()}"
+    set_current_user(test_user)
+    resp = client.post(
+        "/new-table",
+        data={
+            "table-name": table_name,
+            "data-licence": "1",
+            "csv-file": (FileStorage(BytesIO(b"a,b,c\n1,2,3"), "test.csv")),
+        },
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 400
+    assert False
+
+
 def test_uploading_a_table__csvbase_row_ids(client, test_user, ten_rows):
     """Test that users can export tables with the row ids in them and then
     re-upload them.
@@ -276,22 +300,6 @@ def test_uploading_a_table__wrong_encoding(
 
 def test_blank_table(client, test_user):
     set_current_user(test_user)
-    resp1 = client.post(
-        "/new-table/blank",
-        data={
-            "col-name-1": "test",
-            "col-type-1": "TEXT",
-            "table-name": random_string(),
-            "data-licence": 1,
-            "private": "on",
-        },
-    )
-
-    assert resp1.status_code == 302
-
-
-@pytest.mark.xfail(reason="actual bug, needs fixing")
-def test_blank_table__and_register(client):
     resp1 = client.post(
         "/new-table/blank",
         data={
