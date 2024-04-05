@@ -23,5 +23,5 @@ stripe==5.4.0
 systemd-python==235
 toml==0.10.2
 typing-extensions==4.10.0
-werkzeug==2.3.7
+werkzeug==3.0.2
 xlsxwriter==3.0.9
