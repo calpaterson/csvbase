@@ -1,4 +1,4 @@
-black==22.3.0
+black==24.3.0
 bpython~=0.22.1
 feedparser==6.0.2
 mypy==0.982
