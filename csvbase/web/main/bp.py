@@ -1426,9 +1426,9 @@ def make_streaming_response(
     response.headers["Content-Length"] = str(streams.file_length(response_buf))
 
     if download_filename is not None:
-        response.headers[
-            "Content-Disposition"
-        ] = f'attachment; filename="{download_filename}"'
+        response.headers["Content-Disposition"] = (
+            f'attachment; filename="{download_filename}"'
+        )
     return response
 
 
