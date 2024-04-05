@@ -1189,7 +1189,7 @@ def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Resp
         vf_table_name = whence_view_func_and_args[1].get("table_name")
         if (
             hasattr(vf, "view_class")
-            and vf.view_class == TableView  # type: ignore
+            and vf.view_class == TableView
             and vf_username == username
             and vf_table_name == table_name
         ):
