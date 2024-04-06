@@ -290,11 +290,14 @@ def test_blank_table(client, test_user):
     assert resp1.status_code == 302
 
 
-@pytest.mark.xfail(reason="actual bug, needs fixing")
 def test_blank_table__and_register(client):
+    username = f"test-{random_string()}"
+
     resp1 = client.post(
         "/new-table/blank",
         data={
+            "username": username,
+            "password": "password",
             "col-name-1": "test",
             "col-type-1": "TEXT",
             "table-name": random_string(),
