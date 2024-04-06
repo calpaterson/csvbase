@@ -305,9 +305,20 @@ def blank_table() -> str:
 
 @bp.post("/new-table/blank")
 def blank_table_form_post() -> Response:
-    current_user = get_current_user_or_401()
-
     sesh = get_sesh()
+    if "username" in request.form:
+        current_user = svc.create_user(
+            sesh,
+            current_app.config["CRYPT_CONTEXT"],
+            request.form["username"],
+            request.form["password"],
+            request.form.get("email"),
+        )
+        sign_in_user(current_user)
+        flash("Account registered")
+    else:
+        current_user = get_current_user_or_401()
+
     quota = billing_svc.get_quota(sesh, current_user.user_uuid)
     usage = svc.get_usage(sesh, current_user.user_uuid)
     if "private" in request.form:
