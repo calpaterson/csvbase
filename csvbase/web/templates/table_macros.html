@@ -55,7 +55,7 @@
       {# <p>{{ praise_button(table, None) }}</p> #}
       <a class="card-link" href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">View</a>
       <a class="card-link" href="{{ url_for('csvbase.get_table_apidocs', username=table.username, table_name=table.table_name) }}">API</a>
-      <a class="card-link" href="{{ url_for('csvbase.export_table_csv', username=table.username, table_name=table.table_name) }}">Download CSV</a>
+      <a class="card-link" href="{{ url_for('csvbase.table_view_with_extension', username=table.username, table_name=table.table_name, extension='csv') }}">Download CSV</a>
     </div>
   </div>
 {% endmacro %}
