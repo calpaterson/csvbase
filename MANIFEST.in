@@ -1,6 +1,7 @@
 graft csvbase/web/templates
 graft csvbase/web/static
 include requirements.txt
+include requirements-test.txt
 include csvbase/VERSION
 include csvbase/data/prohibited-usernames
 global-exclude *.pyc

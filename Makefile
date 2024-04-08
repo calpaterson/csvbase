@@ -49,5 +49,5 @@ dump-schema:
 release: dist/csvbase-$VERSION-py3-none-any.whl
 
 dist/csvbase-$VERSION-py3-none-any.whl: static-deps
-	. .venv/bin/activate; python -m pip install build==0.7.0
+	. .venv/bin/activate; python -m pip install build==1.2.1
 	. .venv/bin/activate; python -m build
