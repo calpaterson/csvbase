@@ -41,6 +41,7 @@ from flask import session as flask_session
 from flask_cors import cross_origin, CORS
 from typing_extensions import Literal
 from werkzeug.wrappers.response import Response
+from werkzeug.wrappers.request import ImmutableMultiDict
 
 from ..func import (
     is_browser,
@@ -194,15 +195,7 @@ def upload_file() -> str:
 def new_table_form_submission() -> Response:
     sesh = get_sesh()
     if "username" in request.form:
-        current_user = svc.create_user(
-            sesh,
-            current_app.config["CRYPT_CONTEXT"],
-            request.form["username"],
-            request.form["password"],
-            request.form.get("email"),
-        )
-        sign_in_user(current_user)
-        flash("Account registered")
+        current_user = register_and_sign_in_new_user(sesh, request.form)
     else:
         current_user = get_current_user_or_401()
 
@@ -307,15 +300,7 @@ def blank_table() -> str:
 def blank_table_form_post() -> Response:
     sesh = get_sesh()
     if "username" in request.form:
-        current_user = svc.create_user(
-            sesh,
-            current_app.config["CRYPT_CONTEXT"],
-            request.form["username"],
-            request.form["password"],
-            request.form.get("email"),
-        )
-        sign_in_user(current_user)
-        flash("Account registered")
+        current_user = register_and_sign_in_new_user(sesh, request.form)
     else:
         current_user = get_current_user_or_401()
 
@@ -811,17 +796,8 @@ class CopyView(MethodView):
     def post(self, username: str, table_name: str) -> Response:
         sesh = get_sesh()
 
-        # FIXME: refactor to share
         if "username" in request.form:
-            current_user = svc.create_user(
-                sesh,
-                current_app.config["CRYPT_CONTEXT"],
-                request.form["username"],
-                request.form["password"],
-                request.form.get("email"),
-            )
-            sign_in_user(current_user)
-            flash("Account registered")
+            current_user = register_and_sign_in_new_user(sesh, request.form)
         else:
             current_user = get_current_user_or_401()
 
@@ -1458,7 +1434,7 @@ def negotiate_content_type(
 
 
 def sign_in_user(user: User, session: Optional[Any] = None) -> None:
-    """Sets the current user and sets a cookie to keep them loged in across
+    """Sets the current user and sets a cookie to keep them logged in across
     requests.
 
     """
@@ -1469,6 +1445,20 @@ def sign_in_user(user: User, session: Optional[Any] = None) -> None:
     session["user_uuid"] = user.user_uuid
     # Make it last for 31 days
     session.permanent = True
+
+
+def register_and_sign_in_new_user(sesh, form: ImmutableMultiDict[str, str]) -> User:
+    """Registers a new user and signs them in if the registration succeeds."""
+    new_user = svc.create_user(
+        sesh,
+        current_app.config["CRYPT_CONTEXT"],
+        form["username"],
+        form["password"],
+        form.get("email"),
+    )
+    sign_in_user(new_user)
+    flash("Account registered")
+    return new_user
 
 
 def json_or_400() -> Dict[str, Any]:
