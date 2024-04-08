@@ -21,7 +21,7 @@ def upgrade():
     op.create_check_constraint(
         op.f("ck_email_address_not_blank"),
         "user_emails",
-        "email_address <> ''",
+        "email_address != ''",
         "metadata",
     )
 
