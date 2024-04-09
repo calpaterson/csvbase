@@ -6,6 +6,7 @@ import re
 import pytest
 
 from csvbase.web.main.bp import from_html_form_to_python, make_table_view_etag
+from csvbase.web.func import safe_redirect
 from csvbase.value_objs import (
     ColumnType,
     Column,
@@ -15,6 +16,7 @@ from csvbase.value_objs import (
     RowCount,
     KeySet,
 )
+from csvbase import exc
 
 
 @pytest.mark.parametrize(
@@ -79,3 +81,30 @@ def test_table_view_etag():
     etag_regex = re.compile(r'W/"[A-Za-z0-9\-\._]+\.[A-Za-z0-9\-\._]+"')
     for e in etags:
         assert etag_regex.match(e), e
+
+
+@pytest.mark.parametrize(
+    "safe_url",
+    [
+        "/",
+        "/user/table",
+        "http://localhost/" "http://localhost/user/table",
+    ],
+)
+def test_safe_redirect__happy(app, safe_url):
+    with app.app_context():
+        response = safe_redirect(safe_url)
+    assert response.headers["Location"] == safe_url
+
+
+@pytest.mark.parametrize(
+    "unsafe_url",
+    [
+        "https://www.google.com/",
+        "ftp://localhost.com",
+    ],
+)
+def test_safe_redirect__unhappy(app, unsafe_url):
+    with app.app_context():
+        with pytest.raises(exc.InvalidRequest):
+            safe_redirect(unsafe_url)

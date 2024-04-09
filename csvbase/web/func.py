@@ -7,7 +7,8 @@ from urllib.parse import urlsplit, urlparse
 
 import werkzeug
 import werkzeug.exceptions
-from flask import request, g, current_app, Request
+from werkzeug.wrappers.response import Response
+from flask import request, g, current_app, Request, redirect as unsafe_redirect
 from flask_babel import get_locale, dates
 
 from .. import exc
@@ -133,3 +134,18 @@ def is_url(text_string: str) -> bool:
             pass
 
     return False
+
+
+def safe_redirect(to_raw: str) -> Response:
+    """Redirect to a url, but only if it matches our server name.
+
+    Intended for untrusted user-supplied input (ie: whence url params)."""
+    to = urlparse(to_raw)
+    base_url = urlparse(request.base_url)
+    # relative link
+    if to.scheme == "" and to.netloc == "":
+        return unsafe_redirect(to_raw)
+    elif to.scheme == base_url.scheme and to.netloc == base_url.netloc:
+        return unsafe_redirect(to_raw)
+    else:
+        raise exc.InvalidRequest(f"won't redirect outside of {request.base_url}")

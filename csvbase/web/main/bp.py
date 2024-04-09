@@ -49,6 +49,7 @@ from ..func import (
     get_current_user_or_401,
     get_current_user,
     reverse_url_for,
+    safe_redirect,
 )
 from ... import exc, svc, streams, table_io
 from ...json import value_to_json, json_to_value
@@ -940,7 +941,7 @@ def praise_table(username: str, table_name: str) -> Response:
         svc.praise(sesh, username, table_name, g.current_user.user_uuid)
     sesh.commit()
 
-    return redirect(whence)
+    return safe_redirect(whence)
 
 
 @bp.post("/<username>/<table_name:table_name>/rows/")
@@ -1162,7 +1163,7 @@ def update_row_by_form_post(username: str, table_name: str, row_id: int) -> Resp
     svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()
     flash(f"Updated row {row_id}")
-    return redirect(whence)
+    return safe_redirect(whence)
 
 
 @bp.get("/<username>")
@@ -1283,7 +1284,7 @@ def register() -> Response:
         whence = request.form.get(
             "whence", url_for("csvbase.user", username=user.username)
         )
-        return redirect(whence)
+        return safe_redirect(whence)
 
 
 @bp.route("/sign-in", methods=["GET", "POST"])
@@ -1309,7 +1310,7 @@ def sign_in() -> Response:
             )
             flash(f"Signed in as {username}")
             if "whence" in request.form:
-                return redirect(request.form["whence"])
+                return safe_redirect(request.form["whence"])
             else:
                 return redirect(
                     url_for("csvbase.user", username=request.form["username"])
@@ -1324,7 +1325,7 @@ def sign_out():
     flask_session.clear()
     flash("Signed out")
     if request.referrer:
-        return redirect(request.referrer)
+        return safe_redirect(request.referrer)
     else:
         return redirect(url_for("csvbase.paste"))
 
