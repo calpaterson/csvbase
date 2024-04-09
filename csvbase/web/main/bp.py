@@ -195,7 +195,7 @@ def upload_file() -> str:
 def new_table_form_submission() -> Response:
     sesh = get_sesh()
     if "username" in request.form:
-        current_user = register_and_sign_in_new_user(sesh, request.form)
+        current_user = register_and_sign_in_new_user(sesh)
     else:
         current_user = get_current_user_or_401()
 
@@ -300,7 +300,7 @@ def blank_table() -> str:
 def blank_table_form_post() -> Response:
     sesh = get_sesh()
     if "username" in request.form:
-        current_user = register_and_sign_in_new_user(sesh, request.form)
+        current_user = register_and_sign_in_new_user(sesh)
     else:
         current_user = get_current_user_or_401()
 
@@ -812,7 +812,7 @@ class CopyView(MethodView):
         sesh = get_sesh()
 
         if "username" in request.form:
-            current_user = register_and_sign_in_new_user(sesh, request.form)
+            current_user = register_and_sign_in_new_user(sesh)
         else:
             current_user = get_current_user_or_401()
 
@@ -1414,8 +1414,9 @@ def sign_in_user(user: User, session: Optional[Any] = None) -> None:
     session.permanent = True
 
 
-def register_and_sign_in_new_user(sesh, form: ImmutableMultiDict[str, str]) -> User:
+def register_and_sign_in_new_user(sesh) -> User:
     """Registers a new user and signs them in if the registration succeeds."""
+    form = request.form
     new_user = svc.create_user(
         sesh,
         current_app.config["CRYPT_CONTEXT"],
