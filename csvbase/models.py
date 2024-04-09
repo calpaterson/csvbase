@@ -82,7 +82,7 @@ class User(Base):
 class UserEmail(Base):
     __tablename__ = "user_emails"
     __table_args__ = (
-        CheckConstraint("email_address != ''", "ck_email_address_not_blank"),
+        CheckConstraint("email_address != ''", "email_address_not_blank"),
         METADATA_SCHEMA_TABLE_ARG,
     )
 
