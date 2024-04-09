@@ -510,36 +510,7 @@ def table_view_with_extension(
 
     table = svc.get_table(sesh, username, table_name)
 
-    if content_type == ContentType.XLSX:
-        excel_table = "excel-table" in request.args
-
-        columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
-        rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
-        xlsx_buf = table_io.rows_to_xlsx(columns, rows, excel_table=excel_table)
-        return make_streaming_response(
-            xlsx_buf,
-            ContentType.XLSX,
-            make_download_filename(username, table_name, "xlsx"),
-        )
-    elif content_type == ContentType.CSV:
-        separator = request.args.get("separator", "comma")
-        try:
-            delimiter = CSV_SEPARATOR_MAP[separator]
-        except KeyError:
-            raise exc.InvalidRequest(f"invalid separator: {separator}")
-
-        columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
-        rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
-        csv_buf = table_io.rows_to_csv(columns, rows, delimiter=delimiter)
-
-        extension = "tsv" if separator == "tab" else "csv"
-        return make_streaming_response(
-            csv_buf,
-            ContentType.CSV,
-            make_download_filename(username, table_name, extension),
-        )
-    else:
-        return make_table_view_response(sesh, content_type, table)
+    return make_table_view_response(sesh, content_type, table)
 
 
 def ensure_not_over_the_top(table: Table, keyset: KeySet, page: Page) -> None:
@@ -554,9 +525,12 @@ def ensure_not_over_the_top(table: Table, keyset: KeySet, page: Page) -> None:
 
 
 def make_table_view_response(sesh, content_type: ContentType, table: Table) -> Response:
+    """Build a representation of a table for a content-type and return a
+    response ready to be returned from a handler."""
     keyset = keyset_from_request_args()
     etag = make_table_view_etag(table, content_type, keyset)
 
+    # First, check if we can early-exit without doing anything based on etags
     if_none_match = request.headers.get("If-None-Match", None)
     if if_none_match == etag:
         logger.debug("matched etag (%s), returning 304", etag)
@@ -571,6 +545,7 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
     else:
         logger.debug("no matching etag")
 
+    # If the representation is page based:
     if content_type in {ContentType.HTML, ContentType.JSON}:
         page = PGUserdataAdapter.table_page(sesh, table, keyset)
         ensure_not_over_the_top(table, keyset, page)
@@ -615,37 +590,44 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                     jsonify(table_to_json_dict(table, page)), etag
                 ),
             )
-    elif content_type is ContentType.PARQUET:
-        columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
-        rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
-        return add_table_metadata_headers(
-            table,
-            add_table_view_cache_headers(
-                make_streaming_response(table_io.rows_to_parquet(columns, rows)), etag
-            ),
+
+    # If the representation is whole-table:
+    columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
+    rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
+    if content_type is ContentType.PARQUET:
+        streaming_response = make_streaming_response(
+            table_io.rows_to_parquet(columns, rows)
         )
     elif content_type is ContentType.JSON_LINES:
-        columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
-        rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
-        return add_table_metadata_headers(
-            table,
-            add_table_view_cache_headers(
-                make_streaming_response(table_io.rows_to_jsonlines(columns, rows)),
-                etag,
-            ),
+        streaming_response = make_streaming_response(
+            table_io.rows_to_jsonlines(columns, rows)
+        )
+    elif content_type is ContentType.XLSX:
+        excel_table = "excel-table" in request.args
+        xlsx_buf = table_io.rows_to_xlsx(columns, rows, excel_table=excel_table)
+        streaming_response = make_streaming_response(
+            xlsx_buf,
+            ContentType.XLSX,
+            make_download_filename(table.username, table.table_name, "xlsx"),
         )
     else:
-        columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
-        rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
-        return add_table_metadata_headers(
-            table,
-            add_table_view_cache_headers(
-                make_streaming_response(
-                    table_io.rows_to_csv(columns, rows), ContentType.CSV
-                ),
-                etag,
-            ),
+        # text/csv by default
+        separator = request.args.get("separator", "comma")
+        try:
+            delimiter = CSV_SEPARATOR_MAP[separator]
+        except KeyError:
+            raise exc.InvalidRequest(f"invalid separator: {separator}")
+
+        extension = "tsv" if separator == "tab" else "csv"
+        streaming_response = make_streaming_response(
+            table_io.rows_to_csv(columns, rows, delimiter=delimiter),
+            ContentType.CSV,
+            make_download_filename(table.username, table.table_name, extension),
         )
+
+    with_cache_headers = add_table_view_cache_headers(streaming_response, etag)
+    with_metadata_headers = add_table_metadata_headers(table, with_cache_headers)
+    return with_metadata_headers
 
 
 def keyset_to_dict(keyset: KeySet) -> Dict:
