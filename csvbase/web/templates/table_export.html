@@ -5,7 +5,7 @@
   <div class="container">
     <div class="row mb-3">
       <h2>Export to MS Excel</h2>
-      <form action="{{ url_for('csvbase.export_table_xlsx', username=table.username, table_name=table.table_name) }}">
+      <form action="{{ url_for('csvbase.table_view_with_extension', username=table.username, table_name=table.table_name, extension='xlsx') }}">
         <div class="mb-3 form-check">
           <input type="checkbox" class="form-check-input" disabled checked id="excel-row-id" name="row-id">
           <label class="form-check-label" for="excel-row-id">Include <code>csvbase_row_id</code></label>
@@ -22,7 +22,7 @@
 
     <div class="row mb-3">
       <h2>Export to CSV/TSV</h2>
-      <form action="{{ url_for('csvbase.export_table_csv', username=table.username, table_name=table.table_name) }}">
+      <form action="{{ url_for('csvbase.table_view_with_extension', username=table.username, table_name=table.table_name, extension='csv') }}">
         <div class="mb-3 form-check">
           <input type="checkbox" class="form-check-input" disabled checked id="excel-row-id" name="row-id">
           <label class="form-check-label" for="excel-row-id">Include <code>csvbase_row_id</code></label>

@@ -490,7 +490,11 @@ def delete_table_form_post(username: str, table_name: str) -> Response:
     return redirect(url_for("csvbase.user", username=username))
 
 
+CSV_SEPARATOR_MAP: Mapping[str, str] = {"comma": ",", "tab": "\t", "vertical-bar": "|"}
+
+
 @bp.get("/<username>/<table_name:table_name>.<extension>")
+@bp.get("/<username>/<table_name:table_name>/export/<extension>")
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
 def table_view_with_extension(
     username: str, table_name: str, extension: str
@@ -506,7 +510,36 @@ def table_view_with_extension(
 
     table = svc.get_table(sesh, username, table_name)
 
-    return make_table_view_response(sesh, content_type, table)
+    if content_type == ContentType.XLSX:
+        excel_table = "excel-table" in request.args
+
+        columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
+        rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
+        xlsx_buf = table_io.rows_to_xlsx(columns, rows, excel_table=excel_table)
+        return make_streaming_response(
+            xlsx_buf,
+            ContentType.XLSX,
+            make_download_filename(username, table_name, "xlsx"),
+        )
+    elif content_type == ContentType.CSV:
+        separator = request.args.get("separator", "comma")
+        try:
+            delimiter = CSV_SEPARATOR_MAP[separator]
+        except KeyError:
+            raise exc.InvalidRequest(f"invalid separator: {separator}")
+
+        columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
+        rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
+        csv_buf = table_io.rows_to_csv(columns, rows, delimiter=delimiter)
+
+        extension = "tsv" if separator == "tab" else "csv"
+        return make_streaming_response(
+            csv_buf,
+            ContentType.CSV,
+            make_download_filename(username, table_name, extension),
+        )
+    else:
+        return make_table_view_response(sesh, content_type, table)
 
 
 def ensure_not_over_the_top(table: Table, keyset: KeySet, page: Page) -> None:
@@ -939,54 +972,6 @@ def praise_table(username: str, table_name: str) -> Response:
     sesh.commit()
 
     return redirect(whence)
-
-
-# FIXME: These two endpoints should be folded into table_view_with_extension
-# and deleted
-@bp.get("/<username>/<table_name:table_name>.xlsx")
-@bp.get("/<username>/<table_name:table_name>/export/xlsx")
-def export_table_xlsx(username: str, table_name: str) -> Response:
-    sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    table = svc.get_table(sesh, username, table_name)
-
-    excel_table = "excel-table" in request.args
-
-    columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
-    rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
-    xlsx_buf = table_io.rows_to_xlsx(columns, rows, excel_table=excel_table)
-    return make_streaming_response(
-        xlsx_buf,
-        ContentType.XLSX,
-        make_download_filename(username, table_name, "xlsx"),
-    )
-
-
-CSV_SEPARATOR_MAP: Mapping[str, str] = {"comma": ",", "tab": "\t", "vertical-bar": "|"}
-
-
-@bp.get("/<username>/<table_name:table_name>/export/csv")
-def export_table_csv(username: str, table_name: str) -> Response:
-    sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    table = svc.get_table(sesh, username, table_name)
-
-    separator = request.args.get("separator", "comma")
-    try:
-        delimiter = CSV_SEPARATOR_MAP[separator]
-    except KeyError:
-        raise exc.InvalidRequest(f"invalid separator: {separator}")
-
-    columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
-    rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
-    csv_buf = table_io.rows_to_csv(columns, rows, delimiter=delimiter)
-
-    extension = "tsv" if separator == "tab" else "csv"
-    return make_streaming_response(
-        csv_buf,
-        ContentType.CSV,
-        make_download_filename(username, table_name, extension),
-    )
 
 
 @bp.post("/<username>/<table_name:table_name>/rows/")
