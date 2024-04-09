@@ -1212,7 +1212,7 @@ def user_settings(username: str) -> Response:
         if timezone not in timezones:
             raise exc.InvalidRequest()
         user.timezone = timezone
-        user.email = request.form["email"]
+        user.email = request.form.get("email")
         svc.update_user(sesh, user)
         sesh.commit()
         flash("Updated settings")
