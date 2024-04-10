@@ -135,6 +135,18 @@ def test_read__happy(client, ten_rows, test_user, content_type):
     # returned
     assert resp.headers.get("Content-Length", default=None, type=int) == len(resp.data)
 
+    # test that the cache headers are as expected
+    cc_obj = resp.cache_control
+    vary = resp.headers.get("Vary")
+    assert cc_obj.max_age == 60
+    assert cc_obj.no_cache
+    assert vary == "Accept, Cookie"
+
+    if content_type == ContentType.HTML:
+        assert cc_obj.private
+    else:
+        assert cc_obj.private is None
+
     if content_type is ContentType.JSON:
         expected_page_dict = {
             "rows": [
@@ -193,11 +205,11 @@ def test_read__etag_cache_hit(client, ten_rows, test_user, content_type):
     first_cc = first_resp.cache_control
     if content_type == ContentType.HTML:
         assert etag is None
-        assert first_cc.max_age == 0
+        assert first_cc.max_age == 60
         assert first_cc.private
     else:
         assert etag.startswith("W/")
-        assert first_cc.max_age == 0
+        assert first_cc.max_age == 60
         assert not first_cc.private
 
     second_resp = client.get(
@@ -329,14 +341,16 @@ def test_read__is_private_not_authed(client, private_table, test_user, content_t
         assert resp.json == {"error": "that table does not exist"}
 
 
-@pytest.mark.xfail(reason="test not implemented", strict=True)
-def test_read__is_private_am_authed(client, private_table, test_user):
+def test_read__is_private_am_authed(client, private_table, test_user, content_type):
     resp = client.get(
         f"/{test_user.username}/{private_table}",
         headers={"Authorization": test_user.basic_auth()},
     )
     assert resp.status_code == 200, resp.data
-    assert resp.json == {"row_id": 1, "row": {"x": 1}}
+
+    cc_obj = resp.cache_control
+    assert cc_obj.private, "Cache-Control does not include 'private'"
+    assert cc_obj.no_cache
 
 
 def test_read__empty_table(sesh, client, test_user, content_type):

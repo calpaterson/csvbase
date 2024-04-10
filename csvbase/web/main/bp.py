@@ -532,9 +532,9 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
     if if_none_match == etag:
         logger.debug("matched etag (%s), returning 304", etag)
         response = Response(status=304)
-        return add_table_metadata_headers(
-            table, add_table_view_cache_headers(response, etag)
-        )
+        response = add_table_view_cache_headers(table, response, etag)
+        response = add_table_metadata_headers(table, response)
+        return response
     elif if_none_match is not None:
         logger.info(
             "provided etag (%s) doesn't match current (%s)", if_none_match, etag
@@ -577,16 +577,15 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                 )
             )
             # HTML doesn't get an etag - too hard to key everything that goes in
-            return add_table_metadata_headers(
-                table, add_table_view_cache_headers(response)
-            )
+            response = add_table_view_cache_headers(table, response)
+            response = add_table_metadata_headers(table, response)
+            return response
         else:
-            return add_table_metadata_headers(
-                table,
-                add_table_view_cache_headers(
-                    jsonify(table_to_json_dict(table, page)), etag
-                ),
+            response = add_table_view_cache_headers(
+                table, jsonify(table_to_json_dict(table, page)), etag
             )
+            response = add_table_metadata_headers(table, response)
+            return response
 
     # If the representation is whole-table:
     columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
@@ -622,7 +621,7 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
             make_download_filename(table.username, table.table_name, extension),
         )
 
-    with_cache_headers = add_table_view_cache_headers(streaming_response, etag)
+    with_cache_headers = add_table_view_cache_headers(table, streaming_response, etag)
     with_metadata_headers = add_table_metadata_headers(table, with_cache_headers)
     return with_metadata_headers
 
@@ -683,26 +682,30 @@ def add_table_metadata_headers(table: Table, response: Response) -> Response:
 
 
 def add_table_view_cache_headers(
-    response: Response, etag: Optional[str] = None
+    table: Table, response: Response, etag: Optional[str] = None
 ) -> Response:
-    """Set the ETag and xkey (varnish) cache headers relevant to table views."""
-    # Don't set private here - that should already have been done above (and we
-    # don't know, here, whether a given table is private or not)
-
+    """Set the Cache-Control, ETag and xkey (varnish) cache headers relevant to
+    table views."""
     if etag is not None:
         response.headers["ETag"] = etag
 
-    # Setting max_age to 0 indicates that this response is always stale and
-    # should be revalidated
-    response.cache_control.max_age = 0
+    # Confusingly, no-cache indicates that caches may cache, but must
+    # revalidate the respresention each time (eg with ETags)
+    response.cache_control.no_cache = True
 
-    # HTML views show usernames, other personal data, and we have to indicate
-    # if it's an HTML view that the Cookie header is part of the cache key
-    if response.mimetype == ContentType.HTML.value:
+    # Currently keeping the max age short to limit the chaos in the case of a
+    # bug
+    response.cache_control.max_age = 60
+
+    # The advice on "Vary" is to return the same value for every response from
+    # a URL, and we want the cache key to include "Cookie"
+    response.headers["Vary"] = "Accept, Cookie"
+
+    # HTML views show usernames, other personal data.  "private" restricts
+    # caching of these responses to local caches only.  This is also set for
+    # private tables.
+    if response.mimetype == ContentType.HTML.value or not table.is_public:
         response.cache_control.private = True
-        response.headers["Vary"] = "Accept, Cookie"
-    else:
-        response.headers["Vary"] = "Accept"
 
     # xkeys are used by varnish to do invalidation - currently not used because
     # etags works well enough for now
