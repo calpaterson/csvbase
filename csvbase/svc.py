@@ -161,7 +161,7 @@ def update_user_email(sesh, user: User) -> None:
     if user.email == "":
         logger.warning("empty string email address")
     # HTML forms submit empty fields as blank strings.
-    if user.email is None or user.email == "":
+    if user.email is None or "@" not in user.email:
         sesh.query(models.UserEmail).filter(
             models.UserEmail.user_uuid == user.user_uuid
         ).delete()
@@ -340,7 +340,7 @@ def create_user(
         registered=registered,
     )
     # HTML forms submit empty fields as blank strings.
-    if email is not None and email != "":
+    if email is not None and "@" in email:
         user.email_obj = models.UserEmail(email_address=email)
     user.api_key = models.APIKey(api_key=secrets.token_bytes(16))
 
