@@ -1002,32 +1002,6 @@ def create_row(username: str, table_name: str) -> Response:
         )
 
 
-@bp.get("/<username>/<table_name:table_name>/rows/<int:row_id>")
-@cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT", "DELETE"])
-def get_row(username: str, table_name: str, row_id: int) -> Response:
-    sesh = get_sesh()
-    svc.user_exists(sesh, username)
-    if not svc.is_public(sesh, username, table_name) and not am_user(username):
-        raise exc.TableDoesNotExistException(username, table_name)
-    table = svc.get_table(sesh, username, table_name)
-    row = PGUserdataAdapter.get_row(sesh, table.table_uuid, row_id)
-    if row is None:
-        raise exc.RowDoesNotExistException(username, table_name, row_id)
-    if is_browser():
-        return make_response(
-            render_template(
-                "row-view-or-edit.html",
-                page_title=f"{username}/{table_name}/rows/{row_id}",
-                row=row,
-                row_id=row_id,
-                table=table,
-            )
-        )
-    else:
-        table = svc.get_table(sesh, username, table_name)
-        return jsonify(row_to_json_dict(table, row))
-
-
 @bp.get("/<username>/<table_name:table_name>/add-row-form")
 def row_add_form(username: str, table_name: str) -> Response:
     sesh = get_sesh()
@@ -1066,39 +1040,69 @@ def row_delete_check(username: str, table_name: str, row_id: int) -> Response:
     )
 
 
-@bp.put("/<username>/<table_name:table_name>/rows/<int:row_id>")
-@cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT", "DELETE"])
-def update_row(username: str, table_name: str, row_id: int) -> Response:
-    sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    table = svc.get_table(sesh, username, table_name)
+class RowView(MethodView):
+    """This covers the part of the row API that is concerned with named
+    individual rows."""
 
-    body = json_or_400()
-    if body["row_id"] != row_id:
-        raise exc.InvalidRequest("can't change row ids via an update")
-    row = {c: json_to_value(c.type_, body["row"][c.name]) for c in table.user_columns()}
-    row[table.row_id_column()] = row_id
+    def get(self, username: str, table_name: str, row_id: int) -> Response:
+        sesh = get_sesh()
+        svc.user_exists(sesh, username)
+        if not svc.is_public(sesh, username, table_name) and not am_user(username):
+            raise exc.TableDoesNotExistException(username, table_name)
+        table = svc.get_table(sesh, username, table_name)
+        row = PGUserdataAdapter.get_row(sesh, table.table_uuid, row_id)
+        if row is None:
+            raise exc.RowDoesNotExistException(username, table_name, row_id)
+        if is_browser():
+            return make_response(
+                render_template(
+                    "row-view-or-edit.html",
+                    page_title=f"{username}/{table_name}/rows/{row_id}",
+                    row=row,
+                    row_id=row_id,
+                    table=table,
+                )
+            )
+        else:
+            table = svc.get_table(sesh, username, table_name)
+            return jsonify(row_to_json_dict(table, row))
 
-    if not PGUserdataAdapter.update_row(sesh, table.table_uuid, row_id, row):
-        raise exc.RowDoesNotExistException(username, table_name, row_id)
-    svc.mark_table_changed(sesh, table.table_uuid)
-    sesh.commit()
-    return jsonify(body)
+    def put(self, username: str, table_name: str, row_id: int) -> Response:
+        sesh = get_sesh()
+        svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+        table = svc.get_table(sesh, username, table_name)
+
+        body = json_or_400()
+        if body["row_id"] != row_id:
+            raise exc.InvalidRequest("can't change row ids via an update")
+        row = {
+            c: json_to_value(c.type_, body["row"][c.name]) for c in table.user_columns()
+        }
+        row[table.row_id_column()] = row_id
+
+        if not PGUserdataAdapter.update_row(sesh, table.table_uuid, row_id, row):
+            raise exc.RowDoesNotExistException(username, table_name, row_id)
+        svc.mark_table_changed(sesh, table.table_uuid)
+        sesh.commit()
+        return jsonify(body)
+
+    def delete(self, username: str, table_name: str, row_id: int) -> Response:
+        sesh = get_sesh()
+        svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+        table = svc.get_table(sesh, username, table_name)
+        if not PGUserdataAdapter.delete_row(sesh, table.table_uuid, row_id):
+            raise exc.RowDoesNotExistException(username, table_name, row_id)
+        svc.mark_table_changed(sesh, table.table_uuid)
+        sesh.commit()
+        response = make_response()
+        response.status_code = 204
+        return response
 
 
-@bp.delete("/<username>/<table_name:table_name>/rows/<int:row_id>")
-@cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT", "DELETE"])
-def delete_row(username: str, table_name: str, row_id: int) -> Response:
-    sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
-    table = svc.get_table(sesh, username, table_name)
-    if not PGUserdataAdapter.delete_row(sesh, table.table_uuid, row_id):
-        raise exc.RowDoesNotExistException(username, table_name, row_id)
-    svc.mark_table_changed(sesh, table.table_uuid)
-    sesh.commit()
-    response = make_response()
-    response.status_code = 204
-    return response
+bp.add_url_rule(
+    "/<username>/<table_name:table_name>/rows/<int:row_id>",
+    view_func=RowView.as_view("row_view"),
+)
 
 
 @bp.post(
@@ -1462,7 +1466,7 @@ def row_to_json_dict(table: Table, row: Row, omit_row_id=False) -> Dict[str, Any
         row_id = row_id_from_row(row)
         json_dict["row_id"] = row_id
         json_dict["url"] = url_for(
-            "csvbase.get_row",
+            "csvbase.row_view",
             username=table.username,
             table_name=table.table_name,
             row_id=row_id,

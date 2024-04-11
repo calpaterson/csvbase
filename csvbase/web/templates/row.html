@@ -7,7 +7,7 @@
            >{{ table.username }}</a> / <a
            href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}"
            >{{ table.table_name }}</a> / rows / <a
-                        href="{{ url_for('csvbase.get_row', username=table.username, table_name=table.table_name, row_id=row_id) }}"
+                        href="{{ url_for('csvbase.row_view', username=table.username, table_name=table.table_name, row_id=row_id) }}"
                         >{{ row_id }}</a></h1>
   </div>
 

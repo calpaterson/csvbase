@@ -12,17 +12,17 @@ import pytest
         ("POST", "csvbase.create_row", {"username": "test", "table_name": "test"}),
         (
             "PUT",
-            "csvbase.update_row",
+            "csvbase.row_view",
             {"username": "test", "table_name": "test", "row_id": 1},
         ),
         (
             "GET",
-            "csvbase.get_row",
+            "csvbase.row_view",
             {"username": "test", "table_name": "test", "row_id": 1},
         ),
         (
             "DELETE",
-            "csvbase.delete_row",
+            "csvbase.row_view",
             {"username": "test", "table_name": "test", "row_id": 1},
         ),
         ("PUT", "csvbase.table_view", {"username": "test", "table_name": "test"}),

@@ -1,3 +1,4 @@
+from csvbase.web.func import set_current_user
 from datetime import datetime
 import pytest
 
@@ -106,19 +107,23 @@ def test_create__wrong_user(client, ten_rows, test_user, app, sesh):
     assert resp.json == {"error": "that's not allowed"}
 
 
-def test_read__happy(client, ten_rows, test_user):
-    resp = client.get(f"/{test_user.username}/{ten_rows.table_name}/rows/1")
+def test_read__happy(client, ten_rows, test_user, content_type):
+    resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}/rows/1",
+        headers={"Accept": content_type.value},
+    )
     assert resp.status_code == 200, resp.data
-    assert resp.json == {
-        "row_id": 1,
-        "row": {
-            "roman_numeral": "I",
-            "is_even": False,
-            "as_date": "2018-01-01",
-            "as_float": 1.5,
-        },
-        "url": f"http://localhost/{test_user.username}/{ten_rows.table_name}/rows/1",
-    }
+    if content_type is ContentType.JSON:
+        assert resp.json == {
+            "row_id": 1,
+            "row": {
+                "roman_numeral": "I",
+                "is_even": False,
+                "as_date": "2018-01-01",
+                "as_float": 1.5,
+            },
+            "url": f"http://localhost/{test_user.username}/{ten_rows.table_name}/rows/1",
+        }
 
 
 def test_read__row_does_not_exist(client, ten_rows, test_user):
@@ -304,3 +309,10 @@ def test_delete__is_private_not_authed(client, private_table, test_user):
 @pytest.mark.xfail(reason="test not implemented")
 def test_delete__is_private_am_authed(client, private_table, test_user):
     assert False
+
+
+def test_delete__html_row_delete_check(client, ten_rows, test_user):
+    url = f"/{test_user.username}/{ten_rows.table_name}/rows/1/delete-check"
+    set_current_user(test_user)
+    resp = client.get(url)
+    assert resp.status_code == 200

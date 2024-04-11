@@ -25,7 +25,7 @@
             {% for col in table.columns %}
               {% if loop.index == 1 %}
                 <td><a
-                      href="{{ url_for('csvbase.get_row', username=table.username, table_name=table.table_name, row_id=row[col]) }}"
+                      href="{{ url_for('csvbase.row_view', username=table.username, table_name=table.table_name, row_id=row[col]) }}"
                       >{{row_macros.render_cell(col.type_, row[col])}}</a></td>
                     {% else %}
                       <td>{{row_macros.render_cell(col.type_, row[col])}}</td>
