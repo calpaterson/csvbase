@@ -3,11 +3,12 @@ from datetime import datetime
 import pytest
 
 from csvbase.value_objs import ContentType
-from .utils import make_user
+from .utils import make_user, assert_is_valid_etag
 
 
 @pytest.fixture(scope="module", params=[ContentType.JSON, ContentType.HTML])
 def content_type(request):
+    # Rows only really support JSON and HTML
     yield request.param
 
 
@@ -113,6 +114,14 @@ def test_read__happy(client, ten_rows, test_user, content_type):
         headers={"Accept": content_type.value},
     )
     assert resp.status_code == 200, resp.data
+
+    # test that the cache headers are as expected
+    cc_obj = resp.cache_control
+    vary = resp.headers.get("Vary")
+    assert cc_obj.max_age == 60
+    assert cc_obj.no_cache
+    assert vary == "Accept, Cookie"
+
     if content_type is ContentType.JSON:
         assert resp.json == {
             "row_id": 1,
@@ -124,6 +133,38 @@ def test_read__happy(client, ten_rows, test_user, content_type):
             },
             "url": f"http://localhost/{test_user.username}/{ten_rows.table_name}/rows/1",
         }
+
+
+def test_read__no_accept(client, ten_rows, test_user):
+    # Checks that JSON gets content negotiated by default
+    resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}/rows/1",
+    )
+    assert resp.status_code == 200, resp.data
+    assert resp.headers["Content-Type"] == ContentType.JSON.value
+    assert resp.json["row_id"] == 1
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_read__etag_cache_hit():
+    assert False
+
+
+def test_read__etag_cache_miss(client, ten_rows, test_user, content_type):
+    first_resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}/rows/1",
+        headers={"Accept": content_type.value, "If-None-Match": 'W/"rong etag"'},
+    )
+    assert first_resp.status_code == 200, first_resp.data
+    assert content_type.value in first_resp.headers["Content-Type"]
+    etag = first_resp.headers["ETag"]
+
+    assert_is_valid_etag(etag)
+
+
+@pytest.mark.xfail(reason="not implemented")
+def test_read__changed_data_changes_the_etag():
+    assert False
 
 
 def test_read__row_does_not_exist(client, ten_rows, test_user):
@@ -150,17 +191,26 @@ def test_read__is_private_not_authed(client, private_table, test_user):
     assert resp.json == {"error": "that table does not exist"}
 
 
-def test_read__is_private_am_authed(client, private_table, test_user):
+def test_read__is_private_am_authed(client, private_table, test_user, content_type):
     resp = client.get(
         f"/{test_user.username}/{private_table}/rows/1",
-        headers={"Authorization": test_user.basic_auth()},
+        headers={
+            "Authorization": test_user.basic_auth(),
+            "Accept": content_type.value,
+        },
     )
     assert resp.status_code == 200, resp.data
-    assert resp.json == {
-        "row_id": 1,
-        "row": {"x": 1},
-        "url": f"http://localhost/{test_user.username}/{private_table}/rows/1",
-    }
+
+    cc_obj = resp.cache_control
+    assert cc_obj.private, "Cache-Control does not include 'private'"
+    assert cc_obj.no_cache
+
+    if content_type is ContentType.JSON:
+        assert resp.json == {
+            "row_id": 1,
+            "row": {"x": 1},
+            "url": f"http://localhost/{test_user.username}/{private_table}/rows/1",
+        }
 
 
 def test_update__happy(client, ten_rows, test_user):

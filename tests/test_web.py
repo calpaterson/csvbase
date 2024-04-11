@@ -17,6 +17,7 @@ from csvbase.value_objs import (
     KeySet,
 )
 from csvbase import exc
+from .utils import assert_is_valid_etag
 
 
 @pytest.mark.parametrize(
@@ -78,9 +79,8 @@ def test_table_view_etag():
 
     assert [e for e in etags if len(e) > 256] == [], "etag too long"
 
-    etag_regex = re.compile(r'W/"[A-Za-z0-9\-\._]+\.[A-Za-z0-9\-\._]+"')
     for e in etags:
-        assert etag_regex.match(e), e
+        assert_is_valid_etag(e)
 
 
 @pytest.mark.parametrize(

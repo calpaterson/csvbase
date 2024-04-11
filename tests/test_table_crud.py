@@ -208,7 +208,7 @@ def test_read__etag_cache_hit(client, ten_rows, test_user, content_type):
         assert first_cc.max_age == 60
         assert first_cc.private
     else:
-        assert etag.startswith("W/")
+        utils.assert_is_valid_etag(etag)
         assert first_cc.max_age == 60
         assert not first_cc.private
 
@@ -236,7 +236,7 @@ def test_read__etag_cache_miss(client, ten_rows, test_user, content_type):
     assert content_type.value in first_resp.headers["Content-Type"]
     etag = first_resp.headers["ETag"]
 
-    assert etag.startswith("W/")
+    utils.assert_is_valid_etag(etag)
 
 
 def test_read__last_changed_updates_the_etag(

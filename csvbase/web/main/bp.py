@@ -19,6 +19,7 @@ from typing import (
 )
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import hashlib
+import json
 
 from dateutil.zoneinfo import get_zonefile_instance
 import itsdangerous.url_safe
@@ -44,7 +45,6 @@ from werkzeug.wrappers.response import Response
 from werkzeug.wrappers.request import ImmutableMultiDict
 
 from ..func import (
-    is_browser,
     set_current_user,
     get_current_user_or_401,
     get_current_user,
@@ -660,6 +660,25 @@ def make_table_view_etag(
     return etag
 
 
+def make_row_etag(table: Table, row: Row, content_type: ContentType) -> str:
+    """Returns the ETag for the given Row."""
+    current_username = getattr(g, "current_username", "anonymous")
+    hash_ = hashlib.blake2b()
+    hash_.update(json.dumps(row_to_json_dict(table, row)).encode("utf-8"))
+    hash_.update(content_type.value.encode("utf-8"))
+    if content_type is ContentType.HTML:
+        hash_.update(current_username.encode("utf-8"))
+    key = hash_.hexdigest()
+    # and we sign to avoid people fishing for other people's cache'd versions
+    # with etags
+    serializer = itsdangerous.url_safe.URLSafeSerializer(
+        current_app.config["SECRET_KEY"]
+    )
+    etag_key = cast(str, serializer.dumps(key))
+    etag = f'W/"{etag_key}"'
+    return etag
+
+
 def add_table_metadata_headers(table: Table, response: Response) -> Response:
     """Add Link and Last-Modified, which are useful out-of-band information for
     consumers.
@@ -711,6 +730,23 @@ def add_table_view_cache_headers(
     # xkeys are used by varnish to do invalidation - currently not used because
     # etags works well enough for now
     # response.headers["xkey"] = "table/{table_uuid}"
+    return response
+
+
+def add_row_view_cache_headers(
+    table: Table, row: Row, response: Response, etag: Optional[str] = None
+) -> Response:
+    if etag is not None:
+        response.headers["ETag"] = etag
+
+    # see comments in add_table_view_cache_headers
+    # FIXME: probably, this code should be shared
+    response.cache_control.no_cache = True
+    response.cache_control.max_age = 60
+    response.headers["Vary"] = "Accept, Cookie"
+    if response.mimetype == ContentType.HTML.value or not table.is_public:
+        response.cache_control.private = True
+
     return response
 
 
@@ -1053,8 +1089,14 @@ class RowView(MethodView):
         row = PGUserdataAdapter.get_row(sesh, table.table_uuid, row_id)
         if row is None:
             raise exc.RowDoesNotExistException(username, table_name, row_id)
-        if is_browser():
-            return make_response(
+
+        content_type = negotiate_content_type(
+            [ContentType.HTML, ContentType.JSON], default=ContentType.JSON
+        )
+        etag = make_row_etag(table, row, content_type)
+        response: Response  # necessary to avoid inference as flask.wrappers.Response
+        if content_type is ContentType.HTML:
+            response = make_response(
                 render_template(
                     "row-view-or-edit.html",
                     page_title=f"{username}/{table_name}/rows/{row_id}",
@@ -1064,8 +1106,10 @@ class RowView(MethodView):
                 )
             )
         else:
-            table = svc.get_table(sesh, username, table_name)
-            return jsonify(row_to_json_dict(table, row))
+            response = jsonify(row_to_json_dict(table, row))
+
+        response = add_row_view_cache_headers(table, row, response, etag)
+        return response
 
     def put(self, username: str, table_name: str, row_id: int) -> Response:
         sesh = get_sesh()

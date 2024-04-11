@@ -19,6 +19,7 @@ logger = getLogger(__name__)
 
 
 def is_browser() -> bool:
+    # FIXME: this should call negotiate_content_type
     # bit of content negotiation magic
     accepts = werkzeug.http.parse_accept_header(request.headers.get("Accept"))
     best = accepts.best_match(["text/html", "text/csv"], default="text/csv")

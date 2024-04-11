@@ -5,6 +5,7 @@ import random
 import string
 from os import path
 from io import StringIO
+import re
 
 from sqlalchemy.orm import Session
 import pandas as pd
@@ -121,3 +122,13 @@ class FakeStripePortalSession:
         )
     )
     id: str = field(default_factory=random_string)
+
+
+ETAG_REGEX = re.compile(r'W/"[A-Za-z0-9\-\._]+\.[A-Za-z0-9\-\._]+"')
+
+
+def assert_is_valid_etag(etag: str) -> None:
+    # asserts that it's a valid weak etag, and that it looks like it includes a
+    # signature (csvbase signs etags)
+    # FIXME: check the signature
+    assert ETAG_REGEX.match(etag), etag
