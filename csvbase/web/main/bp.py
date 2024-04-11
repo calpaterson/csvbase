@@ -638,6 +638,7 @@ def keyset_to_dict(keyset: KeySet) -> Dict:
 def make_table_view_etag(
     table: Table, content_type: ContentType, keyset: KeySet
 ) -> str:
+    """Returns the ETag for a given (table, content_type, keyset)."""
     current_username = getattr(g, "current_username", "anonymous")
     # we have to hash here because some browsers (eg Chrome) don't seem to
     # handle some characters (eg comma) well in the ETag header
