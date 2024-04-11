@@ -81,7 +81,10 @@ class User(Base):
 
 class UserEmail(Base):
     __tablename__ = "user_emails"
-    __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+    __table_args__ = (
+        CheckConstraint("email_address ~ '@'", "email_address_not_blank"),
+        METADATA_SCHEMA_TABLE_ARG,
+    )
 
     user_uuid = Column(PGUUID, ForeignKey("metadata.users.user_uuid"), primary_key=True)
     email_address = Column(satypes.String(length=200), nullable=False, index=True)

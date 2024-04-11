@@ -52,6 +52,9 @@ class User:
             logger.exception("unable to load timezone for user, using UTC")
             return timezone.utc
 
+    def email_for_web_templates(self) -> str:
+        return self.email or ""
+
 
 @dataclass
 class KeySet:
