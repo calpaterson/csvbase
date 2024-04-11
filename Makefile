@@ -29,7 +29,7 @@ serve-gunicorn: .venv static-deps
 	. .venv/bin/activate; gunicorn -w 1 '$FLASK_APP' --access-logfile=- -t 30 -b :6001
 
 tox: static-deps
-	tox
+	tox -e py38
 
 bootstrap-5.3.1-dist.zip:
 	curl -O -L https://github.com/twbs/bootstrap/releases/download/v5.3.1/bootstrap-5.3.1-dist.zip
