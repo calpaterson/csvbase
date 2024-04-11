@@ -18,7 +18,7 @@ pgcopy==1.5.0
 psycopg2==2.9.6
 pyarrow==15.0.2
 sentry-sdk[flask]==1.44.1
-sqlalchemy==1.4.47
+sqlalchemy==1.4.52
 stripe==5.4.0
 systemd-python==235
 toml==0.10.2
