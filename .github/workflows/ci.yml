@@ -22,7 +22,7 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Write config file
       run: |
         cat <<EOF > ~/.csvbase.toml
@@ -32,7 +32,7 @@ jobs:
         stripe_price_id = "price_123"
         EOF
     - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v5
       with:
         python-version: 3.8
     - name: Install required ubuntu packages
@@ -40,7 +40,7 @@ jobs:
     - name: Create schemas
       run: psql -h localhost -d csvbase -U csvbase -f init-schemas.sql
     - name: Use cache of pip downloads
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('setup.py') }}
@@ -51,7 +51,7 @@ jobs:
     - name: make static-deps
       run: make static-deps
     - name: Use cache of tox
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: .tox
         key: ${{ runner.os }}-tox
