@@ -54,6 +54,10 @@ class InvalidRequest(CSVBaseException):
     pass
 
 
+class ETagMismatch(CSVBaseException):
+    pass
+
+
 class CantNegotiateContentType(CSVBaseException):
     def __init__(self, supported):
         super().__init__(supported)

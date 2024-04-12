@@ -499,6 +499,39 @@ def test_overwrite__with_just_header(client, test_user, ten_rows):
     assert len(df) == 0
 
 
+def test_overwrite__etag_matches(client, test_user, ten_rows):
+    new_csv = """roman_numeral,is_even,as_date,as_float
+"""
+    url = f"/{test_user.username}/{ten_rows.table_name}"
+    get_resp = client.get(url)
+    resp = client.put(
+        url,
+        data=new_csv,
+        headers={
+            "Authorization": test_user.basic_auth(),
+            "If-Match": get_resp.headers["ETag"],
+        },
+    )
+    assert resp.status_code == 200
+
+
+def test_overwrite__etag_doesnt_match(client, test_user, ten_rows):
+    new_csv = """roman_numeral,is_even,as_date,as_float
+"""
+    resp = client.put(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        data=new_csv,
+        headers={
+            "Authorization": test_user.basic_auth(),
+            "If-Match": '"W/some junk"',
+        },
+    )
+    assert resp.status_code == 412
+    assert resp.json == {
+        "error": "you provided an ETag different to the current one",
+    }
+
+
 def test_append__happy(client, test_user, ten_rows):
     new_csv = """roman_numeral,is_even,as_date,as_float
 XI,no,2018-01-11,11.0

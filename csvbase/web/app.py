@@ -74,6 +74,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
         400,
     ),
     exc.WrongEncodingException: ("you sent a file with the wrong encoding", 400),
+    exc.ETagMismatch: ("you provided an ETag different to the current one", 412),
 }
 
 

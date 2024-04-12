@@ -386,6 +386,17 @@ class TableView(MethodView):
 
         if svc.table_exists(sesh, user.user_uuid, table_name):
             table = svc.get_table(sesh, username, table_name)
+            provided_etag = request.headers.get("If-Match", None)
+            if provided_etag is not None:
+                keyset = KeySet(
+                    [Column("csvbase_row_id", ColumnType.INTEGER)],
+                    (0,),
+                    op="greater_than",
+                )
+                expected_etag = make_table_view_etag(table, ContentType.CSV, keyset)
+                if provided_etag != expected_etag:
+                    raise exc.ETagMismatch()
+
             dialect, csv_columns = streams.peek_csv(str_buf, table.columns)
             rows = table_io.csv_to_rows(str_buf, csv_columns, dialect)
 
