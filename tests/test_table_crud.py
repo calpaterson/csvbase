@@ -509,7 +509,7 @@ def test_overwrite__etag_matches(client, test_user, ten_rows):
         data=new_csv,
         headers={
             "Authorization": test_user.basic_auth(),
-            "If-Match": get_resp.headers["ETag"],
+            "If-Weak-Match": get_resp.headers["ETag"],
         },
     )
     assert resp.status_code == 200
@@ -523,7 +523,7 @@ def test_overwrite__etag_doesnt_match(client, test_user, ten_rows):
         data=new_csv,
         headers={
             "Authorization": test_user.basic_auth(),
-            "If-Match": '"W/some junk"',
+            "If-Weak-Match": '"W/some junk"',
         },
     )
     assert resp.status_code == 412

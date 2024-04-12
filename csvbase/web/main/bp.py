@@ -387,7 +387,7 @@ class TableView(MethodView):
 
         if svc.table_exists(sesh, user.user_uuid, table_name):
             table = svc.get_table(sesh, username, table_name)
-            provided_etag = request.headers.get("If-Match", None)
+            provided_etag = request.headers.get("If-Weak-Match", None)
             if provided_etag is not None:
                 keyset = KeySet(
                     [Column("csvbase_row_id", ColumnType.INTEGER)],
