@@ -16,6 +16,7 @@ from typing import (
     cast,
     Iterator,
     IO,
+    TypeVar,
 )
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import hashlib
@@ -982,7 +983,9 @@ def post_table_settings(username: str, table_name: str) -> Response:
 
 @bp.post("/<username>/<table_name:table_name>/praise")
 def praise_table(username: str, table_name: str) -> Response:
-    whence = request.form["whence"]
+    whence = get_whence(
+        url_for("csvbase.table_view", username=username, table_name=table_name)
+    )
     am_a_user_or_400()
     sesh = get_sesh()
     praise_id = request.form.get("praise-id", type=int, default=None)
@@ -1148,16 +1151,14 @@ class RowView(MethodView):
         """
         # after editing, we return them back to where they came from (or a table
         # page with this row on it)
-        # FIXME: need some better, more consistent way to get whence
-        whence = request.args.get(
-            "whence",
+        whence = get_whence(
             url_for(
                 "csvbase.table_view",
                 username=username,
                 table_name=table_name,
                 n=row_id + 1,
                 op="lt",
-            ),
+            )
         )
 
         # if they came from the table view page for this table and are being sent
@@ -1343,9 +1344,7 @@ def register() -> Response:
         sesh.commit()
         sign_in_user(user)
         flash("Account registered")
-        whence = request.form.get(
-            "whence", url_for("csvbase.user", username=user.username)
-        )
+        whence = get_whence(url_for("csvbase.user", username=user.username))
         return safe_redirect(whence)
 
 
@@ -1371,12 +1370,10 @@ def sign_in() -> Response:
                 svc.user_by_name(sesh, request.form["username"]),
             )
             flash(f"Signed in as {username}")
-            if "whence" in request.form:
-                return safe_redirect(request.form["whence"])
-            else:
-                return redirect(
-                    url_for("csvbase.user", username=request.form["username"])
-                )
+            whence = get_whence(
+                url_for("csvbase.user", username=request.form["username"])
+            )
+            return safe_redirect(whence)
         else:
             logger.warning("wrong password for %s", username)
             raise exc.WrongAuthException()
@@ -1635,3 +1632,15 @@ def readme_html(sesh, table_uuid: UUID) -> Optional[str]:
         return readme_html
     else:
         return None
+
+
+W = TypeVar("W", bound=Optional[str])
+
+
+def get_whence(default: W) -> Union[str, W]:
+    """ "Divine where the user came from, so that they can be sent back."""
+    from_args = request.args.get("whence", default)
+    if from_args is not None:
+        return from_args
+    else:
+        return request.form.get("whence", default)
