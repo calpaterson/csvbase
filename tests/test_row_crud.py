@@ -239,7 +239,7 @@ def test_update__happy(client, ten_rows, test_user):
 
 
 def test_update_by_form_post__happy(client, ten_rows, test_user):
-    url = f"/{test_user.username}/{ten_rows.table_name}/rows/1/edit"
+    url = f"/{test_user.username}/{ten_rows.table_name}/rows/1"
     form = {
         "csvbase_row_id": 1,
         "roman_numeral": "i",

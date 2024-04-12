@@ -10,7 +10,7 @@
     {% else %}
       <div class="py-3">
         <form
-          action="{{ url_for('csvbase.update_row_by_form_post', username=table.username, table_name=table.table_name, row_id=row_id, whence=request.referrer) }}"
+          action="{{ url_for('csvbase.row_view', username=table.username, table_name=table.table_name, row_id=row_id, whence=request.referrer) }}"
           method="POST">
           {% for col, v in row.items() %}
             <div class="mb-3 row g-3">
