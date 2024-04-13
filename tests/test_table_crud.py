@@ -353,6 +353,18 @@ def test_read__is_private_am_authed(client, private_table, test_user, content_ty
     assert cc_obj.no_cache
 
 
+def test_read__is_private_am_wrong_user(
+    client, private_table, content_type, test_user, sesh, crypt_context
+):
+    user = utils.make_user(sesh, crypt_context)
+    sesh.commit()
+    set_current_user(user)
+    resp = client.get(
+        f"/{test_user.username}/{private_table}",
+    )
+    assert resp.status_code == 404, resp.data
+
+
 def test_read__empty_table(sesh, client, test_user, content_type):
     table = utils.create_table(sesh, test_user, [])
     sesh.commit()
@@ -532,6 +544,42 @@ def test_overwrite__etag_doesnt_match(client, test_user, ten_rows):
     }
 
 
+@pytest.mark.parametrize("is_public", [True, False])
+def test_overwrite__not_authed(sesh, client, test_user, is_public):
+    table = utils.create_table(sesh, test_user, is_public=is_public)
+    sesh.commit()
+    new_csv = """a
+1"""
+    resp = client.put(
+        f"/{test_user.username}/{table.table_name}",
+        data=new_csv,
+    )
+    if is_public:
+        assert resp.status_code == 401
+    else:
+        assert resp.status_code == 404
+
+
+@pytest.mark.parametrize("is_public", [True, False])
+def test_overwrite__wrong_user(
+    sesh, client, test_user, ten_rows, is_public, crypt_context
+):
+    user = utils.make_user(sesh, crypt_context)
+    table = utils.create_table(sesh, user, is_public=is_public)
+    sesh.commit()
+    new_csv = """a
+1"""
+    set_current_user(test_user)
+    resp = client.put(
+        f"/{user.username}/{table.table_name}",
+        data=new_csv,
+    )
+    if is_public:
+        assert resp.status_code == 403
+    else:
+        assert resp.status_code == 404
+
+
 def test_append__happy(client, test_user, ten_rows):
     new_csv = """roman_numeral,is_even,as_date,as_float
 XI,no,2018-01-11,11.0
@@ -554,73 +602,99 @@ XV,no,2018-01-15,15.0
     assert len(df) == 15
 
 
-def test_delete__happy(client, test_user, ten_rows):
-    set_current_user(test_user)
-    resp = client.delete(f"{test_user.username}/{ten_rows.table_name}")
-    assert resp.status_code == 204
+@pytest.fixture(
+    scope="module",
+    params=[
+        pytest.param(("{username}/{table_name}", "DELETE"), id="delete via api"),
+        pytest.param(
+            ("{username}/{table_name}/delete-table-form-post", "POST"),
+            id="delete via form post",
+        ),
+    ],
+)
+def delete_mode(request):
+    yield request.param
 
 
-def test_delete_via_post__happy(client, test_user, ten_rows):
-    set_current_user(test_user)
-    resp = client.post(
-        f"{test_user.username}/{ten_rows.table_name}/delete-table-form-post"
-    )
-    assert resp.status_code == 302
-    assert resp.headers["Location"] == f"/{test_user.username}"
-
-
-def test_delete_via_post__has_readme(sesh, client, test_user, ten_rows):
+def test_delete__has_readme(sesh, client, test_user, ten_rows, delete_mode):
+    url_template, verb = delete_mode
     set_current_user(test_user)
     svc.set_readme_markdown(sesh, test_user.user_uuid, ten_rows.table_name, "something")
     sesh.commit()
-    resp = client.post(
-        f"{test_user.username}/{ten_rows.table_name}/delete-table-form-post"
+    resp = client.open(
+        url_template.format(
+            username=test_user.username, table_name=ten_rows.table_name
+        ),
+        method=verb,
     )
-    assert resp.status_code == 302
-    assert resp.headers["Location"] == f"/{test_user.username}"
+    if verb == "POST":
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == f"/{test_user.username}"
+    else:
+        assert resp.status_code == 204
 
 
 @pytest.mark.parametrize("is_public", [True, False])
-def test_delete_via_post__am_authed(sesh, client, test_user, is_public):
+def test_delete__am_authed(sesh, client, test_user, is_public, ten_rows, delete_mode):
+    url_template, verb = delete_mode
     set_current_user(test_user)
-    table = utils.create_table(sesh, test_user, is_public=is_public)
-    sesh.commit()
 
-    set_current_user(test_user)
-    resp = client.post(
-        f"{test_user.username}/{table.table_name}/delete-table-form-post"
+    resp = client.open(
+        url_template.format(
+            username=test_user.username, table_name=ten_rows.table_name
+        ),
+        method=verb,
     )
-    assert resp.status_code == 302
-    assert resp.headers["Location"] == f"/{test_user.username}"
+    if verb == "POST":
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == f"/{test_user.username}"
+    else:
+        assert resp.status_code == 204
 
 
 @pytest.mark.parametrize("is_public", [True, False])
-def test_delete_via_post__not_authed(sesh, client, test_user, is_public, crypt_context):
+def test_delete__not_authed(sesh, client, is_public, delete_mode, test_user):
     table = utils.create_table(sesh, test_user, is_public=is_public)
     sesh.commit()
+    url_template, verb = delete_mode
+
+    resp = client.open(
+        url_template.format(username=test_user.username, table_name=table.table_name),
+        method=verb,
+    )
+    if is_public:
+        assert resp.status_code == 401
+    else:
+        assert resp.status_code == 404
+
+
+@pytest.mark.parametrize("is_public", [True, False])
+def test_delete__wrong_user(
+    sesh, client, test_user, is_public, crypt_context, delete_mode
+):
+    table = utils.create_table(sesh, test_user, is_public=is_public)
+    sesh.commit()
+
+    url_template, verb = delete_mode
 
     set_current_user(utils.make_user(sesh, crypt_context))
-    resp = client.post(
-        f"{test_user.username}/{table.table_name}/delete-table-form-post"
+    resp = client.open(
+        url_template.format(username=test_user.username, table_name=table.table_name),
+        method=verb,
     )
-    assert resp.status_code == 401
+    if is_public:
+        assert resp.status_code == 403
+    else:
+        assert resp.status_code == 404
 
 
-@pytest.mark.parametrize("is_public", [True, False])
-def test_delete_via_post__wrong_user(sesh, client, test_user, is_public, crypt_context):
-    table = utils.create_table(sesh, test_user, is_public=is_public)
-    sesh.commit()
-
-    set_current_user(utils.make_user(sesh, crypt_context))
-    resp = client.post(
-        f"{test_user.username}/{table.table_name}/delete-table-form-post"
-    )
-    assert resp.status_code == 401
-
-
-def test_delete_via_post__does_not_exist(client, test_user):
+def test_delete__does_not_exist(client, test_user, delete_mode):
     set_current_user(test_user)
-    resp = client.post(
-        f"{test_user.username}/{utils.random_string()}/delete-table-form-post"
+    url_template, verb = delete_mode
+    resp = client.open(
+        url_template.format(
+            username=test_user.username, table_name=utils.random_string()
+        ),
+        method=verb,
     )
     assert resp.status_code == 404

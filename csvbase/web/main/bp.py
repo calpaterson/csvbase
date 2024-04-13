@@ -373,7 +373,14 @@ class TableView(MethodView):
     def put(self, username: str, table_name: str) -> Response:
         """Create or overwrite a table."""
         sesh = get_sesh()
-        am_user_or_400(username)
+        if not am_user(username):
+            is_public = svc.is_public(sesh, username, table_name)
+            if is_public and am_a_user():
+                raise exc.NotAllowedException()
+            elif is_public:
+                raise exc.NotAuthenticatedException()
+            else:
+                raise exc.TableDoesNotExistException(username, table_name)
         user = svc.user_by_name(sesh, username)
 
         response_content_type = negotiate_content_type(
@@ -441,7 +448,14 @@ class TableView(MethodView):
     def delete(self, username: str, table_name: str) -> Response:
         """Create or overwrite a table."""
         sesh = get_sesh()
-        am_user_or_400(username)
+        if not am_user(username):
+            is_public = svc.is_public(sesh, username, table_name)
+            if is_public and am_a_user():
+                raise exc.NotAllowedException()
+            elif is_public:
+                raise exc.NotAuthenticatedException()
+            else:
+                raise exc.TableDoesNotExistException(username, table_name)
         svc.get_table(sesh, username, table_name)
         svc.delete_table_and_metadata(sesh, username, table_name)
         sesh.commit()
@@ -490,9 +504,15 @@ def delete_table_form_post(username: str, table_name: str) -> Response:
 
     """
     sesh = get_sesh()
-    svc.user_by_name(sesh, username)
+    if not am_user(username):
+        is_public = svc.is_public(sesh, username, table_name)
+        if is_public and am_a_user():
+            raise exc.NotAllowedException()
+        elif is_public:
+            raise exc.NotAuthenticatedException()
+        else:
+            raise exc.TableDoesNotExistException(username, table_name)
     svc.get_table(sesh, username, table_name)
-    am_user_or_400(username)
     svc.delete_table_and_metadata(sesh, username, table_name)
     sesh.commit()
     flash(f"Deleted {username}/{table_name}")
@@ -1127,7 +1147,14 @@ class RowView(MethodView):
 
     def put(self, username: str, table_name: str, row_id: int) -> Response:
         sesh = get_sesh()
-        svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+        if not am_user(username):
+            is_public = svc.is_public(sesh, username, table_name)
+            if is_public and am_a_user():
+                raise exc.NotAllowedException()
+            elif is_public:
+                raise exc.NotAuthenticatedException()
+            else:
+                raise exc.TableDoesNotExistException(username, table_name)
         table = svc.get_table(sesh, username, table_name)
 
         body = json_or_400()
@@ -1180,6 +1207,14 @@ class RowView(MethodView):
                 whence = urlunsplit((s, n, p, urlencode(query_md), f))
 
         sesh = get_sesh()
+        if not am_user(username):
+            is_public = svc.is_public(sesh, username, table_name)
+            if is_public and am_a_user():
+                raise exc.NotAllowedException()
+            elif is_public:
+                raise exc.NotAuthenticatedException()
+            else:
+                raise exc.TableDoesNotExistException(username, table_name)
         table = svc.get_table(sesh, username, table_name)
         row: Row = {
             c: from_html_form_to_python(c.type_, request.form.get(c.name))
@@ -1193,7 +1228,14 @@ class RowView(MethodView):
 
     def delete(self, username: str, table_name: str, row_id: int) -> Response:
         sesh = get_sesh()
-        svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+        if not am_user(username):
+            is_public = svc.is_public(sesh, username, table_name)
+            if is_public and am_a_user():
+                raise exc.NotAllowedException()
+            elif is_public:
+                raise exc.NotAuthenticatedException()
+            else:
+                raise exc.TableDoesNotExistException(username, table_name)
         table = svc.get_table(sesh, username, table_name)
         if not PGUserdataAdapter.delete_row(sesh, table.table_uuid, row_id):
             raise exc.RowDoesNotExistException(username, table_name, row_id)
@@ -1217,7 +1259,14 @@ def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Resp
     # extremely annoying to need a special endpoint for this but browser forms
     # don't support the DELETE verb
     sesh = get_sesh()
-    svc.is_public(sesh, username, table_name) or am_user_or_400(username)
+    if not am_user(username):
+        is_public = svc.is_public(sesh, username, table_name)
+        if is_public and am_a_user():
+            raise exc.NotAllowedException()
+        elif is_public:
+            raise exc.NotAuthenticatedException()
+        else:
+            raise exc.TableDoesNotExistException(username, table_name)
     table = svc.get_table(sesh, username, table_name)
     if not PGUserdataAdapter.delete_row(sesh, table.table_uuid, row_id):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
