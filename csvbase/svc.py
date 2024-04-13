@@ -16,6 +16,7 @@ from typing import (
     Sequence,
     Tuple,
     Mapping,
+    Union,
 )
 from uuid import UUID, uuid4
 
@@ -36,6 +37,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import table as satable
 from sqlalchemy.dialects.postgresql import insert as pginsert
+from typing_extensions import Literal
 
 from .web.billing.svc import get_quota
 from . import data, exc, models

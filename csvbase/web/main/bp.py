@@ -22,6 +22,7 @@ from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import hashlib
 import json
 
+from sqlalchemy.orm import Session
 from dateutil.zoneinfo import get_zonefile_instance
 import itsdangerous.url_safe
 from werkzeug.datastructures import OrderedMultiDict
@@ -358,16 +359,11 @@ class TableView(MethodView):
     def get(self, username: str, table_name: str) -> Response:
         """Get a table"""
         sesh = get_sesh()
-        user = svc.user_by_name(sesh, username)
-        if not svc.is_public(sesh, username, table_name) and not am_user(user.username):
-            raise exc.TableDoesNotExistException(username, table_name)
-
+        table = svc.get_table(sesh, username, table_name)
+        ensure_table_access(sesh, table, "read")
         content_type = negotiate_content_type(
             [ContentType.HTML, ContentType.JSON], default=ContentType.CSV
         )
-
-        table = svc.get_table(sesh, username, table_name)
-
         return make_table_view_response(sesh, content_type, table)
 
     def put(self, username: str, table_name: str) -> Response:
@@ -448,15 +444,8 @@ class TableView(MethodView):
     def delete(self, username: str, table_name: str) -> Response:
         """Create or overwrite a table."""
         sesh = get_sesh()
-        if not am_user(username):
-            is_public = svc.is_public(sesh, username, table_name)
-            if is_public and am_a_user():
-                raise exc.NotAllowedException()
-            elif is_public:
-                raise exc.NotAuthenticatedException()
-            else:
-                raise exc.TableDoesNotExistException(username, table_name)
-        svc.get_table(sesh, username, table_name)
+        table = svc.get_table(sesh, username, table_name)
+        ensure_table_access(sesh, table, "write")
         svc.delete_table_and_metadata(sesh, username, table_name)
         sesh.commit()
 
@@ -468,8 +457,8 @@ class TableView(MethodView):
     def post(self, username: str, table_name: str) -> Response:
         """Append some new rows to a table."""
         sesh = get_sesh()
-        am_user_or_400(username)
         table = svc.get_table(sesh, username, table_name)
+        ensure_table_access(sesh, table, "write")
 
         response_content_type = negotiate_content_type(
             [ContentType.JSON], default=ContentType.JSON
@@ -504,15 +493,8 @@ def delete_table_form_post(username: str, table_name: str) -> Response:
 
     """
     sesh = get_sesh()
-    if not am_user(username):
-        is_public = svc.is_public(sesh, username, table_name)
-        if is_public and am_a_user():
-            raise exc.NotAllowedException()
-        elif is_public:
-            raise exc.NotAuthenticatedException()
-        else:
-            raise exc.TableDoesNotExistException(username, table_name)
-    svc.get_table(sesh, username, table_name)
+    table = svc.get_table(sesh, username, table_name)
+    ensure_table_access(sesh, table, "write")
     svc.delete_table_and_metadata(sesh, username, table_name)
     sesh.commit()
     flash(f"Deleted {username}/{table_name}")
@@ -529,15 +511,12 @@ def table_view_with_extension(
     username: str, table_name: str, extension: str
 ) -> Response:
     sesh = get_sesh()
-    user = svc.user_by_name(sesh, username)
-    if not svc.is_public(sesh, username, table_name) and not am_user(user.username):
-        raise exc.TableDoesNotExistException(username, table_name)
+    table = svc.get_table(sesh, username, table_name)
+    ensure_table_access(sesh, table, "read")
 
     content_type = ContentType.from_file_extension(extension)
     if content_type is None:
         raise exc.CantNegotiateContentType([e for e in ContentType])
-
-    table = svc.get_table(sesh, username, table_name)
 
     return make_table_view_response(sesh, content_type, table)
 
@@ -785,10 +764,9 @@ def add_row_view_cache_headers(
 @bp.get("/<username>/<table_name:table_name>/readme")
 def table_readme(username: str, table_name: str) -> Response:
     sesh = get_sesh()
-    if not svc.is_public(sesh, username, table_name) and not am_user(username):
-        raise exc.TableDoesNotExistException(username, table_name)
 
     table = svc.get_table(sesh, username, table_name)
+    ensure_table_access(sesh, table, "read")
 
     readme_markdown = svc.get_readme_markdown(sesh, table.table_uuid)
 
@@ -812,7 +790,7 @@ def table_readme(username: str, table_name: str) -> Response:
 def get_table_apidocs(username: str, table_name: str) -> str:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
-    table.is_public or am_user_or_400(username)
+    ensure_table_access(sesh, table, "read")
     owner = svc.user_by_name(sesh, username)
 
     made_up_row = svc.get_a_made_up_row(sesh, table.table_uuid)
@@ -839,7 +817,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
 def table_export(username: str, table_name: str) -> str:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
-    table.is_public or am_user_or_400(username)
+    ensure_table_access(sesh, table, "read")
     user = svc.user_by_name(sesh, username)
 
     table_url = url_for(
@@ -874,6 +852,7 @@ class CopyView(MethodView):
     def get(self, username: str, table_name: str) -> Response:
         sesh = get_sesh()
         table = svc.get_table(sesh, username, table_name)
+        ensure_table_access(sesh, table, "read")
         response = make_response(
             render_template(
                 "copy.html", table=table, page_title=f"Copy {username}/{table_name}"
@@ -939,7 +918,7 @@ bp.add_url_rule(
 def table_details(username: str, table_name: str) -> str:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
-    table.is_public or am_user_or_400(username)
+    ensure_table_access(sesh, table, "read")
 
     return render_template(
         "table_details.html",
@@ -955,7 +934,7 @@ def table_details(username: str, table_name: str) -> str:
 def table_settings(username: str, table_name: str) -> str:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
-    am_user_or_400(username)
+    ensure_table_access(sesh, table, "write")
 
     table_readme_markdown = svc.get_readme_markdown(sesh, table.table_uuid)
 
@@ -973,8 +952,8 @@ def table_settings(username: str, table_name: str) -> str:
 @bp.post("/<username>/<table_name:table_name>/settings")
 def post_table_settings(username: str, table_name: str) -> Response:
     sesh = get_sesh()
-    am_user_or_400(username)
     table = svc.get_table(sesh, username, table_name)
+    ensure_table_access(sesh, table, "write")
 
     caption = request.form["caption"]
     if "private" in request.form:
@@ -1024,6 +1003,7 @@ def create_row(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     svc.user_exists(sesh, username)
     table = svc.get_table(sesh, username, table_name)
+    ensure_table_access(sesh, table, "write")
     if not am_user(username):
         if am_a_user():
             raise exc.NotAllowedException()
@@ -1076,8 +1056,7 @@ def create_row(username: str, table_name: str) -> Response:
 def row_add_form(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
-    if not table.is_public and not am_user(username):
-        raise exc.TableDoesNotExistException(username, table_name)
+    ensure_table_access(sesh, table, "write")
 
     return make_response(
         render_template(
@@ -1092,9 +1071,8 @@ def row_add_form(username: str, table_name: str) -> Response:
 def row_delete_check(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
     svc.user_exists(sesh, username)
-    if not svc.is_public(sesh, username, table_name) and not am_user(username):
-        raise exc.TableDoesNotExistException(username, table_name)
     table = svc.get_table(sesh, username, table_name)
+    ensure_table_access(sesh, table, "write")
     row = PGUserdataAdapter.get_row(sesh, table.table_uuid, row_id)
     if row is None:
         raise exc.RowDoesNotExistException(username, table_name, row_id)
@@ -1117,9 +1095,8 @@ class RowView(MethodView):
     def get(self, username: str, table_name: str, row_id: int) -> Response:
         sesh = get_sesh()
         svc.user_exists(sesh, username)
-        if not svc.is_public(sesh, username, table_name) and not am_user(username):
-            raise exc.TableDoesNotExistException(username, table_name)
         table = svc.get_table(sesh, username, table_name)
+        ensure_table_access(sesh, table, "read")
         row = PGUserdataAdapter.get_row(sesh, table.table_uuid, row_id)
         if row is None:
             raise exc.RowDoesNotExistException(username, table_name, row_id)
@@ -1147,15 +1124,8 @@ class RowView(MethodView):
 
     def put(self, username: str, table_name: str, row_id: int) -> Response:
         sesh = get_sesh()
-        if not am_user(username):
-            is_public = svc.is_public(sesh, username, table_name)
-            if is_public and am_a_user():
-                raise exc.NotAllowedException()
-            elif is_public:
-                raise exc.NotAuthenticatedException()
-            else:
-                raise exc.TableDoesNotExistException(username, table_name)
         table = svc.get_table(sesh, username, table_name)
+        ensure_table_access(sesh, table, "write")
 
         body = json_or_400()
         if body["row_id"] != row_id:
@@ -1207,15 +1177,8 @@ class RowView(MethodView):
                 whence = urlunsplit((s, n, p, urlencode(query_md), f))
 
         sesh = get_sesh()
-        if not am_user(username):
-            is_public = svc.is_public(sesh, username, table_name)
-            if is_public and am_a_user():
-                raise exc.NotAllowedException()
-            elif is_public:
-                raise exc.NotAuthenticatedException()
-            else:
-                raise exc.TableDoesNotExistException(username, table_name)
         table = svc.get_table(sesh, username, table_name)
+        ensure_table_access(sesh, table, "write")
         row: Row = {
             c: from_html_form_to_python(c.type_, request.form.get(c.name))
             for c in table.columns
@@ -1228,15 +1191,8 @@ class RowView(MethodView):
 
     def delete(self, username: str, table_name: str, row_id: int) -> Response:
         sesh = get_sesh()
-        if not am_user(username):
-            is_public = svc.is_public(sesh, username, table_name)
-            if is_public and am_a_user():
-                raise exc.NotAllowedException()
-            elif is_public:
-                raise exc.NotAuthenticatedException()
-            else:
-                raise exc.TableDoesNotExistException(username, table_name)
         table = svc.get_table(sesh, username, table_name)
+        ensure_table_access(sesh, table, "write")
         if not PGUserdataAdapter.delete_row(sesh, table.table_uuid, row_id):
             raise exc.RowDoesNotExistException(username, table_name, row_id)
         svc.mark_table_changed(sesh, table.table_uuid)
@@ -1259,15 +1215,8 @@ def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Resp
     # extremely annoying to need a special endpoint for this but browser forms
     # don't support the DELETE verb
     sesh = get_sesh()
-    if not am_user(username):
-        is_public = svc.is_public(sesh, username, table_name)
-        if is_public and am_a_user():
-            raise exc.NotAllowedException()
-        elif is_public:
-            raise exc.NotAuthenticatedException()
-        else:
-            raise exc.TableDoesNotExistException(username, table_name)
     table = svc.get_table(sesh, username, table_name)
+    ensure_table_access(sesh, table, "write")
     if not PGUserdataAdapter.delete_row(sesh, table.table_uuid, row_id):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
     svc.mark_table_changed(sesh, table.table_uuid)
@@ -1693,3 +1642,22 @@ def get_whence(default: W) -> Union[str, W]:
         return from_args
     else:
         return request.form.get("whence", default)
+
+
+def ensure_table_access(
+    sesh: Session, table: Table, mode: Union[Literal["read"], Literal["write"]]
+) -> None:
+    """Ensures that the current user can access the particular table with that level."""
+    is_public = svc.is_public(sesh, table.username, table.table_name)
+    if mode == "read":
+        if not is_public and not am_user(table.username):
+            raise exc.TableDoesNotExistException(table.username, table.table_name)
+    else:
+        if not am_user(table.username):
+            if is_public and am_a_user():
+                raise exc.NotAllowedException()
+            elif is_public:
+                raise exc.NotAuthenticatedException()
+            else:
+                raise exc.TableDoesNotExistException(table.username, table.table_name)
+    return None
