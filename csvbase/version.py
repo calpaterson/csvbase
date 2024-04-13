@@ -1,6 +1,11 @@
-import importlib.resources
+from contextlib import closing
+
+import importlib_resources
 
 
 def get_version() -> str:
-    version = importlib.resources.read_text("csvbase", "VERSION").strip()
-    return version
+    with closing(
+        importlib_resources.files("csvbase").joinpath("VERSION").open("r")
+    ) as text_f:
+        version = text_f.read().strip()
+        return version

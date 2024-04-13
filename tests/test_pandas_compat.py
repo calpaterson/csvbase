@@ -16,9 +16,7 @@ def get_df_as_parquet(client, url) -> pd.DataFrame:
 def get_df_as_jsonlines(client, url) -> pd.DataFrame:
     get_resp = client.get(url + ".jsonl")
     assert get_resp.mimetype != "text/html"
-    return pd.read_json(get_resp.data.decode("utf-8"), lines=True).set_index(
-        "csvbase_row_id"
-    )
+    return pd.read_json(BytesIO(get_resp.data), lines=True).set_index("csvbase_row_id")
 
 
 def put_df_as_csv(client, user, url, df: pd.DataFrame) -> None:

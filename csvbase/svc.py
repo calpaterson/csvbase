@@ -1,6 +1,5 @@
 import binascii
 import csv
-import importlib.resources
 import io
 import json
 import re
@@ -38,6 +37,7 @@ from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import table as satable
 from sqlalchemy.dialects.postgresql import insert as pginsert
 from typing_extensions import Literal
+import importlib_resources
 
 from .web.billing.svc import get_quota
 from . import data, exc, models
@@ -601,7 +601,11 @@ RETURNING
     username;
     """
     )
-    with closing(importlib.resources.open_text(data, "prohibited-usernames")) as text_f:
+    with closing(
+        importlib_resources.files("csvbase.data")
+        .joinpath("prohibited-usernames")
+        .open("r")
+    ) as text_f:
         words = [line.strip() for line in text_f if "#" not in line]
     p = inflect.engine()
     plurals = [p.plural(word) for word in words]
