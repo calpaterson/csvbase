@@ -279,7 +279,7 @@ def test_read__metadata_headers(client, ten_rows, test_user, content_type, sesh)
     )
     assert (
         resp.headers.get("Link")
-        == f'<http://localhost/{test_user.username}/{ten_rows.table_name}>, rel="canonical"'
+        == f'<http://localhost/{test_user.username}/{ten_rows.table_name}>; rel="canonical"'
     )
 
     # HTTP's format doesn't go to the microsecond level
