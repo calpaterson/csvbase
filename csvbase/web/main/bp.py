@@ -724,9 +724,9 @@ def add_table_view_cache_headers(
     # revalidate the respresention each time (eg with ETags)
     response.cache_control.no_cache = True
 
-    # Currently keeping the max age short to limit the chaos in the case of a
-    # bug
-    response.cache_control.max_age = 60
+    # It seems that caches are allowed to ignore `no-cache` in "exceptional"
+    # circumstances.  This header ensures that they do not.
+    response.cache_control.must_revalidate = True
 
     # The advice on "Vary" is to return the same value for every response from
     # a URL, and we want the cache key to include "Cookie"
@@ -753,7 +753,7 @@ def add_row_view_cache_headers(
     # see comments in add_table_view_cache_headers
     # FIXME: probably, this code should be shared
     response.cache_control.no_cache = True
-    response.cache_control.max_age = 60
+    response.cache_control.must_revalidate = True
     response.headers["Vary"] = "Accept, Cookie"
     if response.mimetype == ContentType.HTML.value or not table.is_public:
         response.cache_control.private = True

@@ -119,8 +119,8 @@ def test_read__happy(client, ten_rows, test_user, content_type):
     # test that the cache headers are as expected
     cc_obj = resp.cache_control
     vary = resp.headers.get("Vary")
-    assert cc_obj.max_age == 60
     assert cc_obj.no_cache
+    assert cc_obj.must_revalidate
     assert vary == "Accept, Cookie"
 
     if content_type is ContentType.JSON:

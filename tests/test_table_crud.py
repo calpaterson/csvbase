@@ -138,8 +138,8 @@ def test_read__happy(client, ten_rows, test_user, content_type):
     # test that the cache headers are as expected
     cc_obj = resp.cache_control
     vary = resp.headers.get("Vary")
-    assert cc_obj.max_age == 60
     assert cc_obj.no_cache
+    assert cc_obj.must_revalidate
     assert vary == "Accept, Cookie"
 
     if content_type == ContentType.HTML:
@@ -203,19 +203,22 @@ def test_read__etag_cache_hit(client, ten_rows, test_user, content_type):
     etag = first_resp.headers.get("ETag", None)
 
     first_cc = first_resp.cache_control
+    assert first_cc.no_cache
+    assert first_cc.must_revalidate
     if content_type == ContentType.HTML:
         assert etag is None
-        assert first_cc.max_age == 60
         assert first_cc.private
     else:
         utils.assert_is_valid_etag(etag)
-        assert first_cc.max_age == 60
         assert not first_cc.private
 
     second_resp = client.get(
         f"/{test_user.username}/{ten_rows.table_name}",
         headers={"Accept": content_type.value, "If-None-Match": etag},
     )
+    second_cc = second_resp.cache_control
+    assert second_cc.no_cache
+    assert second_cc.must_revalidate
     if content_type == ContentType.HTML:
         assert second_resp.status_code == 200
     else:
