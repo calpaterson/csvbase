@@ -1,4 +1,4 @@
-alembic[tz]==1.7.7
+alembic[tz]==1.13.1
 argon2-cffi==21.3.0
 bleach==6.0.0
 charset-normalizer==3.2.0
