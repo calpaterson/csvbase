@@ -19,6 +19,7 @@ from csvbase.value_objs import (
     Column,
     ROW_ID_COLUMN,
     ColumnType,
+    Backend,
 )
 from csvbase.web.billing import svc as billing_svc
 
@@ -79,6 +80,7 @@ def create_table(
         is_public=is_public,
         caption=caption,
         licence=licence,
+        backend=Backend.POSTGRES,
     )
     PGUserdataAdapter.create_table(sesh, table_uuid, columns)
     return svc.get_table(sesh, user.username, table_name)

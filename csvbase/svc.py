@@ -51,6 +51,7 @@ from .value_objs import (
     User,
     RowCount,
     Usage,
+    Backend,
 )
 from .json import value_to_json
 
@@ -238,6 +239,7 @@ def create_table_metadata(
     is_public: bool,
     caption: str,
     licence: DataLicence,
+    backend: Backend,
 ) -> UUID:
     """Creates the metadata structures for a table (but not the table itself) -
     including assigning the table uuid.
@@ -246,7 +248,10 @@ def create_table_metadata(
     check_table_name_is_allowed(table_name)
     table_uuid = uuid4()
     table_obj = models.Table(
-        table_uuid=table_uuid, table_name=table_name, user_uuid=user_uuid
+        table_uuid=table_uuid,
+        table_name=table_name,
+        user_uuid=user_uuid,
+        backend_id=backend.value,
     )
     table_obj.public = is_public
     table_obj.caption = caption

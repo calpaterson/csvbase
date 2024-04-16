@@ -6,7 +6,7 @@ from csvbase import exc
 from csvbase.svc import get_table, create_table_metadata, user_by_name
 from csvbase.config import get_config
 from csvbase.userdata import PGUserdataAdapter
-from csvbase.value_objs import Column, ColumnType, KeySet, Row, DataLicence
+from csvbase.value_objs import Column, ColumnType, KeySet, Row, DataLicence, Backend
 
 from .value_objs import Post
 
@@ -87,5 +87,6 @@ def make_blog_table(sesh) -> None:
         False,
         "",
         DataLicence.ALL_RIGHTS_RESERVED,
+        Backend.POSTGRES,
     )
     PGUserdataAdapter.create_table(sesh, table_uuid, BLOG_COLUMNS)

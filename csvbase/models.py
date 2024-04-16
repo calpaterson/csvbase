@@ -98,6 +98,14 @@ class APIKey(Base):
     api_key = Column(BYTEA(length=16), nullable=False, unique=True, index=True)
 
 
+class TableBackend(Base):
+    __tablename__ = "table_backends"
+    __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+
+    backend_id = Column(satypes.SmallInteger, primary_key=True, autoincrement=False)
+    backend_name = Column(satypes.String, nullable=False)
+
+
 class Table(Base):
     __tablename__ = "tables"
     __table_args__ = (
@@ -127,6 +135,9 @@ class Table(Base):
     last_changed = Column(
         satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
     )
+    backend_id = Column(
+        satypes.SmallInteger, ForeignKey(TableBackend.backend_id), nullable=False
+    )
 
     readme_obj: "RelationshipProperty[TableReadme]" = relationship(
         "TableReadme", uselist=False, backref="table"
@@ -134,6 +145,9 @@ class Table(Base):
 
     praise_objs: "RelationshipProperty[List[Praise]]" = relationship(
         "Praise", uselist=True, backref="table_objs"
+    )
+    backend_obj: "RelationshipProperty[TableBackend]" = relationship(
+        "TableBackend", uselist=False, backref="table_objs"
     )
 
 
@@ -152,6 +166,7 @@ class DataLicence(Base):
     __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
 
     licence_id = Column(satypes.SmallInteger, primary_key=True, autoincrement=False)
+    # FIXME: name should be nullable = false
     licence_name = Column(satypes.String)
 
 

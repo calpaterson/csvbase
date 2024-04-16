@@ -458,3 +458,10 @@ for alias, encoding_value in encodings.aliases.aliases.items():
 ENCODING_ALIASES_MAP = {
     encoding.value: sorted(_encoding_aliases[encoding.value]) for encoding in Encoding
 }
+
+
+@enum.unique
+class Backend(enum.Enum):
+    POSTGRES = 1
+    HTTP = 2
+    GIT = 3

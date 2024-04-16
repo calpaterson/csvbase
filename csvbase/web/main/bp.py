@@ -72,6 +72,7 @@ from ...value_objs import (
     Row,
     Table,
     User,
+    Backend,
 )
 from ...streams import UserSubmittedCSVData
 from ...constants import COPY_BUFFER_SIZE
@@ -225,6 +226,7 @@ def new_table_form_submission() -> Response:
         is_public,
         "",
         data_licence,
+        Backend.POSTGRES,
     )
 
     textarea = request.form.get("csv-textarea")
@@ -341,6 +343,7 @@ def blank_table_form_post() -> Response:
         is_public,
         "",
         licence,
+        Backend.POSTGRES,
     )
     PGUserdataAdapter.create_table(sesh, table_uuid, cols)
     sesh.commit()
@@ -429,6 +432,7 @@ class TableView(MethodView):
                 is_public,
                 "",
                 DataLicence.ALL_RIGHTS_RESERVED,
+                Backend.POSTGRES,
             )
             PGUserdataAdapter.create_table(sesh, table_uuid, csv_columns)
             table = svc.get_table(sesh, username, table_name)
@@ -891,6 +895,7 @@ class CopyView(MethodView):
             is_public,
             existing_table.caption,
             existing_table.data_licence,
+            Backend.POSTGRES,
         )
 
         PGUserdataAdapter.create_table(sesh, new_table_uuid, existing_table.columns)

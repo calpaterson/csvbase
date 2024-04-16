@@ -11,6 +11,7 @@ from csvbase.value_objs import (
     KeySet,
     Page,
     Table,
+    Backend,
 )
 
 from .utils import random_string
@@ -29,6 +30,7 @@ def letters_table(test_user, module_sesh) -> Table:
         True,
         "",
         DataLicence.ALL_RIGHTS_RESERVED,
+        Backend.POSTGRES,
     )
     PGUserdataAdapter.create_table(module_sesh, table_uuid, columns)
     table = svc.get_table(module_sesh, test_user.username, table_name)
@@ -129,7 +131,13 @@ def test_pagination_under_the_bottom(sesh, test_user):
     table_name = random_string()
     x_column = Column("x", ColumnType.INTEGER)
     table_uuid = svc.create_table_metadata(
-        sesh, test_user.user_uuid, table_name, False, "", DataLicence.OGL
+        sesh,
+        test_user.user_uuid,
+        table_name,
+        False,
+        "",
+        DataLicence.OGL,
+        Backend.POSTGRES,
     )
     PGUserdataAdapter.create_table(sesh, table_uuid, columns=[x_column])
 
@@ -156,7 +164,13 @@ def test_paging_on_empty_table(sesh, test_user):
     table_name = random_string()
 
     table_uuid = svc.create_table_metadata(
-        sesh, test_user.user_uuid, table_name, False, "", DataLicence.OGL
+        sesh,
+        test_user.user_uuid,
+        table_name,
+        False,
+        "",
+        DataLicence.OGL,
+        Backend.POSTGRES,
     )
     PGUserdataAdapter.create_table(
         sesh, table_uuid, columns=[Column("x", ColumnType.INTEGER)]

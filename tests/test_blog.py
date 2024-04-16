@@ -10,7 +10,7 @@ from csvbase.config import get_config
 from csvbase.web.blog.value_objs import Post
 from csvbase.svc import create_table_metadata, get_table
 from csvbase.userdata import PGUserdataAdapter
-from csvbase.value_objs import Column, ColumnType, DataLicence, User
+from csvbase.value_objs import Column, ColumnType, DataLicence, User, Backend
 
 from .utils import random_string
 
@@ -50,6 +50,7 @@ def blog_table(sesh, test_user: User):
         False,
         "",
         DataLicence.ALL_RIGHTS_RESERVED,
+        backend=Backend.POSTGRES,
     )
     PGUserdataAdapter.create_table(sesh, table_uuid, columns)
     table = get_table(sesh, test_user.username, table_name)
