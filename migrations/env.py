@@ -73,10 +73,27 @@ def run_migrations_online():
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            include_schemas=True,
+            include_name=include_name,
+        )
 
         with context.begin_transaction():
             context.run_migrations()
+
+
+def include_name(name, type_, parent_names):
+    # This is necessary to fast skip the massive userdata schema when running
+    # locally to auto-generate migrations as a starting point
+    if type == "schema":
+        return name == "metadata"
+    else:
+        if parent_names.get("schema_name") == "userdata":
+            return False
+        else:
+            return True
 
 
 if context.is_offline_mode():
