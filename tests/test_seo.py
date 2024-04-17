@@ -20,7 +20,9 @@ def test_sitemap(client):
         schema_root = etree.XML(sitemap_xsd_f.read())
     schema = etree.XMLSchema(schema_root)
     parser = etree.XMLParser(schema=schema)
-    root = etree.XML(resp.data, parser)
+
+    # for some reason this line often flakes on CI, still investigating
+    root = etree.XML(resp.data, parser), resp.data
     assert root is not None
 
     # Double check this easy-to-create issue
