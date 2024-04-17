@@ -2,6 +2,8 @@ from uuid import uuid4
 from datetime import date
 from typing import Sequence, Tuple
 
+from sqlalchemy.orm import Session
+
 from csvbase import exc
 from csvbase.svc import get_table, create_table_metadata, user_by_name
 from csvbase.config import get_config
@@ -47,11 +49,11 @@ def get_blog_ref() -> Tuple[str, str]:
         return username, table_name
 
 
-def get_posts(sesh) -> Sequence[Post]:
+def get_posts(sesh: Session) -> Sequence[Post]:
     username, table_name = get_blog_ref()
     table = get_table(sesh, username, table_name)
-    page = PGUserdataAdapter.table_page(
-        sesh,
+    backend = PGUserdataAdapter(sesh)
+    page = backend.table_page(
         table,
         KeySet([Column("csvbase_row_id", ColumnType.INTEGER)], (0,), op="greater_than"),
     )
@@ -61,23 +63,25 @@ def get_posts(sesh) -> Sequence[Post]:
     return sorted(posts, key=lambda p: p.posted or date(1970, 1, 1), reverse=True)
 
 
-def get_post(sesh, post_id: int) -> Post:
+def get_post(sesh: Session, post_id: int) -> Post:
     username, table_name = get_blog_ref()
     table = get_table(sesh, username, table_name)
-    row = PGUserdataAdapter.get_row(sesh, table.table_uuid, post_id)
+    backend = PGUserdataAdapter(sesh)
+    row = backend.get_row(table.table_uuid, post_id)
     if row is None:
         raise exc.RowDoesNotExistException(username, table_name, post_id)
     return post_from_row(row)
 
 
-def insert_post(sesh, post: Post) -> None:
+def insert_post(sesh: Session, post: Post) -> None:
     username, table_name = get_blog_ref()
     table = get_table(sesh, username, table_name)
     row = post_to_row(post)
-    PGUserdataAdapter.insert_row(sesh, table.table_uuid, row)
+    backend = PGUserdataAdapter(sesh)
+    backend.insert_row(table.table_uuid, row)
 
 
-def make_blog_table(sesh) -> None:
+def make_blog_table(sesh: Session) -> None:
     username, table_name = get_blog_ref()
     user = user_by_name(sesh, username)
     table_uuid = create_table_metadata(
@@ -89,4 +93,5 @@ def make_blog_table(sesh) -> None:
         DataLicence.ALL_RIGHTS_RESERVED,
         Backend.POSTGRES,
     )
-    PGUserdataAdapter.create_table(sesh, table_uuid, BLOG_COLUMNS)
+    backend = PGUserdataAdapter(sesh)
+    backend.create_table(table_uuid, BLOG_COLUMNS)

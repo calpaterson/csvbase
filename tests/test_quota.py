@@ -4,5 +4,6 @@ from csvbase.userdata import PGUserdataAdapter
 
 
 def test_usage(sesh, test_user, ten_rows):
-    byte_count = PGUserdataAdapter.byte_count(sesh, ten_rows.table_uuid)
+    backend = PGUserdataAdapter(sesh)
+    byte_count = backend.byte_count(ten_rows.table_uuid)
     assert byte_count >= 1

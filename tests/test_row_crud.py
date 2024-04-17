@@ -452,10 +452,10 @@ def test_delete__am_authed(client, ten_rows, test_user, is_public, delete_mode):
 @pytest.mark.parametrize("is_public", [True, False])
 def test_delete__not_authed(sesh, client, test_user, is_public, delete_mode):
     table = create_table(sesh, test_user, is_public=is_public)
-    PGUserdataAdapter.insert_row(
-        sesh,
+    backend = PGUserdataAdapter(sesh)
+    backend.insert_row(
         table.table_uuid,
-        PGUserdataAdapter.get_a_sample_row(sesh, table.table_uuid),
+        backend.get_a_sample_row(table.table_uuid),
     )
     sesh.commit()
     url_template, verb = delete_mode
@@ -476,10 +476,10 @@ def test_delete__not_authed(sesh, client, test_user, is_public, delete_mode):
 @pytest.mark.parametrize("is_public", [True, False])
 def test_delete__wrong_user(sesh, client, test_user, is_public, delete_mode):
     table = create_table(sesh, test_user, is_public=is_public)
-    PGUserdataAdapter.insert_row(
-        sesh,
+    backend = PGUserdataAdapter(sesh)
+    backend.insert_row(
         table.table_uuid,
-        PGUserdataAdapter.get_a_sample_row(sesh, table.table_uuid),
+        backend.get_a_sample_row(table.table_uuid),
     )
     sesh.commit()
     url_template, verb = delete_mode

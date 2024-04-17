@@ -89,8 +89,9 @@ def ten_rows(test_user, sesh) -> Table:
     ]
 
     table = create_table(sesh, test_user, columns, caption="Roman numerals")
+    backend = PGUserdataAdapter(sesh)
     for row in data:
-        PGUserdataAdapter.insert_row(sesh, table.table_uuid, dict(zip(columns, row)))
+        backend.insert_row(table.table_uuid, dict(zip(columns, row)))
     sesh.commit()
     return table
 
@@ -99,7 +100,8 @@ def ten_rows(test_user, sesh) -> Table:
 def private_table(test_user, module_sesh):
     x_column = Column("x", type_=ColumnType.INTEGER)
     table = create_table(module_sesh, test_user, [x_column], is_public=False)
-    PGUserdataAdapter.insert_row(module_sesh, table.table_uuid, {x_column: 1})
+    backend = PGUserdataAdapter(module_sesh)
+    backend.insert_row(table.table_uuid, {x_column: 1})
     module_sesh.commit()
     return table.table_name
 

@@ -52,7 +52,8 @@ def blog_table(sesh, test_user: User):
         DataLicence.ALL_RIGHTS_RESERVED,
         backend=Backend.POSTGRES,
     )
-    PGUserdataAdapter.create_table(sesh, table_uuid, columns)
+    backend = PGUserdataAdapter(sesh)
+    backend.create_table(table_uuid, columns)
     table = get_table(sesh, test_user.username, table_name)
     sesh.commit()
     with patch.object(

@@ -32,10 +32,10 @@ def letters_table(test_user, module_sesh) -> Table:
         DataLicence.ALL_RIGHTS_RESERVED,
         Backend.POSTGRES,
     )
-    PGUserdataAdapter.create_table(module_sesh, table_uuid, columns)
+    backend = PGUserdataAdapter(module_sesh)
+    backend.create_table(table_uuid, columns)
     table = svc.get_table(module_sesh, test_user.username, table_name)
-    PGUserdataAdapter.insert_table_data(
-        module_sesh,
+    backend.insert_table_data(
         table,
         columns,
         rows,
@@ -52,8 +52,8 @@ csvbase_row_id_col = Column("csvbase_row_id", ColumnType.INTEGER)
 
 
 def test_first_page(sesh, test_user, letters_table):
-    page = PGUserdataAdapter.table_page(
-        sesh,
+    backend = PGUserdataAdapter(sesh)
+    page = backend.table_page(
         letters_table,
         keyset=KeySet(
             columns=[csvbase_row_id_col],
@@ -69,8 +69,8 @@ def test_first_page(sesh, test_user, letters_table):
 
 
 def test_second_page(sesh, test_user, letters_table):
-    page = PGUserdataAdapter.table_page(
-        sesh,
+    backend = PGUserdataAdapter(sesh)
+    page = backend.table_page(
         letters_table,
         keyset=KeySet([csvbase_row_id_col], (3,), op="greater_than", size=3),
     )
@@ -81,8 +81,8 @@ def test_second_page(sesh, test_user, letters_table):
 
 
 def test_back_to_first_page(sesh, test_user, letters_table):
-    page = PGUserdataAdapter.table_page(
-        sesh,
+    backend = PGUserdataAdapter(sesh)
+    page = backend.table_page(
         letters_table,
         keyset=KeySet([csvbase_row_id_col], values=(4,), op="less_than", size=3),
     )
@@ -93,8 +93,8 @@ def test_back_to_first_page(sesh, test_user, letters_table):
 
 
 def test_last_page(sesh, test_user, letters_table):
-    page = PGUserdataAdapter.table_page(
-        sesh,
+    backend = PGUserdataAdapter(sesh)
+    page = backend.table_page(
         letters_table,
         keyset=KeySet([csvbase_row_id_col], values=(23,), op="greater_than", size=10),
     )
@@ -105,8 +105,8 @@ def test_last_page(sesh, test_user, letters_table):
 
 
 def test_backward_paging(sesh, test_user, letters_table):
-    page = PGUserdataAdapter.table_page(
-        sesh,
+    backend = PGUserdataAdapter(sesh)
+    page = backend.table_page(
         letters_table,
         keyset=KeySet([csvbase_row_id_col], values=(23,), op="less_than", size=3),
     )
@@ -117,8 +117,8 @@ def test_backward_paging(sesh, test_user, letters_table):
 
 
 def test_pagination_over_the_top(sesh, test_user, letters_table):
-    page = PGUserdataAdapter.table_page(
-        sesh,
+    backend = PGUserdataAdapter(sesh)
+    page = backend.table_page(
         letters_table,
         keyset=KeySet([csvbase_row_id_col], values=(50,), op="greater_than", size=3),
     )
@@ -139,19 +139,17 @@ def test_pagination_under_the_bottom(sesh, test_user):
         DataLicence.OGL,
         Backend.POSTGRES,
     )
-    PGUserdataAdapter.create_table(sesh, table_uuid, columns=[x_column])
+    backend = PGUserdataAdapter(sesh)
+    backend.create_table(table_uuid, columns=[x_column])
 
-    row_ids = [
-        PGUserdataAdapter.insert_row(sesh, table_uuid, {x_column: 1}) for _ in range(5)
-    ]
+    row_ids = [backend.insert_row(table_uuid, {x_column: 1}) for _ in range(5)]
 
     for row_id in row_ids[:3]:
-        PGUserdataAdapter.delete_row(sesh, table_uuid, row_id)
+        backend.delete_row(table_uuid, row_id)
 
     table = svc.get_table(sesh, test_user.username, table_name)
 
-    page = PGUserdataAdapter.table_page(
-        sesh,
+    page = backend.table_page(
         table,
         keyset=KeySet([csvbase_row_id_col], (3,), op="less_than", size=3),
     )
@@ -172,13 +170,11 @@ def test_paging_on_empty_table(sesh, test_user):
         DataLicence.OGL,
         Backend.POSTGRES,
     )
-    PGUserdataAdapter.create_table(
-        sesh, table_uuid, columns=[Column("x", ColumnType.INTEGER)]
-    )
+    backend = PGUserdataAdapter(sesh)
+    backend.create_table(table_uuid, columns=[Column("x", ColumnType.INTEGER)])
     table = svc.get_table(sesh, test_user.username, table_name)
 
-    page = PGUserdataAdapter.table_page(
-        sesh,
+    page = backend.table_page(
         table,
         keyset=KeySet([csvbase_row_id_col], values=(0,), op="greater_than"),
     )

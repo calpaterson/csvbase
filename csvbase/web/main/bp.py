@@ -229,6 +229,8 @@ def new_table_form_submission() -> Response:
         Backend.POSTGRES,
     )
 
+    backend = PGUserdataAdapter(sesh)
+
     textarea = request.form.get("csv-textarea")
     if textarea:
         csv_buf = io.StringIO(textarea)
@@ -239,14 +241,13 @@ def new_table_form_submission() -> Response:
 
     try:
         dialect, columns = streams.peek_csv(csv_buf)
-        PGUserdataAdapter.create_table(sesh, table_uuid, columns)
+        backend.create_table(table_uuid, columns)
         table = svc.get_table(sesh, current_user.username, table_name)
         rows = table_io.csv_to_rows(csv_buf, columns, dialect)
     except UnicodeDecodeError as e:
         raise exc.WrongEncodingException() from e
 
-    PGUserdataAdapter.insert_table_data(
-        sesh,
+    backend.insert_table_data(
         table,
         columns,
         rows,
@@ -345,7 +346,8 @@ def blank_table_form_post() -> Response:
         licence,
         Backend.POSTGRES,
     )
-    PGUserdataAdapter.create_table(sesh, table_uuid, cols)
+    backend = PGUserdataAdapter(sesh)
+    backend.create_table(table_uuid, cols)
     sesh.commit()
     return redirect(
         url_for(
@@ -390,6 +392,7 @@ class TableView(MethodView):
         byte_buf = io.BytesIO()
         shutil.copyfileobj(request.stream, byte_buf)
         str_buf = streams.byte_buf_to_str_buf(byte_buf)
+        backend = PGUserdataAdapter(sesh)
 
         if svc.table_exists(sesh, user.user_uuid, table_name):
             table = svc.get_table(sesh, username, table_name)
@@ -410,11 +413,10 @@ class TableView(MethodView):
             # If there is no csvbase_row_id column, don't try to correlate
             # updates, just wipe the table and insert everything.
             if "csvbase_row_id" not in set(c.name for c in csv_columns):
-                PGUserdataAdapter.delete_table_data(sesh, table)
-                PGUserdataAdapter.insert_table_data(sesh, table, csv_columns, rows)
+                backend.delete_table_data(table)
+                backend.insert_table_data(table, csv_columns, rows)
             else:
-                PGUserdataAdapter.upsert_table_data(
-                    sesh,
+                backend.upsert_table_data(
                     table,
                     csv_columns,
                     rows,
@@ -434,9 +436,9 @@ class TableView(MethodView):
                 DataLicence.ALL_RIGHTS_RESERVED,
                 Backend.POSTGRES,
             )
-            PGUserdataAdapter.create_table(sesh, table_uuid, csv_columns)
+            backend.create_table(table_uuid, csv_columns)
             table = svc.get_table(sesh, username, table_name)
-            PGUserdataAdapter.insert_table_data(sesh, table, csv_columns, rows)
+            backend.insert_table_data(table, csv_columns, rows)
             status = 201
             message = f"created {username}/{table_name}"
         svc.mark_table_changed(sesh, table.table_uuid)
@@ -478,7 +480,8 @@ class TableView(MethodView):
         # FIXME: check that columns is a subset of table_columns
         # table_columns = PGUserdataAdapter.get_columns(sesh, columns)
 
-        PGUserdataAdapter.insert_table_data(sesh, table, columns, rows)
+        backend = PGUserdataAdapter(sesh)
+        backend.insert_table_data(table, columns, rows)
 
         message = f"Updated {username}/{table_name}"
         response = jsonify({"message": message})
@@ -557,14 +560,13 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
     else:
         logger.debug("no matching etag")
 
+    backend = PGUserdataAdapter(sesh)
     # If the representation is page based:
     if content_type in {ContentType.HTML, ContentType.JSON}:
-        page = PGUserdataAdapter.table_page(sesh, table, keyset)
+        page = backend.table_page(table, keyset)
         ensure_not_over_the_top(table, keyset, page)
         if content_type is ContentType.HTML:
-            min_row_id, max_row_id = PGUserdataAdapter.row_id_bounds(
-                sesh, table.table_uuid
-            )
+            min_row_id, max_row_id = backend.row_id_bounds(table.table_uuid)
             row_ids = page.row_ids()
             is_first_page = min_row_id is None or (min_row_id in row_ids)
             is_last_page = max_row_id is None or (max_row_id in row_ids)
@@ -603,8 +605,8 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
             return response
 
     # If the representation is whole-table:
-    columns = PGUserdataAdapter.get_columns(sesh, table.table_uuid)
-    rows = PGUserdataAdapter.table_as_rows(sesh, table.table_uuid)
+    columns = backend.get_columns(table.table_uuid)
+    rows = backend.table_as_rows(table.table_uuid)
     if content_type is ContentType.PARQUET:
         streaming_response = make_streaming_response(
             table_io.rows_to_parquet(columns, rows)
@@ -798,7 +800,8 @@ def get_table_apidocs(username: str, table_name: str) -> str:
     owner = svc.user_by_name(sesh, username)
 
     made_up_row = svc.get_a_made_up_row(sesh, table.table_uuid)
-    sample_row = PGUserdataAdapter.get_a_sample_row(sesh, table.table_uuid)
+    backend = PGUserdataAdapter(sesh)
+    sample_row = backend.get_a_sample_row(table.table_uuid)
     sample_page = Page(has_less=False, has_more=True, rows=[sample_row])
 
     return render_template(
@@ -898,10 +901,9 @@ class CopyView(MethodView):
             Backend.POSTGRES,
         )
 
-        PGUserdataAdapter.create_table(sesh, new_table_uuid, existing_table.columns)
-        PGUserdataAdapter.copy_table_data(
-            sesh, existing_table.table_uuid, new_table_uuid
-        )
+        backend = PGUserdataAdapter(sesh)
+        backend.create_table(new_table_uuid, existing_table.columns)
+        backend.copy_table_data(existing_table.table_uuid, new_table_uuid)
         svc.record_copy(sesh, existing_table.table_uuid, new_table_uuid)
         svc.mark_table_changed(sesh, new_table_uuid)
         sesh.commit()
@@ -1029,7 +1031,8 @@ def create_row(username: str, table_name: str) -> Response:
             [ContentType.JSON, ContentType.HTML_FORM], request.mimetype
         )
 
-    row_id = PGUserdataAdapter.insert_row(sesh, table.table_uuid, row)
+    backend = PGUserdataAdapter(sesh)
+    row_id = backend.insert_row(table.table_uuid, row)
     svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()
 
@@ -1078,7 +1081,8 @@ def row_delete_check(username: str, table_name: str, row_id: int) -> Response:
     svc.user_exists(sesh, username)
     table = svc.get_table(sesh, username, table_name)
     ensure_table_access(sesh, table, "write")
-    row = PGUserdataAdapter.get_row(sesh, table.table_uuid, row_id)
+    backend = PGUserdataAdapter(sesh)
+    row = backend.get_row(table.table_uuid, row_id)
     if row is None:
         raise exc.RowDoesNotExistException(username, table_name, row_id)
 
@@ -1102,7 +1106,8 @@ class RowView(MethodView):
         svc.user_exists(sesh, username)
         table = svc.get_table(sesh, username, table_name)
         ensure_table_access(sesh, table, "read")
-        row = PGUserdataAdapter.get_row(sesh, table.table_uuid, row_id)
+        backend = PGUserdataAdapter(sesh)
+        row = backend.get_row(table.table_uuid, row_id)
         if row is None:
             raise exc.RowDoesNotExistException(username, table_name, row_id)
 
@@ -1140,7 +1145,8 @@ class RowView(MethodView):
         }
         row[table.row_id_column()] = row_id
 
-        if not PGUserdataAdapter.update_row(sesh, table.table_uuid, row_id, row):
+        backend = PGUserdataAdapter(sesh)
+        if not backend.update_row(table.table_uuid, row_id, row):
             raise exc.RowDoesNotExistException(username, table_name, row_id)
         svc.mark_table_changed(sesh, table.table_uuid)
         sesh.commit()
@@ -1188,7 +1194,8 @@ class RowView(MethodView):
             c: from_html_form_to_python(c.type_, request.form.get(c.name))
             for c in table.columns
         }
-        PGUserdataAdapter.update_row(sesh, table.table_uuid, row_id, row)
+        backend = PGUserdataAdapter(sesh)
+        backend.update_row(table.table_uuid, row_id, row)
         svc.mark_table_changed(sesh, table.table_uuid)
         sesh.commit()
         flash(f"Updated row {row_id}")
@@ -1198,7 +1205,8 @@ class RowView(MethodView):
         sesh = get_sesh()
         table = svc.get_table(sesh, username, table_name)
         ensure_table_access(sesh, table, "write")
-        if not PGUserdataAdapter.delete_row(sesh, table.table_uuid, row_id):
+        backend = PGUserdataAdapter(sesh)
+        if not backend.delete_row(table.table_uuid, row_id):
             raise exc.RowDoesNotExistException(username, table_name, row_id)
         svc.mark_table_changed(sesh, table.table_uuid)
         sesh.commit()
@@ -1222,7 +1230,8 @@ def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Resp
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
     ensure_table_access(sesh, table, "write")
-    if not PGUserdataAdapter.delete_row(sesh, table.table_uuid, row_id):
+    backend = PGUserdataAdapter(sesh)
+    if not backend.delete_row(table.table_uuid, row_id):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
     svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()

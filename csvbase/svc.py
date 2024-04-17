@@ -202,8 +202,9 @@ def get_table(sesh: Session, username: str, table_name: str) -> Table:
     )
     if table_model is None:
         raise exc.TableDoesNotExistException(user.username, table_name)
-    columns = PGUserdataAdapter.get_columns(sesh, table_model.table_uuid)
-    row_count = PGUserdataAdapter.count(sesh, table_model.table_uuid)
+    backend = PGUserdataAdapter(sesh)
+    columns = backend.get_columns(table_model.table_uuid)
+    row_count = backend.count(table_model.table_uuid)
     return _make_table(user.username, table_model, columns, row_count)
 
 
@@ -229,7 +230,8 @@ def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> 
         )
     ).delete()
     sesh.delete(table_model)
-    PGUserdataAdapter.drop_table(sesh, table_model.table_uuid)
+    backend = PGUserdataAdapter(sesh)
+    backend.drop_table(table_model.table_uuid)
 
 
 def create_table_metadata(
@@ -317,7 +319,8 @@ def set_readme_markdown(
 
 
 def get_a_made_up_row(sesh: Session, table_uuid: UUID) -> Row:
-    columns = PGUserdataAdapter.get_columns(sesh, table_uuid)
+    backend = PGUserdataAdapter(sesh)
+    columns = backend.get_columns(table_uuid)
     return {c: c.type_.example() for c in columns}
 
 
@@ -427,9 +430,10 @@ def tables_for_user(
     )
     if not include_private:
         rp = rp.filter(models.Table.public)
+    backend = PGUserdataAdapter(sesh)
     for table_model, username in rp:
-        columns = PGUserdataAdapter.get_columns(sesh, table_model.table_uuid)
-        row_count = PGUserdataAdapter.count(sesh, table_model.table_uuid)
+        columns = backend.get_columns(table_model.table_uuid)
+        row_count = backend.count(table_model.table_uuid)
         yield _make_table(username, table_model, columns, row_count)
 
 
@@ -478,6 +482,7 @@ ORDER BY
 LIMIT :n;
     """
     )
+    backend = PGUserdataAdapter(sesh)
     rp = sesh.execute(stmt, dict(n=n))
     for (
         table_uuid,
@@ -488,7 +493,7 @@ LIMIT :n;
         created,
         last_changed,
     ) in rp:
-        columns = PGUserdataAdapter.get_columns(sesh, table_uuid)
+        columns = backend.get_columns(table_uuid)
         table = Table(
             table_uuid,
             username,
@@ -498,7 +503,7 @@ LIMIT :n;
             DataLicence(licence_id),
             columns,
             created,
-            PGUserdataAdapter.count(sesh, table_uuid),
+            backend.count(table_uuid),
             last_changed,
         )
         yield table
@@ -643,8 +648,9 @@ def get_usage(sesh: Session, user_uuid: UUID) -> Usage:
     private_tables = 0
     public_bytes = 0
     public_tables = 0
+    backend = PGUserdataAdapter(sesh)
     for table_uuid, is_public in tables_and_public:
-        byte_count = PGUserdataAdapter.byte_count(sesh, table_uuid)
+        byte_count = backend.byte_count(table_uuid)
         if is_public:
             public_tables += 1
             public_bytes += byte_count

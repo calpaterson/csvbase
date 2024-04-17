@@ -82,7 +82,8 @@ def create_table(
         licence=licence,
         backend=Backend.POSTGRES,
     )
-    PGUserdataAdapter.create_table(sesh, table_uuid, columns)
+    backend = PGUserdataAdapter(sesh)
+    backend.create_table(table_uuid, columns)
     return svc.get_table(sesh, user.username, table_name)
 
 
