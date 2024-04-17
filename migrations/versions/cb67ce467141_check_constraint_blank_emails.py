@@ -19,18 +19,18 @@ depends_on = None
 
 def upgrade():
     op.execute("DELETE FROM metadata.user_emails WHERE email_address = ''")
-    op.create_check_constraint(  # type: ignore
+    op.create_check_constraint(
         op.f("ck_user_emails_email_address_not_blank"),
         "user_emails",
         "email_address ~ '@'",
-        "metadata",
+        schema="metadata",
     )
 
 
 def downgrade():
-    op.drop_constraint(  # type: ignore
+    op.drop_constraint(
         op.f("ck_user_emails_email_address_not_blank"),
         "user_emails",
         "check",
-        "metadata",
+        schema="metadata",
     )
