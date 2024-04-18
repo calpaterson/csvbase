@@ -71,3 +71,16 @@ def test_going_to_registration_form_when_signed_in(client, test_user):
     resp = client.get("/register")
     assert resp.status_code == 302
     assert resp.headers["Location"] == f"/{test_user.username}"
+
+
+@pytest.mark.parametrize("whence", [None, "/about"])
+def test_sign_out(client, test_user, whence):
+    set_current_user(test_user)
+    headers = {} if whence is None else {"Referer": whence}
+    resp = client.get("/sign-out", headers=headers)
+    assert resp.status_code == 302
+    if whence is None:
+        expected_location = "/new-table/paste"
+    else:
+        expected_location = whence
+    assert expected_location == resp.headers["Location"]

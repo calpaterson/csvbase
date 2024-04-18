@@ -15,15 +15,15 @@
           <ul class="nav nav-tabs">
             <li class="nav-item">
               <a class="nav-link {% if method == 'paste' %}active{%endif%}"
-                 href="{{ url_for('csvbase.paste') }}">Paste</a>
+                 href="{{ url_for('create_table.paste') }}">Paste</a>
             </li>
             <li class="nav-item">
               <a class="nav-link {% if method == 'upload-file' %}active{%endif%}"
-                 href="{{ url_for('csvbase.upload_file') }}">Upload file</a>
+                 href="{{ url_for('create_table.upload_file') }}">Upload file</a>
             </li>
             <li class="nav-item">
               <a class="nav-link {% if request.endpoint == 'csvbase.blank_table' %}active{%endif%}"
-                 href="{{ url_for('csvbase.blank_table') }}">Blank table</a>
+                 href="{{ url_for('create_table.blank_table') }}">Blank table</a>
             </li>
           </ul>
         </div>

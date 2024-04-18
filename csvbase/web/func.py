@@ -1,18 +1,20 @@
 import re
 import functools
 from datetime import datetime, timezone
-from typing import Optional, Callable, Mapping, Tuple
+from typing import Optional, Callable, Mapping, Tuple, Any
 from logging import getLogger
 from urllib.parse import urlsplit, urlparse
+
+from sqlalchemy.orm import Session
 
 import werkzeug
 import werkzeug.exceptions
 from werkzeug.wrappers.response import Response
-from flask import request, g, current_app, Request, redirect as unsafe_redirect
+from flask import session as flask_session
+from flask import request, g, current_app, Request, redirect as unsafe_redirect, flash
 from flask_babel import get_locale, dates
 
-from .. import exc
-from .. import sentry
+from .. import exc, sentry, svc
 from ..value_objs import User
 
 logger = getLogger(__name__)
@@ -150,3 +152,32 @@ def safe_redirect(to_raw: str) -> Response:
         return unsafe_redirect(to_raw)
     else:
         raise exc.InvalidRequest(f"won't redirect outside of {request.base_url}")
+
+
+def register_and_sign_in_new_user(sesh: Session) -> User:
+    """Registers a new user and signs them in if the registration succeeds."""
+    form = request.form
+    new_user = svc.create_user(
+        sesh,
+        current_app.config["CRYPT_CONTEXT"],
+        form["username"],
+        form["password"],
+        form.get("email"),
+    )
+    sign_in_user(new_user)
+    flash("Account registered")
+    return new_user
+
+
+def sign_in_user(user: User, session: Optional[Any] = None) -> None:
+    """Sets the current user and sets a cookie to keep them logged in across
+    requests.
+
+    """
+    set_current_user(user)
+
+    if session is None:
+        session = flask_session
+    session["user_uuid"] = user.user_uuid
+    # Make it last for 31 days
+    session.permanent = True

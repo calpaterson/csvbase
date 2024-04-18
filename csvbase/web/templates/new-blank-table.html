@@ -26,7 +26,7 @@
         <button
           type="submit"
           class="btn btn-danger btn-sm"
-          formaction="{{ url_for('csvbase.blank_table') }}"
+          formaction="{{ url_for('create_table.blank_table') }}"
           formmethod="get"
           formnovalidate
           name="remove_col"
@@ -40,7 +40,7 @@
   <div class="mb-3">
     <button
       class="btn btn-secondary"
-      formaction="{{ url_for('csvbase.blank_table') }}"
+      formaction="{{ url_for('create_table.blank_table') }}"
       formmethod="get"
       formnovalidate
       name="add_col"

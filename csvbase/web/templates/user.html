@@ -28,7 +28,7 @@
       </div>
     {% endfor %}
     {% if g.current_username == user.username %}
-      <p>Or <a href="{{ url_for('csvbase.paste')}}"> paste a new table</a></p>
+      <p>Or <a href="{{ url_for('create_table.paste')}}"> paste a new table</a></p>
 
       <h2>Your API Key</h2>
       <code>{{ g.current_user.hex_api_key() }}</code>

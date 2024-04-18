@@ -41,6 +41,7 @@ from ..sesh import get_sesh
 from .func import is_browser, is_url
 from .billing import bp as billing_bp
 from .main.bp import bp as main_bp
+from .main.create_table import bp as create_table_bp
 
 logger = getLogger(__name__)
 
@@ -109,6 +110,7 @@ def init_app() -> Flask:
     app.url_map.converters["table_name"] = TableNameConverter
 
     app.register_blueprint(main_bp)
+    app.register_blueprint(create_table_bp)
 
     billing_bp.init_blueprint(app)
 

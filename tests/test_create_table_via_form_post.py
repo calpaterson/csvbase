@@ -23,7 +23,7 @@ def render_pickle(*args, **kwargs):
 
 @pytest.fixture(scope="function", autouse=True)
 def render_template_to_json():
-    with patch.object(main.bp, "render_template") as mock_render_template:
+    with patch.object(main.create_table, "render_template") as mock_render_template:
         mock_render_template.side_effect = render_pickle
         yield
 
@@ -33,7 +33,7 @@ TESTCASES: Any = [({}, {"cols": [("", ColumnType.TEXT)]})]
 
 @pytest.mark.parametrize("query, kwargs", TESTCASES)
 def test_new_blank_table_form(client, query, kwargs):
-    resp = client.get(url_for("csvbase.blank_table"))
+    resp = client.get(url_for("create_table.blank_table"))
     _, template_kwargs = pickle.loads(resp.data)
     template_kwargs.pop("ColumnType")
     template_kwargs.pop("action_url")
