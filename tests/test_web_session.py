@@ -80,7 +80,8 @@ def test_sign_out(client, test_user, whence):
     resp = client.get("/sign-out", headers=headers)
     assert resp.status_code == 302
     if whence is None:
-        expected_location = "/new-table/paste"
+        expected_location = "/"
     else:
         expected_location = whence
     assert expected_location == resp.headers["Location"]
+    assert resp.headers["Clear-Site-Data"] == "*"

@@ -1212,9 +1212,14 @@ def sign_out():
     flask_session.clear()
     flash("Signed out")
     if request.referrer:
-        return safe_redirect(request.referrer)
+        response = safe_redirect(request.referrer)
     else:
-        return redirect(url_for("create_table.paste"))
+        response = redirect(url_for("csvbase.index"))
+
+    # session is already cleared, this is just to make doubly sure
+    response.headers["Clear-Site-Data"] = "*"
+
+    return response
 
 
 def am_user(username: str) -> bool:
