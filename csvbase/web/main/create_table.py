@@ -6,20 +6,17 @@ from typing import (
     List,
     Tuple,
 )
+from urllib.parse import urlparse
 
-from flask import (
-    Blueprint,
-    redirect,
-    render_template,
-    request,
-    url_for,
-)
+from flask.views import MethodView
+from flask import Blueprint, redirect, render_template, request, url_for, request
 from werkzeug.wrappers.response import Response
 
 from ..func import get_current_user_or_401, register_and_sign_in_new_user
 from ... import exc, svc, streams, table_io
 from ...sesh import get_sesh
 from ...userdata import PGUserdataAdapter
+from ...userdata.gituserdata import GithubUserdataAdapter
 from ...value_objs import (
     Column,
     ColumnType,
@@ -58,14 +55,55 @@ def upload_file() -> str:
     )
 
 
-# class NewTableFromGit(MethodView):
-#     def get(self) -> Response:
-#         ...
+def parse_github_url(repo: str) -> Tuple[str, str]:
+    """Parse the org and repo out of a github url.
 
-#     def post(self) -> Response:
-#         ...
+    This is designed to be forgiving, so supports a few different formats.
 
-# bp.add_url_rule("/new-table/git", view_func=NewTableFromGit.as_view("new-table-from-git"))
+    """
+    parsed = urlparse(repo)
+    path = parsed.path.split("/")
+    if len(path) < 3:
+        raise exc.InvalidRequest("couldn't parse repo url")
+    return path[1], path[2]
+
+
+class CreateTableFromGit(MethodView):
+    def get(self) -> str:
+        return render_template(
+            "create-table-git.html",
+            method="from-git",
+            action_url=url_for("create_table.from_git"),
+            DataLicence=DataLicence,
+            branch="main",  # a nice default
+        )
+
+    def post(self) -> Response:
+        backend = GithubUserdataAdapter(None)
+        form = request.form
+        org, repo = parse_github_url(form["repo"])
+        branch = form["branch"]
+        path = form["path"]
+        if True:
+            github_file = backend.retrieve(org, repo, branch, path)
+            str_buf = streams.byte_buf_to_str_buf(github_file.body)
+            dialect, columns = streams.peek_csv(str_buf)
+            return render_template(
+                "create-table-git.html",
+                method="from-git",
+                action_url=url_for("create_table.from_git"),
+                DataLicence=DataLicence,
+                repo=form["repo"],
+                branch=branch,
+                path=path,
+                dialect=dialect,
+                columns=columns,
+            )
+
+
+bp.add_url_rule(
+    "/new-table/git", "from_git", view_func=CreateTableFromGit.as_view("from_git")
+)
 
 
 @bp.post("/new-table")

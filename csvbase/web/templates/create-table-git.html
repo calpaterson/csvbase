@@ -1,0 +1,55 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "new-table.html" %}
+
+{% block form_section %}
+  <div class="form-floating mb-3">
+    <input type="url"
+           class="form-control"
+           name="repo"
+           required
+           placeholder
+           id="repo"
+           {% if repo %}value={{repo}}{% endif %}
+           >
+           <label for="repo">Repo</label>
+           <div class="form-text">Example: "https://github.com/calpaterson/csvbase".  Currently <u>only Github</u> is supported.</div>
+  </div>
+  <div class="form-floating mb-3">
+    <input type="text"
+           class="form-control"
+           name="branch"
+           required
+           placeholder
+           id="branch"
+           {% if branch %}value={{branch}}{% endif %}
+           >
+           <label for="branch">Branch</label>
+           <div class="form-text">Usually "main" or "master"</div>
+  </div>
+  <div class="form-floating mb-3">
+    <input type="text"
+           class="form-control"
+           name="path"
+           required
+           placeholder
+           id="path"
+           {% if path %}value={{path}}{% endif %}
+           >
+           <label for="path">Path</label>
+           <div class="form-text">Example: "/path/to/a.csv"</div>
+  </div>
+  <div class="mb-3 row g-3">
+    <div class="col-auto">
+      <label for="update-frequency" class="col-form-label">Update frequency</label>
+    </div>
+    <div class="col-auto">
+      <select class="form-select" name="update-frequency">
+        <option>Automatic</option>
+      </select>
+    </div>
+  </div>
+
+  dialect={{dialect}}
+  columns={{columns}}
+
+{% endblock %}

@@ -9,6 +9,7 @@ import re
 
 from sqlalchemy.orm import Session
 import pandas as pd
+from werkzeug.datastructures import MultiDict
 
 from csvbase.userdata import PGUserdataAdapter
 from csvbase import svc
@@ -135,3 +136,14 @@ def assert_is_valid_etag(etag: str) -> None:
     # signature (csvbase signs etags)
     # FIXME: check the signature
     assert ETAG_REGEX.match(etag), etag
+
+
+def parse_form(html_str: str, form_name: str) -> MultiDict[str, str]:
+    """Helper function for parsing a form out of HTML."""
+
+    html_parser = etree.HTMLParser()
+    root = etree.fromstring(html_str, html_parser)
+    sel = CSSSelector(f'form[name="{form_name}"]')
+    rv = MultiDict()
+    (form,) = sel(root)
+    breakpoint()

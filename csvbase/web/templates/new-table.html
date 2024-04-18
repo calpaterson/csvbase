@@ -25,6 +25,10 @@
               <a class="nav-link {% if request.endpoint == 'csvbase.blank_table' %}active{%endif%}"
                  href="{{ url_for('create_table.blank_table') }}">Blank table</a>
             </li>
+            {# <li class="nav-item"> #}
+            {#   <a class="nav-link {% if method == 'from-git' %}active{%endif%}" #}
+            {#      href="{{ url_for('create_table.from_git') }}">From git</a> #}
+            {# </li> #}
           </ul>
         </div>
 
