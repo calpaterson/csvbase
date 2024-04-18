@@ -7,6 +7,9 @@ from os import path
 from io import StringIO
 import re
 
+from lxml import etree
+from lxml.cssselect import CSSSelector
+
 from sqlalchemy.orm import Session
 import pandas as pd
 from werkzeug.datastructures import MultiDict
@@ -138,12 +141,23 @@ def assert_is_valid_etag(etag: str) -> None:
     assert ETAG_REGEX.match(etag), etag
 
 
-def parse_form(html_str: str, form_name: str) -> MultiDict[str, str]:
-    """Helper function for parsing a form out of HTML."""
+def parse_form(html_str: str) -> MultiDict[str, str]:
+    """Parses a form out of HTML."""
 
     html_parser = etree.HTMLParser()
     root = etree.fromstring(html_str, html_parser)
-    sel = CSSSelector(f'form[name="{form_name}"]')
+    sel = CSSSelector('form')
+    forms = sel(root)
+    assert len(forms) == 1, "did not find exactly one form"
+
+    form, = forms
+    input_sel = CSSSelector("input")
+    input_elements = input_sel(form)
+
     rv = MultiDict()
-    (form,) = sel(root)
-    breakpoint()
+    for input_element in input_elements:
+        attrs = input_element.attrib
+        # "" emulates what the server gets
+        if "name" in attrs:
+            rv.add(attrs["name"], attrs.get("value", ""))
+    return rv

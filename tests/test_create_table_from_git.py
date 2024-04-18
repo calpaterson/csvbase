@@ -20,16 +20,22 @@ def test_get_form_blank(client, test_user):
     assert resp.status_code == 200
 
 
-@pytest.mark.xfail(reason="not implemented")
 def test_post_initial_form__happy(client, test_user):
     set_current_user(test_user)
+    table_name = random_string()
     initial_form = {
-        "table-name": random_string(),
+        "table-name": table_name,
         "repo": "https://csvbase.com/calpaterson/csvbase",
         "branch": "main",
         "path": "/examples/moocows.csv",
     }
     resp = client.post("/new-table/git", data=initial_form)
-    assert resp.status_code == 202
-    assert False
+    assert resp.status_code == 200 # FIXME: perhaps 202?
     form = parse_form(resp.data)
+    assert dict(form) == {
+        "table-name": random_string(),
+        "repo": "https://csvbase.com/calpaterson/csvbase",
+        "branch": "main",
+        "path": "/examples/moocows.csv",
+        "private": "",
+    }
