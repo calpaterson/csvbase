@@ -130,3 +130,7 @@ class UnconvertableValueException(CSVBaseException):
 
 class WrongEncodingException(CSVBaseException):
     pass
+
+
+class MissingTempFile(CSVBaseException):
+    pass

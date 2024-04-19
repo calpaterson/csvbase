@@ -1,22 +1,28 @@
 """Machinery for the creation of new tables."""
 
+from base64 import b64encode, b64decode
+import json
+import zlib
 import io
 from logging import getLogger
 from typing import (
     List,
     Tuple,
+    Dict,
+    Mapping
 )
 from urllib.parse import urlparse
+import secrets
 
 from flask.views import MethodView
 from flask import Blueprint, redirect, render_template, request, url_for, request
 from werkzeug.wrappers.response import Response
 
 from ..func import get_current_user_or_401, register_and_sign_in_new_user
-from ... import exc, svc, streams, table_io
+from ... import exc, svc, streams, table_io, temp
 from ...sesh import get_sesh
 from ...userdata import PGUserdataAdapter
-from ...userdata.gituserdata import GithubUserdataAdapter
+from ...follow.github import GithubFollower
 from ...value_objs import (
     Column,
     ColumnType,
@@ -79,32 +85,73 @@ class CreateTableFromGit(MethodView):
         )
 
     def post(self) -> Response:
-        backend = GithubUserdataAdapter(None)
+        backend = GithubFollower(None)
         form = request.form
         org, repo = parse_github_url(form["repo"])
         branch = form["branch"]
         path = form["path"]
-        if True:
-            github_file = backend.retrieve(org, repo, branch, path)
-            str_buf = streams.byte_buf_to_str_buf(github_file.body)
-            dialect, columns = streams.peek_csv(str_buf)
-            return render_template(
-                "create-table-git.html",
-                method="from-git",
-                action_url=url_for("create_table.from_git"),
-                DataLicence=DataLicence,
-                repo=form["repo"],
-                branch=branch,
-                path=path,
-                dialect=dialect,
-                columns=columns,
-            )
+        github_file = backend.retrieve(org, repo, branch, path)
+        str_buf = streams.byte_buf_to_str_buf(github_file.body)
+        dialect, columns = streams.peek_csv(str_buf)
+
+        with streams.rewind(github_file.body):
+            file_id = temp.store_temp_file(github_file.body)
+
+        confirm_package = {
+            "follow": {
+                "type": "github",
+                "sha": github_file.sha,
+                "branch": branch,
+                "org": org,
+                "path": path
+            },
+            "file_id": file_id,
+            "columns": [
+                [c.name, c.type_.value]
+                for c in columns
+            ]
+        }
+        token = secrets.token_urlsafe()
+        response = redirect(url_for("create_table.confirm", token=token))
+        response.set_cookie(f"confirm-token-{token}", dict_to_cookie(confirm_package), secure=True, httponly=True)
+        return response
+
+
+def dict_to_cookie(d: Mapping) -> str:
+    """Turn a json-able dict into a smallish cookie"""
+    return b64encode(zlib.compress(json.dumps(d).encode("utf-8"))).decode("utf-8")
+
+
+def cookie_to_dict(cookie: str) -> Dict:
+    """Read cookie back into a dict"""
+    # FIXME: catch errors, raise our of our exceptions
+    return json.loads(zlib.decompress(b64decode(cookie)))
 
 
 bp.add_url_rule(
     "/new-table/git", "from_git", view_func=CreateTableFromGit.as_view("from_git")
 )
 
+
+class CreateTableConfirm(MethodView):
+    def get(self, token) -> str:
+        confirm_package = cookie_to_dict(request.cookies.get(f"confirm-token-{token}"))
+        columns = [
+            Column(c[0], ColumnType(c[1])) for c in confirm_package["columns"]
+        ]
+        return render_template(
+            "create-table-confirm.html",
+            page_title="Confirm table structure",
+            columns=columns,
+            ColumnType=ColumnType,
+        )
+
+    def post(self, token) -> Response:
+        ...
+
+bp.add_url_rule(
+    "/new-table/confirm/<token>", "confirm", view_func=CreateTableConfirm.as_view("confirm")
+)
 
 @bp.post("/new-table")
 def new_table_form_submission() -> Response:

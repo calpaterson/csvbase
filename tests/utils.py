@@ -154,10 +154,20 @@ def parse_form(html_str: str) -> MultiDict[str, str]:
     input_sel = CSSSelector("input")
     input_elements = input_sel(form)
 
-    rv = MultiDict()
+    rv: MultiDict[str, str] = MultiDict()
     for input_element in input_elements:
         attrs = input_element.attrib
         # "" emulates what the server gets
         if "name" in attrs:
             rv.add(attrs["name"], attrs.get("value", ""))
+
+    select_sel = CSSSelector("select")
+    select_elements = select_sel(form)
+    for select_element in select_elements:
+        name = select_element.attrib["name"]
+        for child in select_element.getchildren():
+            if child.attrib.get("selected", None) == "selected":
+                value = child.attrib["value"]
+                rv[name] = value
+                break
     return rv

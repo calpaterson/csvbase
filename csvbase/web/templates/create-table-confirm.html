@@ -1,0 +1,56 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "app_base.html" %}
+
+{% block main %}
+  <div class="container">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <h1>Confirm table structure</h1>
+
+        <form>
+          <h2>Column types</h2>
+          {% for column in columns %}
+            <div class="row mb-3 align-items-center">
+              <div class="col-auto">
+                <label>{{column.name}}</label>
+              </div>
+              <div class="col-auto">
+                <select name="column-{{loop.index}}-type" class="form-control form-select">
+                  {% for ct in ColumnType %}
+                    <option value="{{ ct.name }}" {% if ct == column.type_ %}selected{% endif %}>{{ ct.pretty_name()}}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          {% endfor %}
+
+          <h2>Unique key</h2>
+            <div class="row mb-3 align-items-center">
+              <div class="col-auto">
+                <p>Optionally, select which columns form a unique key.  When updating the table, this will be used to avoid cycling row ids.</p>
+                {% for column in columns %}
+                  <div class="form-check">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           name="column-{{loop.index}}-is-unique"
+                           id="col-{{loop.index}}-is-unique"
+                           >
+                    <label class="form-check-label" for="column-{{loop.index}}-is-unique">{{column.name}}</label>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+
+          <div class="row">
+            <div class="mb-3">
+              <div class="col-auto">
+                <input type="submit" class="btn btn-success" value="Confirm">
+              </div>
+            </div>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}
