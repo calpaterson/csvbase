@@ -5,12 +5,7 @@ import json
 import zlib
 import io
 from logging import getLogger
-from typing import (
-    List,
-    Tuple,
-    Dict,
-    Mapping
-)
+from typing import List, Tuple, Dict, Mapping
 from urllib.parse import urlparse
 import secrets
 
@@ -103,17 +98,19 @@ class CreateTableFromGit(MethodView):
                 "sha": github_file.sha,
                 "branch": branch,
                 "org": org,
-                "path": path
+                "path": path,
             },
             "file_id": file_id,
-            "columns": [
-                [c.name, c.type_.value]
-                for c in columns
-            ]
+            "columns": [[c.name, c.type_.value] for c in columns],
         }
         token = secrets.token_urlsafe()
         response = redirect(url_for("create_table.confirm", token=token))
-        response.set_cookie(f"confirm-token-{token}", dict_to_cookie(confirm_package), secure=True, httponly=True)
+        response.set_cookie(
+            f"confirm-token-{token}",
+            dict_to_cookie(confirm_package),
+            secure=True,
+            httponly=True,
+        )
         return response
 
 
@@ -135,10 +132,9 @@ bp.add_url_rule(
 
 class CreateTableConfirm(MethodView):
     def get(self, token) -> str:
-        confirm_package = cookie_to_dict(request.cookies.get(f"confirm-token-{token}"))
-        columns = [
-            Column(c[0], ColumnType(c[1])) for c in confirm_package["columns"]
-        ]
+        # FIXME: what if the cookie is unset?
+        confirm_package = cookie_to_dict(request.cookies[f"confirm-token-{token}"])
+        columns = [Column(c[0], ColumnType(c[1])) for c in confirm_package["columns"]]
         return render_template(
             "create-table-confirm.html",
             page_title="Confirm table structure",
@@ -146,12 +142,16 @@ class CreateTableConfirm(MethodView):
             ColumnType=ColumnType,
         )
 
-    def post(self, token) -> Response:
-        ...
+    # def post(self, token) -> Response:
+    #     ...
+
 
 bp.add_url_rule(
-    "/new-table/confirm/<token>", "confirm", view_func=CreateTableConfirm.as_view("confirm")
+    "/new-table/confirm/<token>",
+    "confirm",
+    view_func=CreateTableConfirm.as_view("confirm"),
 )
+
 
 @bp.post("/new-table")
 def new_table_form_submission() -> Response:

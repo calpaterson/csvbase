@@ -28,6 +28,8 @@ logger = getLogger(__name__)
 DEFAULT_RETENTION = timedelta(hours=1)
 
 _logged = False
+
+
 def get_temp_dir() -> Path:
     global _logged
     # using /tmp would mean we lose the cache between restarts
@@ -41,7 +43,9 @@ def get_temp_dir() -> Path:
     return temp_dir
 
 
-def store_temp_file(filelike: IO[bytes], duration: timedelta = DEFAULT_RETENTION) -> str:
+def store_temp_file(
+    filelike: IO[bytes], duration: timedelta = DEFAULT_RETENTION
+) -> str:
     cleanup_temp_files()
     file_id = secrets.token_urlsafe()
     expiry = datetime.now(timezone.utc) + duration
@@ -74,7 +78,7 @@ def cleanup_temp_files() -> None:
     left_count = 0
     now = datetime.now(timezone.utc)
     for e in temp_dir.glob("expires*__*.gz"):
-        expiry_str = e.name.split("__")[0][len("expires"):].replace("_", ":")
+        expiry_str = e.name.split("__")[0][len("expires") :].replace("_", ":")
         expiry = datetime.fromisoformat(expiry_str)
         if expiry < now:
             e.unlink()

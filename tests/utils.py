@@ -141,16 +141,16 @@ def assert_is_valid_etag(etag: str) -> None:
     assert ETAG_REGEX.match(etag), etag
 
 
-def parse_form(html_str: str) -> MultiDict[str, str]:
+def parse_form(html_str: str) -> "MultiDict[str, str]":
     """Parses a form out of HTML."""
 
     html_parser = etree.HTMLParser()
     root = etree.fromstring(html_str, html_parser)
-    sel = CSSSelector('form')
+    sel = CSSSelector("form")
     forms = sel(root)
     assert len(forms) == 1, "did not find exactly one form"
 
-    form, = forms
+    (form,) = forms
     input_sel = CSSSelector("input")
     input_elements = input_sel(form)
 

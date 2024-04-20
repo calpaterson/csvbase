@@ -22,7 +22,7 @@ def test_get_form_blank(client, test_user):
     assert resp.status_code == 200
 
 
-# FIXME: this test does uncontrolled IO to github
+@pytest.mark.skip(reason="this test does uncontrolled IO to github")
 def test_create_table__happy(client, test_user):
     set_current_user(test_user)
     table_name = random_string()

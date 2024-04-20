@@ -76,7 +76,10 @@ EXCEPTION_MESSAGE_CODE_MAP = {
     ),
     exc.WrongEncodingException: ("you sent a file with the wrong encoding", 400),
     exc.ETagMismatch: ("you provided an ETag different to the current one", 412),
-    exc.MissingTempFile: ("the temp file you're working on is missing - perhaps you took too long?", 400),
+    exc.MissingTempFile: (
+        "the temp file you're working on is missing - perhaps you took too long?",
+        400,
+    ),
 }
 
 

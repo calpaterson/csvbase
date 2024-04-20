@@ -4,6 +4,7 @@ from datetime import timedelta
 import pytest
 from csvbase import temp, exc
 
+
 def test_temp__set_and_get():
     contents = f"random_string()\n".encode("utf-8")
     buf = BytesIO(contents)

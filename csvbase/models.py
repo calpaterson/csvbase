@@ -154,17 +154,6 @@ class Table(Base):
     )
 
 
-class FollowingTable(Base):
-    __tablename__ = "following_tables"
-    __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
-
-    table_uuid = Column(
-        PGUUID, ForeignKey("metadata.tables.table_uuid"), primary_key=True
-    )
-    follow_source_id = Column(
-        satypes.SmallInteger, ForeignKey("metadata.follow_sources.follow_source_id"), nullable=False
-    )
-
 class GithubFollows(Base):
     __tablename__ = "github_follows"
     __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
@@ -178,6 +167,7 @@ class GithubFollows(Base):
     repo = Column(satypes.String, nullable=False)
     branch = Column(satypes.String, nullable=False)
     path = Column(satypes.String, nullable=False)
+
 
 class TableReadme(Base):
     __tablename__ = "table_readmes"
