@@ -1,8 +1,6 @@
-version: "3.4"
-
 services:
   csvbase_postgres:
-    image: postgres:12.9
+    image: postgres:13
     ports:
       - "7432:5432"
     environment:
@@ -22,10 +20,12 @@ services:
     build:
       context: .
     environment:
-      CSVBASE_DB_URL: 'postgresql://postgres:password@csvbase_postgres:5432/csvbase'
+      CSVBASE_TOML: |
+        db_url = "postgresql://postgres:password@csvbase_postgres:5432/csvbase"
     networks:
       csvbase:
-    command: ["alembic", "upgrade", "head"]
+    command:
+      /bin/bash -c "echo \"$$CSVBASE_TOML\" > ~/.csvbase.toml && alembic upgrade head"
     depends_on:
       csvbase_postgres:
         condition: service_healthy
@@ -33,7 +33,10 @@ services:
   csvbase:
     build: .
     environment:
-      CSVBASE_DB_URL: 'postgresql://postgres:password@csvbase_postgres:5432/csvbase'
+      CSVBASE_TOML: |
+        db_url = "postgresql://postgres:password@csvbase_postgres:5432/csvbase"
+    command:
+      /bin/bash -c "echo \"$$CSVBASE_TOML\" > ~/.csvbase.toml && gunicorn 'csvbase.web.app:init_app()' -b :6001"
     ports:
       - "6001:6001"
     networks:
