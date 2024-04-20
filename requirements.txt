@@ -22,7 +22,7 @@ pygithub==2.3.0
 sentry-sdk[flask]==1.44.1
 sqlalchemy==1.4.52
 stripe==5.4.0
-systemd-python==235
+systemd-python==235; sys_platform == "linux"
 toml==0.10.2
 typing-extensions==4.10.0
 werkzeug==3.0.2

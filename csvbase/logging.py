@@ -3,8 +3,6 @@ from os import environ
 from sys import stderr
 import logging
 
-from systemd.journal import JournalHandler
-
 # logging module doesn't provide an easy way to get this
 LOG_LEVELS = [
     "CRITICAL",
@@ -25,6 +23,8 @@ def configure_logging(level: str = "INFO"):
         under_systemd = "INVOCATION_ID" in environ
         kwargs: Dict[str, Any] = dict(level=level)
         if under_systemd:
+            from systemd.journal import JournalHandler
+
             kwargs["format"] = "%(message)s"
             kwargs["handlers"] = [JournalHandler()]
         else:
