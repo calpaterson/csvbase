@@ -36,5 +36,12 @@ def set_user(user: User) -> None:
     This allows knowing how many people were affected by a bug."""
     config = get_config()
     if config.sentry_dsn is not None:
-        # don't set username/email etc for privacy reasons
-        sentry_sdk.set_user({"id": str(user.user_uuid)})
+        # wanted to avoid setting username/email but so hard to tell who is
+        # experiencing what bug, so set it for now
+        user_dict = {
+            "id": str(user.user_uuid),
+            "username": user.username,
+        }
+        if user.email is not None:
+            user_dict["email"] = user.email
+        sentry_sdk.set_user(user_dict)
