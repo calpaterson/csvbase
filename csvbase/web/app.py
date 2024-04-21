@@ -36,7 +36,7 @@ from .blog.bp import bp as blog_bp
 from ..config import get_config
 from ..db import db, get_db_url
 from ..logging import configure_logging
-from .. import sentry
+from .. import sentry, datadog
 from ..sesh import get_sesh
 from .func import is_browser, is_url
 from .billing import bp as billing_bp
@@ -85,6 +85,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
 
 def init_app() -> Flask:
     configure_logging()
+    datadog.configure_datadog()
     sentry.configure_sentry()
     app = Flask(__name__)
     app.config["CRYPT_CONTEXT"] = CryptContext(["argon2"])

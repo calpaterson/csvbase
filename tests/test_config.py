@@ -14,6 +14,7 @@ def test_config_file_not_exist(tmpdir):
         sentry_dsn=None,
         stripe_api_key=None,
         stripe_price_id=None,
+        enable_datadog=False,
     )
 
 
@@ -31,4 +32,5 @@ def test_config_file_basic(tmpdir):
         sentry_dsn=None,
         stripe_api_key=None,
         stripe_price_id=None,
+        enable_datadog=False,
     )

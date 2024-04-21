@@ -24,6 +24,7 @@ class Config:
     sentry_dsn: Optional[str]
     stripe_api_key: Optional[str]
     stripe_price_id: Optional[str]
+    enable_datadog: bool
 
 
 __config__: Optional[Config] = None
@@ -50,6 +51,7 @@ def load_config(config_file: Path) -> Config:
         sentry_dsn=as_dict.get("sentry_dsn"),
         stripe_price_id=as_dict.get("stripe_price_id"),
         stripe_api_key=as_dict.get("stripe_api_key"),
+        enable_datadog=as_dict.get("enable_datadog", False),
     )
 
 
