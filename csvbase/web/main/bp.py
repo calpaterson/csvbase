@@ -827,11 +827,6 @@ def create_row(username: str, table_name: str) -> Response:
     svc.user_exists(sesh, username)
     table = svc.get_table(sesh, username, table_name)
     ensure_table_access(sesh, table, "write")
-    if not am_user(username):
-        if am_a_user():
-            raise exc.NotAllowedException()
-        else:
-            raise exc.NotAuthenticatedException()
 
     row: Row
     if request.mimetype == ContentType.JSON.value:
