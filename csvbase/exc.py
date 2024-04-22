@@ -122,10 +122,14 @@ class CSVParseError(CSVBaseException):
 
 
 class UnconvertableValueException(CSVBaseException):
-    # FIXME: this also undoubtably needs row and column name
+    # FIXME: this would probably be more useful with the whole column table (and column name, ideally)
     def __init__(self, expected_type: ColumnType, string: str):
         self.expected_type = expected_type
         self.string = string
+
+    # perhaps the web layer could understand to print this?:
+    # def detail(self) -> str:
+    #     return f"expected type '{self.expected_type.pretty_name()}', but got '{self.string}'"
 
 
 class WrongEncodingException(CSVBaseException):
