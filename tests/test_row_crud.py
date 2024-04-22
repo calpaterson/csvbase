@@ -7,6 +7,11 @@ from csvbase.userdata import PGUserdataAdapter
 from .utils import make_user, assert_is_valid_etag, create_table
 
 
+@pytest.fixture(scope="module", params=[ContentType.JSON, ContentType.HTML_FORM])
+def post_content_type(request):
+    yield request.param
+
+
 @pytest.fixture(scope="module", params=[ContentType.JSON, ContentType.HTML])
 def accept_content_type(request):
     # Rows only really support JSON and HTML
@@ -35,7 +40,10 @@ def test_create__happy(client, ten_rows, test_user, accept_content_type):
                 "as_float": 11.5,
             }
         },
-        headers={"Authorization": test_user.basic_auth(), "Accept": accept_content_type.value},
+        headers={
+            "Authorization": test_user.basic_auth(),
+            "Accept": accept_content_type.value,
+        },
     )
     if accept_content_type == ContentType.HTML:
         assert post_resp.status_code == 302
@@ -58,11 +66,9 @@ def test_create__happy(client, ten_rows, test_user, accept_content_type):
         )
 
 
-@pytest.mark.parametrize("post_content_type", [
-    ContentType.JSON,
-    ContentType.HTML_FORM,
-])
-def test_create__wrong_type(client, ten_rows, test_user, accept_content_type, post_content_type):
+def test_create__wrong_type(
+    client, ten_rows, test_user, accept_content_type, post_content_type
+):
     """Test that creating a row with the wrong content type generates some kind of 400 error"""
     set_current_user(test_user)
     kwargs = {"headers": {"Accept": accept_content_type.value}}
@@ -76,7 +82,7 @@ def test_create__wrong_type(client, ten_rows, test_user, accept_content_type, po
             }
         }
     else:
-        kwargs["data"]= {
+        kwargs["data"] = {
             "roman_numeral": "XI",
             "is_even": "",
             "as_date": "2018-01-11",
@@ -84,12 +90,87 @@ def test_create__wrong_type(client, ten_rows, test_user, accept_content_type, po
         }
 
     post_resp = client.post(
-        f"/{test_user.username}/{ten_rows.table_name}/rows/",
-        **kwargs
+        f"/{test_user.username}/{ten_rows.table_name}/rows/", **kwargs
     )
     assert post_resp.status_code == 422
     if accept_content_type == ContentType.JSON:
-        assert post_resp.json == {"error": "unable to convert the data you provided to the required type"}
+        assert post_resp.json == {
+            "error": "unable to convert the data you provided to the required type"
+        }
+
+
+def test_create__missing_column(
+    client, ten_rows, test_user, accept_content_type, post_content_type
+):
+    set_current_user(test_user)
+    kwargs = {"headers": {"Accept": accept_content_type.value}}
+    if post_content_type is ContentType.JSON:
+        kwargs["json"] = {
+            "row": {
+                "roman_numeral": "XI",
+                "is_even": False,
+                "as_date": "2018-01-11",
+            }
+        }
+    else:
+        kwargs["data"] = {
+            "roman_numeral": "XI",
+            "is_even": "",
+            "as_date": "2018-01-11",
+        }
+
+    post_resp = client.post(
+        f"/{test_user.username}/{ten_rows.table_name}/rows/", **kwargs
+    )
+    if accept_content_type == ContentType.JSON:
+        assert post_resp.status_code == 201
+    else:
+        assert post_resp.status_code == 302
+
+    get_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}/rows/11")
+    expected = {
+        "row_id": 11,
+        "row": {
+            "roman_numeral": "XI",
+            "is_even": False,
+            "as_date": "2018-01-11",
+            "as_float": None,
+        },
+        "url": f"http://localhost/{test_user.username}/{ten_rows.table_name}/rows/11",
+    }
+    assert get_resp.json == expected
+
+
+def test_create__extra_column(
+    client, ten_rows, test_user, accept_content_type, post_content_type
+):
+    set_current_user(test_user)
+    kwargs = {"headers": {"Accept": accept_content_type.value}}
+    if post_content_type is ContentType.JSON:
+        kwargs["json"] = {
+            "row": {
+                "roman_numeral": "XI",
+                "is_even": False,
+                "as_date": "2018-01-11",
+                "as_float": 1.5,
+                "extra": "kings",
+            }
+        }
+    else:
+        kwargs["data"] = {
+            "roman_numeral": "XI",
+            "is_even": "",
+            "as_date": "2018-01-11",
+            "as_float": "1.5",
+            "extra": "kings",
+        }
+
+    post_resp = client.post(
+        f"/{test_user.username}/{ten_rows.table_name}/rows/", **kwargs
+    )
+    assert post_resp.status_code == 400
+    if accept_content_type == ContentType.JSON:
+        assert post_resp.json == {"error": "columns or types don't match existing"}
 
 
 def test_create__table_does_not_exist(client, test_user):
@@ -226,7 +307,9 @@ def test_read__is_private_not_authed(client, private_table, test_user):
     assert resp.json == {"error": "that table does not exist"}
 
 
-def test_read__is_private_am_authed(client, private_table, test_user, accept_content_type):
+def test_read__is_private_am_authed(
+    client, private_table, test_user, accept_content_type
+):
     resp = client.get(
         f"/{test_user.username}/{private_table}/rows/1",
         headers={
@@ -268,6 +351,7 @@ def test_read__as_another_user(
 
 
 def test_update__happy(client, ten_rows, test_user):
+    """Test updating via PUT"""
     url = f"/{test_user.username}/{ten_rows.table_name}/rows/1"
     new = {
         "row_id": 1,
@@ -293,6 +377,7 @@ def test_update__happy(client, ten_rows, test_user):
 
 
 def test_update_by_form_post__happy(client, ten_rows, test_user):
+    """Test updating via POST (done by browsers because HTML forms can't PUT)"""
     url = f"/{test_user.username}/{ten_rows.table_name}/rows/1"
     form = {
         "csvbase_row_id": 1,

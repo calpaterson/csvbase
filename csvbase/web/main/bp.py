@@ -833,10 +833,7 @@ def create_row(username: str, table_name: str) -> Response:
     if request.mimetype == ContentType.JSON.value:
         row = json_to_row(table.user_columns(), json_or_400()["row"])
     elif request.mimetype == ContentType.HTML_FORM.value:
-        row = {
-            c: from_html_form_to_python(c.type_, request.form.get(c.name))
-            for c in table.user_columns()
-        }
+        row = form_to_row(table.user_columns(), request.form)
     else:
         raise exc.WrongContentType(
             [ContentType.JSON, ContentType.HTML_FORM], request.mimetype
@@ -1399,6 +1396,23 @@ def get_praise_id_if_exists(table: Table) -> Optional[int]:
         return svc.is_praised(sesh, g.current_user.user_uuid, table.table_uuid)
     else:
         return None
+
+
+def form_to_row(
+    columns: Sequence[Column], form: Mapping[str, str]
+) -> Dict[Column, Optional[PythonType]]:
+    row = {}
+    in_table = set(c.name for c in columns)
+    present = set(form.keys())
+    extra = present.difference(in_table)
+    if len(extra) > 0:
+        raise exc.TableDefinitionMismatchException()
+    for column in columns:
+        if column.name in form:
+            row[column] = from_html_form_to_python(column.type_, form[column.name])
+        else:
+            row[column] = None
+    return row
 
 
 def from_html_form_to_python(

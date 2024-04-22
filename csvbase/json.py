@@ -49,8 +49,18 @@ def json_to_value(
         raise exc.UnconvertableValueException(column_type, str(json_value))
 
 
-def json_to_row(columns: Sequence[Column], json_dict: Dict[str, Any]) -> Dict[Column, Optional[PythonType]]:
+def json_to_row(
+    columns: Sequence[Column], json_dict: Dict[str, Any]
+) -> Dict[Column, Optional[PythonType]]:
     row = {}
+    in_table = set(c.name for c in columns)
+    present = set(json_dict.keys())
+    extra = present.difference(in_table)
+    if len(extra) > 0:
+        raise exc.TableDefinitionMismatchException()
     for column in columns:
-        row[column] = json_to_value(column.type_, json_dict[column.name])
+        if column.name in json_dict:
+            row[column] = json_to_value(column.type_, json_dict[column.name])
+        else:
+            row[column] = None
     return row

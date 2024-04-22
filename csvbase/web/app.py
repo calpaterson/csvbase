@@ -80,7 +80,10 @@ EXCEPTION_MESSAGE_CODE_MAP = {
         "the temp file you're working on is missing - perhaps you took too long?",
         400,
     ),
-    exc.UnconvertableValueException: ("unable to convert the data you provided to the required type", 422),
+    exc.UnconvertableValueException: (
+        "unable to convert the data you provided to the required type",
+        422,
+    ),
 }
 
 
