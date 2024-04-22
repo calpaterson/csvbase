@@ -1,3 +1,4 @@
+from typing import Any, Dict
 from csvbase.web.func import set_current_user
 from datetime import datetime
 import pytest
@@ -350,10 +351,14 @@ def test_read__as_another_user(
         resp.status_code == 200
 
 
-def test_update__happy(client, ten_rows, test_user):
-    """Test updating via PUT"""
+POST_CONTENT_TYPE_TO_VERB = {ContentType.HTML_FORM: "POST", ContentType.JSON: "PUT"}
+
+
+def test_update__happy(client, ten_rows, test_user, post_content_type):
+    """Test updating via POST(HTML, browser)/PUT(JSON, client)"""
     url = f"/{test_user.username}/{ten_rows.table_name}/rows/1"
-    new = {
+    set_current_user(test_user)
+    json_body = {
         "row_id": 1,
         "row": {
             "roman_numeral": "i",
@@ -361,14 +366,30 @@ def test_update__happy(client, ten_rows, test_user):
             "as_date": "2018-02-01",
             "as_float": 1.5,
         },
-        "url": f"http://localhost/{test_user.username}/{ten_rows.table_name}/rows/1",
+        "url": f"http://localhost{url}",
     }
-    resp = client.put(url, json=new, headers={"Authorization": test_user.basic_auth()})
-    assert resp.status_code == 200, resp.data
-    assert resp.json == new
+    verb = POST_CONTENT_TYPE_TO_VERB[post_content_type]
+    kwargs: Dict[str, Any] = {"method": verb}
+    if post_content_type is ContentType.JSON:
+        kwargs["json"] = json_body
+    else:
+        form = {
+            "csvbase_row_id": 1,
+            "roman_numeral": "i",
+            "is_even": "on",
+            "as_date": "2018-02-01",
+            "as_float": "1.5",
+        }
+        kwargs["data"] = form
+    resp = client.open(url, **kwargs)
+    if post_content_type is ContentType.JSON:
+        assert resp.status_code == 200, resp.data
+        assert resp.json == json_body
+    else:
+        assert resp.status_code == 302, resp.data
 
     resp = client.get(url)
-    assert resp.json == new
+    assert resp.json == json_body
 
     table_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}.json")
     assert (
@@ -376,19 +397,36 @@ def test_update__happy(client, ten_rows, test_user):
     )
 
 
-def test_update_by_form_post__happy(client, ten_rows, test_user):
-    """Test updating via POST (done by browsers because HTML forms can't PUT)"""
+def test_update__missing_column(client, ten_rows, test_user, post_content_type):
     url = f"/{test_user.username}/{ten_rows.table_name}/rows/1"
-    form = {
-        "csvbase_row_id": 1,
-        "roman_numeral": "i",
-        "is_even": "on",
-        "as_date": "2018-02-01",
-        "as_float": "1.5",
-    }
     set_current_user(test_user)
-    resp = client.post(url, data=form)
-    assert resp.status_code == 302
+    json_body = {
+        "row_id": 1,
+        "row": {
+            "roman_numeral": "i",
+            "is_even": True,
+            "as_date": "2018-02-01",
+        },
+        "url": f"http://localhost{url}",
+    }
+    verb = POST_CONTENT_TYPE_TO_VERB[post_content_type]
+    kwargs: Dict[str, Any] = {"method": verb}
+    if post_content_type is ContentType.JSON:
+        kwargs["json"] = json_body
+    else:
+        form = {
+            "csvbase_row_id": 1,
+            "roman_numeral": "i",
+            "is_even": "on",
+            "as_date": "2018-02-01",
+        }
+        kwargs["data"] = form
+    resp = client.open(url, **kwargs)
+    if post_content_type is ContentType.JSON:
+        assert resp.status_code == 200, resp.data
+        assert resp.json == json_body
+    else:
+        assert resp.status_code == 302, resp.data
 
     expected = {
         "row_id": 1,
@@ -396,18 +434,47 @@ def test_update_by_form_post__happy(client, ten_rows, test_user):
             "roman_numeral": "i",
             "is_even": True,
             "as_date": "2018-02-01",
-            "as_float": 1.5,
+            "as_float": None,
         },
-        "url": f"http://localhost/{test_user.username}/{ten_rows.table_name}/rows/1",
+        "url": f"http://localhost{url}",
     }
-
-    resp = client.get(f"/{test_user.username}/{ten_rows.table_name}/rows/1")
+    resp = client.get(url)
     assert resp.json == expected
 
     table_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}.json")
     assert (
         datetime.fromisoformat(table_resp.json["last_changed"]) > ten_rows.last_changed
     )
+
+
+def test_update__extra_column(client, ten_rows, test_user, post_content_type):
+    url = f"/{test_user.username}/{ten_rows.table_name}/rows/1"
+    set_current_user(test_user)
+    json_body = {
+        "row_id": 1,
+        "row": {
+            "roman_numeral": "i",
+            "is_even": True,
+            "as_date": "2018-02-01",
+            "extra": "kings",
+        },
+        "url": f"http://localhost{url}",
+    }
+    verb = POST_CONTENT_TYPE_TO_VERB[post_content_type]
+    kwargs: Dict[str, Any] = {"method": verb}
+    if post_content_type is ContentType.JSON:
+        kwargs["json"] = json_body
+    else:
+        form = {
+            "csvbase_row_id": 1,
+            "roman_numeral": "i",
+            "is_even": "on",
+            "as_date": "2018-02-01",
+            "extra": "kings",
+        }
+        kwargs["data"] = form
+    resp = client.open(url, **kwargs)
+    assert resp.status_code == 400, resp.data
 
 
 @pytest.mark.xfail(reason="not implemented")

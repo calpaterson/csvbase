@@ -996,10 +996,7 @@ class RowView(MethodView):
         sesh = get_sesh()
         table = svc.get_table(sesh, username, table_name)
         ensure_table_access(sesh, table, "write")
-        row: Row = {
-            c: from_html_form_to_python(c.type_, request.form.get(c.name))
-            for c in table.columns
-        }
+        row = form_to_row(table.columns, request.form)
         backend = PGUserdataAdapter(sesh)
         backend.update_row(table.table_uuid, row_id, row)
         svc.mark_table_changed(sesh, table.table_uuid)
