@@ -56,7 +56,7 @@ from ..func import (
     register_and_sign_in_new_user,
 )
 from ... import exc, svc, streams, table_io
-from ...json import value_to_json, json_to_value
+from ...json import value_to_json, json_to_row
 from ...markdown import render_markdown
 from ...sesh import get_sesh
 from ...userdata import PGUserdataAdapter
@@ -823,6 +823,7 @@ def praise_table(username: str, table_name: str) -> Response:
 @bp.post("/<username>/<table_name:table_name>/rows/")
 @cross_origin(max_age=CORS_EXPIRY, methods=["POST"])
 def create_row(username: str, table_name: str) -> Response:
+    """Create a new row.  This handles both the API and the website's HTML forms."""
     sesh = get_sesh()
     svc.user_exists(sesh, username)
     table = svc.get_table(sesh, username, table_name)
@@ -830,8 +831,7 @@ def create_row(username: str, table_name: str) -> Response:
 
     row: Row
     if request.mimetype == ContentType.JSON.value:
-        row_as_dict = json_or_400()["row"]
-        row = {c: row_as_dict[c.name] for c in table.user_columns()}
+        row = json_to_row(table.user_columns(), json_or_400()["row"])
     elif request.mimetype == ContentType.HTML_FORM.value:
         row = {
             c: from_html_form_to_python(c.type_, request.form.get(c.name))
@@ -951,9 +951,7 @@ class RowView(MethodView):
         body = json_or_400()
         if body["row_id"] != row_id:
             raise exc.InvalidRequest("can't change row ids via an update")
-        row = {
-            c: json_to_value(c.type_, body["row"][c.name]) for c in table.user_columns()
-        }
+        row = json_to_row(table.user_columns(), body["row"])
         row[table.row_id_column()] = row_id
 
         backend = PGUserdataAdapter(sesh)

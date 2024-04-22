@@ -1,9 +1,9 @@
-from typing import Union, Optional
+from typing import Union, Optional, Sequence, Dict, Any, Optional
 from datetime import date
 import functools
 
 from . import exc
-from .value_objs import PythonType, ColumnType
+from .value_objs import PythonType, ColumnType, Column, Row
 
 JsonType = Union[str, int, float, bool, None]
 
@@ -45,5 +45,12 @@ def json_to_value(
     elif json_value is None:
         return None
     else:
-        # NOTE: this should be unreachable
+        # eg if a dict was here
         raise exc.UnconvertableValueException(column_type, str(json_value))
+
+
+def json_to_row(columns: Sequence[Column], json_dict: Dict[str, Any]) -> Dict[Column, Optional[PythonType]]:
+    row = {}
+    for column in columns:
+        row[column] = json_to_value(column.type_, json_dict[column.name])
+    return row

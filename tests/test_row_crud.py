@@ -8,12 +8,12 @@ from .utils import make_user, assert_is_valid_etag, create_table
 
 
 @pytest.fixture(scope="module", params=[ContentType.JSON, ContentType.HTML])
-def content_type(request):
+def accept_content_type(request):
     # Rows only really support JSON and HTML
     yield request.param
 
 
-def test_create__happy(client, ten_rows, test_user, content_type):
+def test_create__happy(client, ten_rows, test_user, accept_content_type):
     expected_resource = {
         "row_id": 11,
         "row": {
@@ -35,15 +35,15 @@ def test_create__happy(client, ten_rows, test_user, content_type):
                 "as_float": 11.5,
             }
         },
-        headers={"Authorization": test_user.basic_auth(), "Accept": content_type.value},
+        headers={"Authorization": test_user.basic_auth(), "Accept": accept_content_type.value},
     )
-    if content_type == ContentType.HTML:
+    if accept_content_type == ContentType.HTML:
         assert post_resp.status_code == 302
         assert (
             post_resp.headers["Location"]
             == f"/{test_user.username}/{ten_rows.table_name}?n=12&op=lt&highlight=11"
         )
-    elif content_type == ContentType.JSON:
+    elif accept_content_type == ContentType.JSON:
         assert post_resp.status_code == 201
         assert post_resp.json == expected_resource
 
@@ -56,6 +56,40 @@ def test_create__happy(client, ten_rows, test_user, content_type):
             datetime.fromisoformat(table_resp.json["last_changed"])
             > ten_rows.last_changed
         )
+
+
+@pytest.mark.parametrize("post_content_type", [
+    ContentType.JSON,
+    ContentType.HTML_FORM,
+])
+def test_create__wrong_type(client, ten_rows, test_user, accept_content_type, post_content_type):
+    """Test that creating a row with the wrong content type generates some kind of 400 error"""
+    set_current_user(test_user)
+    kwargs = {"headers": {"Accept": accept_content_type.value}}
+    if post_content_type is ContentType.JSON:
+        kwargs["json"] = {
+            "row": {
+                "roman_numeral": "XI",
+                "is_even": False,
+                "as_date": "2018-01-11",
+                "as_float": "jake",
+            }
+        }
+    else:
+        kwargs["data"]= {
+            "roman_numeral": "XI",
+            "is_even": "",
+            "as_date": "2018-01-11",
+            "as_float": "jake",
+        }
+
+    post_resp = client.post(
+        f"/{test_user.username}/{ten_rows.table_name}/rows/",
+        **kwargs
+    )
+    assert post_resp.status_code == 422
+    if accept_content_type == ContentType.JSON:
+        assert post_resp.json == {"error": "unable to convert the data you provided to the required type"}
 
 
 def test_create__table_does_not_exist(client, test_user):
@@ -109,10 +143,10 @@ def test_create__wrong_user(client, ten_rows, test_user, app, sesh):
     assert resp.json == {"error": "that's not allowed"}
 
 
-def test_read__happy(client, ten_rows, test_user, content_type):
+def test_read__happy(client, ten_rows, test_user, accept_content_type):
     resp = client.get(
         f"/{test_user.username}/{ten_rows.table_name}/rows/1",
-        headers={"Accept": content_type.value},
+        headers={"Accept": accept_content_type.value},
     )
     assert resp.status_code == 200, resp.data
 
@@ -123,7 +157,7 @@ def test_read__happy(client, ten_rows, test_user, content_type):
     assert cc_obj.must_revalidate
     assert vary == "Accept, Cookie"
 
-    if content_type is ContentType.JSON:
+    if accept_content_type is ContentType.JSON:
         assert resp.json == {
             "row_id": 1,
             "row": {
@@ -151,13 +185,13 @@ def test_read__etag_cache_hit():
     assert False
 
 
-def test_read__etag_cache_miss(client, ten_rows, test_user, content_type):
+def test_read__etag_cache_miss(client, ten_rows, test_user, accept_content_type):
     first_resp = client.get(
         f"/{test_user.username}/{ten_rows.table_name}/rows/1",
-        headers={"Accept": content_type.value, "If-None-Match": 'W/"rong etag"'},
+        headers={"Accept": accept_content_type.value, "If-None-Match": 'W/"rong etag"'},
     )
     assert first_resp.status_code == 200, first_resp.data
-    assert content_type.value in first_resp.headers["Content-Type"]
+    assert accept_content_type.value in first_resp.headers["Content-Type"]
     etag = first_resp.headers["ETag"]
 
     assert_is_valid_etag(etag)
@@ -192,12 +226,12 @@ def test_read__is_private_not_authed(client, private_table, test_user):
     assert resp.json == {"error": "that table does not exist"}
 
 
-def test_read__is_private_am_authed(client, private_table, test_user, content_type):
+def test_read__is_private_am_authed(client, private_table, test_user, accept_content_type):
     resp = client.get(
         f"/{test_user.username}/{private_table}/rows/1",
         headers={
             "Authorization": test_user.basic_auth(),
-            "Accept": content_type.value,
+            "Accept": accept_content_type.value,
         },
     )
     assert resp.status_code == 200, resp.data
@@ -206,7 +240,7 @@ def test_read__is_private_am_authed(client, private_table, test_user, content_ty
     assert cc_obj.private, "Cache-Control does not include 'private'"
     assert cc_obj.no_cache
 
-    if content_type is ContentType.JSON:
+    if accept_content_type is ContentType.JSON:
         assert resp.json == {
             "row_id": 1,
             "row": {"x": 1},
@@ -216,7 +250,7 @@ def test_read__is_private_am_authed(client, private_table, test_user, content_ty
 
 @pytest.mark.parametrize("is_public", [True, False])
 def test_read__as_another_user(
-    client, is_public, test_user, content_type, crypt_context, sesh
+    client, is_public, test_user, accept_content_type, crypt_context, sesh
 ):
     table = create_table(sesh, test_user, is_public=is_public)
     other_user = make_user(sesh, crypt_context)
@@ -225,7 +259,7 @@ def test_read__as_another_user(
     set_current_user(other_user)
     resp = client.get(
         f"/{test_user.username}/{table.table_name}/rows/1",
-        headers={"Accept": content_type.value},
+        headers={"Accept": accept_content_type.value},
     )
     if not is_public:
         resp.status_code == 404
