@@ -67,6 +67,27 @@ def test_create__happy(client, ten_rows, test_user, accept_content_type):
         )
 
 
+def test_create__with_row_id(client, ten_rows, test_user, accept_content_type):
+    """Creating a row with a specific row id is (currently) forbidden"""
+    set_current_user(test_user)
+    post_resp = client.post(
+        f"/{test_user.username}/{ten_rows.table_name}/rows/",
+        json={
+            "row_id": 1,
+            "row": {
+                "roman_numeral": "XI",
+                "is_even": False,
+                "as_date": "2018-01-11",
+                "as_float": 11.5,
+            },
+        },
+        headers={
+            "Accept": accept_content_type.value,
+        },
+    )
+    assert post_resp.status_code == 400
+
+
 def test_create__wrong_type(
     client, ten_rows, test_user, accept_content_type, post_content_type
 ):
@@ -397,7 +418,35 @@ def test_update__happy(client, ten_rows, test_user, post_content_type):
     )
 
 
+def test_update__missing_row_id(client, ten_rows, test_user, post_content_type):
+    """Callers must include the row id for updates, and at the moment, it must match."""
+    url = f"/{test_user.username}/{ten_rows.table_name}/rows/1"
+    set_current_user(test_user)
+    json_body = {
+        "row": {
+            "roman_numeral": "i",
+            "is_even": True,
+            "as_date": "2018-02-01",
+        },
+        "url": f"http://localhost{url}",
+    }
+    verb = POST_CONTENT_TYPE_TO_VERB[post_content_type]
+    kwargs: Dict[str, Any] = {"method": verb}
+    if post_content_type is ContentType.JSON:
+        kwargs["json"] = json_body
+    else:
+        form = {
+            "roman_numeral": "i",
+            "is_even": "on",
+            "as_date": "2018-02-01",
+        }
+        kwargs["data"] = form
+    resp = client.open(url, **kwargs)
+    assert resp.status_code == 400
+
+
 def test_update__missing_column(client, ten_rows, test_user, post_content_type):
+    """Check that missing columns are allowed, but come through as None/NULL"""
     url = f"/{test_user.username}/{ten_rows.table_name}/rows/1"
     set_current_user(test_user)
     json_body = {

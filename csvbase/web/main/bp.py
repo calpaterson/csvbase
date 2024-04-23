@@ -17,11 +17,13 @@ from typing import (
     Iterator,
     IO,
     TypeVar,
+    Type,
 )
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import hashlib
 import json
 
+import pydantic
 from sqlalchemy.orm import Session
 from dateutil.zoneinfo import get_zonefile_instance
 import itsdangerous.url_safe
@@ -820,6 +822,46 @@ def praise_table(username: str, table_name: str) -> Response:
     return safe_redirect(whence)
 
 
+@bp.get("/<username>/<table_name:table_name>/add-row-form")
+def row_add_form(username: str, table_name: str) -> Response:
+    sesh = get_sesh()
+    table = svc.get_table(sesh, username, table_name)
+    ensure_table_access(sesh, table, "write")
+
+    return make_response(
+        render_template(
+            "row-add.html",
+            page_title=f"Add a row to {username}/{table_name}",
+            table=table,
+        )
+    )
+
+
+# FIXME: some more porting required in order to use this and have it raise
+# TableDefinitionMismatchException
+# def create_row_model(columns: Sequence[Column]) -> pydantic.BaseModel:
+#     row_kwargs = {
+#         c.name: (Optional[c.type_.python_type()], ...)
+#         for c in columns
+#     }
+#     return pydantic.create_model("DynamicRowModel", **row_kwargs)
+
+
+def create_row_body_model(columns: Sequence[Column], with_row_id: bool):
+    title = "DynamicRowBodyModel"
+    kwargs: Dict[str, Any] = {}
+    if with_row_id:
+        kwargs["row_id"] = (int, ...)
+    # FIXME: should check this url
+    kwargs["url"] = (Optional[str], None)
+    # kwargs["row"] = (create_row_model(columns), ...)
+    kwargs["row"] = (Dict[str, Any], ...)
+    model = pydantic.create_model(
+        "DynamicRowBodyModel", __config__={"extra": "forbid"}, **kwargs
+    )
+    return model
+
+
 @bp.post("/<username>/<table_name:table_name>/rows/")
 @cross_origin(max_age=CORS_EXPIRY, methods=["POST"])
 def create_row(username: str, table_name: str) -> Response:
@@ -831,7 +873,12 @@ def create_row(username: str, table_name: str) -> Response:
 
     row: Row
     if request.mimetype == ContentType.JSON.value:
-        row = json_to_row(table.user_columns(), json_or_400()["row"])
+        json_body = json_or_400()
+        try:
+            create_row_body_model(table.columns, with_row_id=False)(**json_body)
+        except pydantic.ValidationError:
+            raise exc.InvalidRequest()
+        row = json_to_row(table.user_columns(), json_body["row"])
     elif request.mimetype == ContentType.HTML_FORM.value:
         row = form_to_row(table.user_columns(), request.form)
     else:
@@ -866,43 +913,6 @@ def create_row(username: str, table_name: str) -> Response:
                 highlight=row_id,
             )
         )
-
-
-@bp.get("/<username>/<table_name:table_name>/add-row-form")
-def row_add_form(username: str, table_name: str) -> Response:
-    sesh = get_sesh()
-    table = svc.get_table(sesh, username, table_name)
-    ensure_table_access(sesh, table, "write")
-
-    return make_response(
-        render_template(
-            "row-add.html",
-            page_title=f"Add a row to {username}/{table_name}",
-            table=table,
-        )
-    )
-
-
-@bp.get("/<username>/<table_name:table_name>/rows/<int:row_id>/delete-check")
-def row_delete_check(username: str, table_name: str, row_id: int) -> Response:
-    sesh = get_sesh()
-    svc.user_exists(sesh, username)
-    table = svc.get_table(sesh, username, table_name)
-    ensure_table_access(sesh, table, "write")
-    backend = PGUserdataAdapter(sesh)
-    row = backend.get_row(table.table_uuid, row_id)
-    if row is None:
-        raise exc.RowDoesNotExistException(username, table_name, row_id)
-
-    return make_response(
-        render_template(
-            "row_delete_check.html",
-            page_title=f"Delete {username}/{table_name}/rows/{row_id}?",
-            row=row,
-            row_id=row_id,
-            table=table,
-        )
-    )
 
 
 class RowView(MethodView):
@@ -946,6 +956,10 @@ class RowView(MethodView):
         ensure_table_access(sesh, table, "write")
 
         body = json_or_400()
+        try:
+            create_row_body_model(table.user_columns(), with_row_id=True)(**body)
+        except pydantic.ValidationError:
+            raise exc.InvalidRequest()
         if body["row_id"] != row_id:
             raise exc.InvalidRequest("can't change row ids via an update")
         row = json_to_row(table.user_columns(), body["row"])
@@ -996,6 +1010,8 @@ class RowView(MethodView):
         sesh = get_sesh()
         table = svc.get_table(sesh, username, table_name)
         ensure_table_access(sesh, table, "write")
+        if request.form.get("csvbase_row_id", None) is None:
+            raise exc.InvalidRequest()
         row = form_to_row(table.columns, request.form)
         backend = PGUserdataAdapter(sesh)
         backend.update_row(table.table_uuid, row_id, row)
@@ -1022,6 +1038,28 @@ bp.add_url_rule(
     "/<username>/<table_name:table_name>/rows/<int:row_id>",
     view_func=RowView.as_view("row_view"),
 )
+
+
+@bp.get("/<username>/<table_name:table_name>/rows/<int:row_id>/delete-check")
+def row_delete_check(username: str, table_name: str, row_id: int) -> Response:
+    sesh = get_sesh()
+    svc.user_exists(sesh, username)
+    table = svc.get_table(sesh, username, table_name)
+    ensure_table_access(sesh, table, "write")
+    backend = PGUserdataAdapter(sesh)
+    row = backend.get_row(table.table_uuid, row_id)
+    if row is None:
+        raise exc.RowDoesNotExistException(username, table_name, row_id)
+
+    return make_response(
+        render_template(
+            "row_delete_check.html",
+            page_title=f"Delete {username}/{table_name}/rows/{row_id}?",
+            row=row,
+            row_id=row_id,
+            table=table,
+        )
+    )
 
 
 @bp.post(
