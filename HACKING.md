@@ -9,7 +9,11 @@ may vary.
 
 You can always [write to me for help](mailto:cal@calpaterson.com).
 
-## Getting start, with virtual environments
+## Getting started, with Docker
+
+Running `docker-compose up` should bring up a working instance of the system.
+
+## Getting started, with virtual environments
 
 You can use virtual environments such as python's
 [virtualenv](https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/#installing-virtualenv)
