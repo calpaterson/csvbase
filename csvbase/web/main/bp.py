@@ -1189,16 +1189,10 @@ def register() -> Response:
         sesh = get_sesh()
         username = request.form["username"]
 
-        user = svc.create_user(
-            sesh,
-            current_app.config["CRYPT_CONTEXT"],
-            username,
-            request.form["password"],
-            request.form.get("email"),
-        )
+        user = register_and_sign_in_new_user(sesh)
+        # FIXME: why doesn't commenting this out cause tests to fail
+        # https://github.com/calpaterson/csvbase/issues/117
         sesh.commit()
-        sign_in_user(user)
-        flash("Account registered")
         whence = get_whence(url_for("csvbase.user", username=user.username))
         return safe_redirect(whence)
 

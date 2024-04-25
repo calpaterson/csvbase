@@ -13,6 +13,9 @@ def test_registering_no_whence(client):
     assert response.status_code == 302
     assert response.headers["Location"] == f"/{username}"
 
+    get_resp = client.get(f"/{username}")
+    assert get_resp.status_code == 200
+
 
 def test_registering_a_username_thats_taken(client, sesh, app):
     username = random_string()

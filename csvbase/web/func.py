@@ -163,6 +163,7 @@ def register_and_sign_in_new_user(sesh: Session) -> User:
         form["username"],
         form["password"],
         form.get("email"),
+        form.get("mailing-list", default=False, type=bool),
     )
     sign_in_user(new_user)
     flash("Account registered")

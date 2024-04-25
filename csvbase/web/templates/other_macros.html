@@ -70,6 +70,15 @@
            title="Must contain an @-sign"
            placeholder="">
            <label>Email</label>
-           <div class="form-text">Optional - used only for password reset.</div>
+           <div class="form-text">Optional - used only for password reset & mailing list.</div>
+  </div>
+{% endmacro %}
+
+{% macro mailing_list_form_field(default=False) %}
+  <div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" value="" name="mailing-list" id="mailing-list-checkbox" {% if default %}checked{% endif %}>
+    <label class="form-check-label" for="mailing-list-checkbox">
+      Sign up to the mailing list
+    </label>
   </div>
 {% endmacro %}

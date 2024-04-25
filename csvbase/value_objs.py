@@ -39,6 +39,7 @@ class User:
     registered: datetime
     api_key: bytes
     timezone: str
+    mailing_list: bool
 
     def hex_api_key(self) -> str:
         return binascii.hexlify(self.api_key).decode("utf-8")

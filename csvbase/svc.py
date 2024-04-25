@@ -94,6 +94,7 @@ def user_by_name(sesh: Session, username: str) -> User:
             models.APIKey.api_key,
             models.UserEmail.email_address,
             models.User.timezone,
+            models.User.mailing_list,
         )
         .join(models.APIKey)
         .outerjoin(models.UserEmail)
@@ -103,7 +104,7 @@ def user_by_name(sesh: Session, username: str) -> User:
     if rp is None:
         raise exc.UserDoesNotExistException(username)
     else:
-        user_uuid, registered, api_key, email, timezone = rp
+        user_uuid, registered, api_key, email, timezone, ml = rp
         return User(
             user_uuid=user_uuid,
             username=username,
@@ -111,6 +112,7 @@ def user_by_name(sesh: Session, username: str) -> User:
             api_key=api_key,
             email=email,
             timezone=timezone,
+            mailing_list=ml,
         )
 
 
@@ -123,6 +125,7 @@ def user_by_user_uuid(sesh, user_uuid: UUID) -> User:
             models.APIKey.api_key,
             models.UserEmail.email_address,
             models.User.timezone,
+            models.User.mailing_list,
         )
         .join(models.APIKey)
         .outerjoin(models.UserEmail)
@@ -132,7 +135,7 @@ def user_by_user_uuid(sesh, user_uuid: UUID) -> User:
     if rp is None:
         raise exc.UserDoesNotExistException(str(user_uuid))
     else:
-        username, registered, api_key, email, timezone = rp
+        username, registered, api_key, email, timezone, ml = rp
         return User(
             user_uuid=user_uuid,
             username=username,
@@ -140,6 +143,7 @@ def user_by_user_uuid(sesh, user_uuid: UUID) -> User:
             api_key=api_key,
             email=email,
             timezone=timezone,
+            mailing_list=ml,
         )
 
 
@@ -336,7 +340,12 @@ def user_exists(sesh: Session, username: str) -> None:
 
 
 def create_user(
-    sesh, crypt_context, username: str, password_plain: str, email: Optional[str] = None
+    sesh,
+    crypt_context,
+    username: str,
+    password_plain: str,
+    email: Optional[str] = None,
+    mailing_list: bool = False,
 ) -> User:
     user_uuid = uuid4()
     check_username_is_allowed(sesh, username)
@@ -348,6 +357,7 @@ def create_user(
         password_hash=password_hashed,
         timezone="UTC",
         registered=registered,
+        mailing_list=mailing_list,
     )
     # HTML forms submit empty fields as blank strings.
     if email is not None and "@" in email:
@@ -363,6 +373,7 @@ def create_user(
         api_key=user.api_key.api_key,
         email=email,
         timezone="UTC",
+        mailing_list=mailing_list,
     )
 
 
