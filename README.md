@@ -2,6 +2,8 @@
     <img alt="csvbase logo" src="https://github.com/calpaterson/csvbase/raw/main/csvbase/web/static/logo/128x128.png">
 </div>
 
+![screenshot](https://raw.githubusercontent.com/calpaterson/csvbase/main/csvbase/web/static/table-screenshot.png)
+
 # csvbase
 
 A simple web database.
