@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 from io import StringIO
 
 import pytest
@@ -54,7 +55,7 @@ def test_peek_csv_with_junk(input_filename, expected_exception, expected_message
             assert e.msg == expected_message  # type: ignore
 
 
-def test_rewind():
+def test_rewind__happy():
     buf = StringIO("hello")
     with rewind(buf):
         first_three = buf.read(3)
@@ -62,3 +63,19 @@ def test_rewind():
         assert buf.tell() == 3
 
     assert buf.tell() == 0
+
+
+def test_rewind__seekback_raise():
+    buf = StringIO("hello")
+    buf.seek(os.SEEK_END)
+    with pytest.raises(RuntimeError):
+        with rewind(buf):
+            pass
+
+
+def test_rewind__partial():
+    buf = StringIO("hello")
+    buf.seek(3)
+    with rewind(buf, to=buf.tell(), allow_seekback=True):
+        assert buf.read() == "lo"
+    assert buf.read() == "lo"

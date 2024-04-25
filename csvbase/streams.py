@@ -42,7 +42,7 @@ def detect_encoding(byte_buf: UserSubmittedBytes) -> Encoding:
         sample = byte_buf.read(COPY_BUFFER_SIZE)
         charset_matches = charset_normalizer.from_bytes(sample)
         bytes_read = byte_buf.tell()
-        byte_count = file_length(byte_buf)
+    byte_count = file_length(byte_buf)
 
     match = charset_matches.best()
     if match is None:
@@ -163,25 +163,39 @@ class Tellable(Protocol):
         pass
 
 
+class TellableAndSeekable(Tellable, Seekable, Protocol):
+    pass
+
+
 class rewind:
     """Ensure that a stream is rewound after doing something.
 
     This is a common error and usually subtly messes up a sequence of
     operations on a file.
+
+    By default, "seekbacks" are not allowed - this is the other common error,
+    which is assume that you are at a certain point of the file which you are
+    not actually at, which indicates a bug earlier in the code.
     """
 
-    def __init__(self, stream: Seekable) -> None:
+    def __init__(
+        self,
+        stream: TellableAndSeekable,
+        to: int = os.SEEK_SET,
+        allow_seekback: bool = False,
+    ) -> None:
         self.stream = stream
+        self.to = to
+        if self.stream.tell() != self.to and not allow_seekback:
+            raise RuntimeError(
+                "you not seeking back to where you are now - probably a bug"
+            )
 
     def __enter__(self) -> None:
         pass
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
-        self.stream.seek(0)
-
-
-class TellableAndSeekable(Tellable, Seekable, Protocol):
-    pass
+        self.stream.seek(self.to)
 
 
 def file_length(stream: TellableAndSeekable) -> int:

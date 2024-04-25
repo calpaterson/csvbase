@@ -208,7 +208,8 @@ class TableView(MethodView):
 
         # FIXME: add checking for forms here
         byte_buf = io.BytesIO()
-        shutil.copyfileobj(request.stream, byte_buf)
+        with streams.rewind(byte_buf):
+            shutil.copyfileobj(request.stream, byte_buf)
         str_buf = streams.byte_buf_to_str_buf(byte_buf)
         backend = PGUserdataAdapter(sesh)
 
@@ -290,7 +291,8 @@ class TableView(MethodView):
 
         # FIXME: add checking for forms here
         byte_buf = io.BytesIO()
-        shutil.copyfileobj(request.stream, byte_buf)
+        with streams.rewind(byte_buf):
+            shutil.copyfileobj(request.stream, byte_buf)
         str_buf = streams.byte_buf_to_str_buf(byte_buf)
         dialect, columns = streams.peek_csv(str_buf, table.columns)
         rows = table_io.csv_to_rows(str_buf, columns, dialect)
