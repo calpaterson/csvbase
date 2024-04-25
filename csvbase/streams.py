@@ -129,6 +129,10 @@ def peek_csv(
 
         first_few = zip(*(row for row, _ in zip(reader, range(1000))))
         as_dict: Dict[str, Set[str]] = dict(zip(headers, (set(v) for v in first_few)))
+        # if there are no rows, infer all as TEXT
+        if as_dict == {}:
+            cols = [Column(h, ColumnType.TEXT) for h in headers]
+            return dialect, cols
 
         cols = []
         ic = conv.IntegerConverter()

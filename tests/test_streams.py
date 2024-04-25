@@ -33,6 +33,14 @@ test_data = Path(__file__).resolve().parent / "test-data"
                 Column("col6", ColumnType.INTEGER),
             ],
         ),
+        (
+            "headers-only.csv",
+            [
+                Column("a", ColumnType.TEXT),
+                Column("b", ColumnType.TEXT),
+                Column("c", ColumnType.TEXT),
+            ],
+        ),
     ],
 )
 def test_peek_csv(input_filename, expected_columns):

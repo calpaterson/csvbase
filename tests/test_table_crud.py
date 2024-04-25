@@ -110,7 +110,7 @@ def test_create__blank_column_name(client, test_user):
     new_csv = """a,,c
 1,2,3"""
 
-    table_name = "some-table"
+    table_name = utils.random_string()
     resp = client.put(
         f"/{test_user.username}/{table_name}?public=yes",
         data=new_csv,
@@ -118,9 +118,29 @@ def test_create__blank_column_name(client, test_user):
     )
     assert resp.status_code == 201, resp.data
 
-    get_resp = client.get(f"/{test_user.username}/{table_name}.parquet?public=yes")
+    get_resp = client.get(f"/{test_user.username}/{table_name}.parquet")
     df = pd.read_parquet(BytesIO(get_resp.data))
     assert list(df.columns) == ["csvbase_row_id", "a", "col2", "c"]
+
+
+def test_create__just_header(client, test_user):
+    """Users often just pass a rowless csv with just a header."""
+    new_csv = "a,b,c\n"
+    set_current_user(test_user)
+    table_name = utils.random_string()
+    url = f"/{test_user.username}/{table_name}"
+    resp = client.put(
+        url,
+        data=new_csv,
+        headers={"Authorization": test_user.basic_auth(), "Content-Type": "text/csv"},
+    )
+    assert resp.status_code == 201, resp.data
+
+    expected_columns = [{"name": "csvbase_row_id", "type": "integer"}]
+    expected_columns.extend([{"name": letter, "type": "string"} for letter in "abc"])
+
+    get_resp = client.get(url + ".json")
+    assert expected_columns == get_resp.json["columns"]
 
 
 def test_read__happy(client, ten_rows, test_user, content_type):
@@ -501,10 +521,26 @@ def test_overwrite__with_blank_no_headers(client, test_user, ten_rows):
 def test_overwrite__with_just_header(client, test_user, ten_rows):
     new_csv = """roman_numeral,is_even,as_date,as_float
 """
+    set_current_user(test_user)
     resp = client.put(
         f"/{test_user.username}/{ten_rows.table_name}",
         data=new_csv,
-        headers={"Authorization": test_user.basic_auth()},
+    )
+    assert resp.status_code == 200
+    get_resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}.parquet",
+    )
+    df = pd.read_parquet(BytesIO(get_resp.data))
+    assert len(df) == 0
+
+
+def test_overwrite__with_just_header_including_row_id(client, test_user, ten_rows):
+    new_csv = """csvbase_row_id,roman_numeral,is_even,as_date,as_float
+"""
+    set_current_user(test_user)
+    resp = client.put(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        data=new_csv,
     )
     assert resp.status_code == 200
     get_resp = client.get(
@@ -603,6 +639,24 @@ XV,no,2018-01-15,15.0
     )
     df = pd.read_csv(BytesIO(get_resp.data))
     assert len(df) == 15
+
+
+def test_append__just_header(client, test_user, ten_rows):
+    """Users often just pass a rowless csv with just a header."""
+    new_csv = "roman_numeral,is_even,as_date,as_float\n"
+    set_current_user(test_user)
+
+    resp = client.post(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        data=new_csv,
+    )
+    assert resp.status_code == 204
+
+    get_resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}", headers={"Accept": "text/csv"}
+    )
+    df = pd.read_csv(BytesIO(get_resp.data))
+    assert len(df) == 10
 
 
 @pytest.fixture(
