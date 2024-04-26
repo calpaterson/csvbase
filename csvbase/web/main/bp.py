@@ -1131,6 +1131,7 @@ def user_settings(username: str) -> Response:
             raise exc.InvalidRequest()
         user.timezone = timezone
         user.email = request.form.get("email")
+        user.mailing_list = request.form.get("mailing-list", type=bool, default=False)
         svc.update_user(sesh, user)
         sesh.commit()
         flash("Updated settings")

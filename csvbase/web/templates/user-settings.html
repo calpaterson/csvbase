@@ -1,6 +1,8 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "app_base.html" %}
 
+{% import 'other_macros.html' as other_macros %}
+
 {% block main %}
   <div class="container">
     <h1 class="py-2">Edit user settings</h1>
@@ -34,6 +36,10 @@
         <div class="col-auto">
           <div class="form-text">Datetimes will be shown in your timezone, and your timezone will be the default for datetimes you enter.</div>
         </div>
+      </div>
+
+      <div class="mb-3 row g-3">
+        {{ other_macros.mailing_list_form_field(checked=user.mailing_list) }}
       </div>
 
       <button type="submit" class="btn btn-primary">Save Changes</button>

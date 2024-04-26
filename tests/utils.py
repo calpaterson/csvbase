@@ -158,9 +158,15 @@ def parse_form(html_str: str) -> "MultiDict[str, str]":
     rv: MultiDict[str, str] = MultiDict()
     for input_element in input_elements:
         attrs = input_element.attrib
-        # "" emulates what the server gets
         if "name" in attrs:
-            rv.add(attrs["name"], attrs.get("value", ""))
+            if attrs.get("type") == "checkbox":
+                is_checked = bool(attrs.get("checked", False))
+                if is_checked:
+                    rv.add(attrs["name"], attrs.get("value", "on"))
+
+            else:
+                # "" emulates what the server gets
+                rv.add(attrs["name"], attrs.get("value", ""))
 
     select_sel = CSSSelector("select")
     select_elements = select_sel(form)

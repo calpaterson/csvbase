@@ -72,8 +72,9 @@
       <div class="col-lg-6 offset-lg-3">
         <h2>Keep up to date</h2>
 
-        <p>Get an alert when I write something new:</p>
-        <p>via <a href="{{ url_for('blog.rss') }}">RSS</a>, or register a free account and leave the checkbox ticked</p>
+        <p>Get alerted about new posts via <a href="{{
+        url_for('blog.rss') }}">RSS</a>, or register a csvbase account and leave
+        the checkbox ticked:</p>
 
         <h3>Register</h3>
         <form method="POST" class="mb-3" action="{{ url_for('csvbase.register') }}">
@@ -84,7 +85,7 @@
 
           {{ other_macros.password_form_field() }}
 
-          {{ other_macros.mailing_list_form_field(default=True) }}
+          {{ other_macros.mailing_list_form_field(checked=True) }}
 
           <input class="btn btn-success" type="submit" value="Register">
         </form>

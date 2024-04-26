@@ -149,7 +149,7 @@ def user_by_user_uuid(sesh, user_uuid: UUID) -> User:
 
 def update_user(sesh, new_user: User) -> None:
     current_user = user_by_user_uuid(sesh, new_user.user_uuid)
-    update_fields = {"timezone"}
+    update_fields = {"timezone", "mailing_list"}
     update_arg = {
         field: getattr(new_user, field)
         for field in update_fields

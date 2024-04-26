@@ -3,26 +3,42 @@ from csvbase import svc
 
 import pytest
 
-from .utils import make_user
+from .utils import make_user, parse_form
 
 
-def test_user_settings__updating(sesh, client, test_user):
+def test_user_settings__cycle(sesh, client, test_user):
     set_current_user(test_user)
 
     settings_url = f"/{test_user.username}/settings"
     get_resp = client.get(settings_url)
     assert get_resp.status_code == 200
+    form = dict(parse_form(get_resp.data))
+    assert form == {
+        "timezone": "UTC",
+        "email": "",
+    }
 
     new_timezone = "Asia/Tokyo"
     new_email = "example@example.com"
     post_resp = client.post(
-        settings_url, data={"timezone": new_timezone, "email": new_email}
+        settings_url,
+        data={"timezone": new_timezone, "email": new_email, "mailing-list": "checked"},
     )
     assert post_resp.status_code == 302, post_resp.data
 
+    get_resp_2 = client.get(settings_url)
+    new_form = dict(parse_form(get_resp_2.data))
+    assert new_form == {
+        "timezone": new_timezone,
+        "email": new_email,
+        "mailing-list": "on",
+    }
+
+    # finally, just double check it's in the db
     new_user_obj = svc.user_by_name(sesh, test_user.username)
     assert new_user_obj.timezone == new_timezone
     assert new_user_obj.email == new_email
+    assert new_user_obj.mailing_list
 
 
 def test_user_settings__updating_delete_email(sesh, client, test_user):
