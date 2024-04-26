@@ -7,7 +7,8 @@
     <div class="container">
       <div class="row">
         <div class="text-center">
-          csvbase is a <mark>simple web database</mark>.  Learn more on the <a href="{{ url_for('csvbase.about') }}">about page.</a>
+          <p>csvbase is a <mark>simple web database</mark>.
+          Please <a href="https://discord.gg/uqu4BkNP5G">join the committee to keep csv evil</a>.</p>
         </div>
       </div>
     </div>
@@ -15,7 +16,7 @@
 {% endmacro %}
 
 {% macro table_name_field(label="Table name", value=None) %}
-  <div class="form-floating mb-3">
+  <div class="form-floating">
     <input type="text"
            id="table-name"
            class="form-control"
@@ -33,7 +34,7 @@
 
 
 {% macro username_form_field(autofocus=False) %}
-  <div class="form-floating mb-3">
+  <div class="form-floating my-1">
     <input id="username-input"
            class="form-control"
            type="text"
@@ -51,7 +52,7 @@
 {% endmacro %}
 
 {% macro password_form_field() %}
-  <div class="form-floating mb-3">
+  <div class="form-floating my-1">
     <input class="form-control"
            type="password"
            required
@@ -62,7 +63,7 @@
 {% endmacro %}
 
 {% macro email_form_field() %}
-  <div class="form-floating mb-3">
+  <div class="form-floating my-1">
     <input class="form-control"
            type="text"
            name="email"
@@ -70,12 +71,12 @@
            title="Must contain an @-sign"
            placeholder="">
            <label>Email</label>
-           <div class="form-text">Optional - used only for password reset & mailing list.</div>
+           <div class="form-text">Optional - used only for password reset & blog posts.</div>
   </div>
 {% endmacro %}
 
 {% macro mailing_list_form_field(checked=False) %}
-  <div class="form-check mb-3">
+  <div class="form-check my-2">
     <input class="form-check-input" type="checkbox" name="mailing-list" id="mailing-list-checkbox" {% if checked %}checked{% endif %}>
     <label class="form-check-label" for="mailing-list-checkbox">
       Email me about blog posts
