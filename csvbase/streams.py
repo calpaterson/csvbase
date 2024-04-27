@@ -66,6 +66,7 @@ def byte_buf_to_str_buf(
     return Reader(byte_buf)
 
 
+# FIXME: should be renamed infer_dialect
 def sniff_csv(
     csv_buf: UserSubmittedCSVData, sample_size_hint=8192
 ) -> Type[csv.Dialect]:
@@ -100,9 +101,8 @@ def peek_csv(
         if len(buf) == 0 or buf.isspace():
             raise exc.CSVParseError("blank csv file")
 
+    dialect = sniff_csv(csv_buf)
     with rewind(csv_buf):
-        dialect = sniff_csv(csv_buf)
-
         # FIXME: it's probably best that this consider the entire CSV file rather
         # than just the start of it.  there are many, many csv files that, halfway
         # down, switch out "YES" for "YES (but only <...>)"

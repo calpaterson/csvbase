@@ -26,9 +26,8 @@ def _get_github_obj() -> Github:
 
 
 class GithubFollower:
-    def __init__(self, backing_adapter) -> None:
+    def __init__(self) -> None:
         self.g = _get_github_obj()
-        self.backing_adapter = backing_adapter
 
     def retrieve(self, org: str, repo: str, branch: str, path: str) -> GithubFile:
         repo_obj = self.g.get_repo(f"{org}/{repo}")

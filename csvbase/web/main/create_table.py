@@ -73,14 +73,14 @@ class CreateTableFromGit(MethodView):
     def get(self) -> str:
         return render_template(
             "create-table-git.html",
-            method="from-git",
+            method="git",
             action_url=url_for("create_table.from_git"),
             DataLicence=DataLicence,
             branch="main",  # a nice default
         )
 
     def post(self) -> Response:
-        backend = GithubFollower(None)
+        backend = GithubFollower()
         form = request.form
         org, repo = parse_github_url(form["repo"])
         branch = form["branch"]
@@ -92,15 +92,20 @@ class CreateTableFromGit(MethodView):
         with streams.rewind(github_file.body):
             file_id = temp.store_temp_file(github_file.body)
 
+            data_licence = DataLicence(request.form.get("data-licence", type=int))
         confirm_package = {
             "follow": {
                 "type": "github",
                 "sha": github_file.sha,
+                "repo": repo,
                 "branch": branch,
                 "org": org,
                 "path": path,
             },
+            "table_name": form["table-name"],
             "file_id": file_id,
+            "is_public": False,  # FIXME:
+            "data_licence": data_licence.value,
             "columns": [[c.name, c.type_.value] for c in columns],
         }
         token = secrets.token_urlsafe()
@@ -142,8 +147,49 @@ class CreateTableConfirm(MethodView):
             ColumnType=ColumnType,
         )
 
-    # def post(self, token) -> Response:
-    #     ...
+    def post(self, token) -> Response:
+        sesh = get_sesh()
+        current_user = get_current_user_or_401()
+        confirm_package = cookie_to_dict(request.cookies[f"confirm-token-{token}"])
+        column_names = enumerate([c[0] for c in confirm_package["columns"]], start=1)
+        columns = []
+        for column_index, column_name in column_names:
+            column_type = ColumnType[request.form[f"column-{column_index}-type"]]
+            columns.append(Column(column_name, column_type))
+
+        table_name = confirm_package["table_name"]
+        table_uuid = svc.create_table_metadata(
+            sesh,
+            current_user.user_uuid,
+            table_name,
+            confirm_package["is_public"],
+            "",
+            DataLicence(confirm_package["data_licence"]),
+            Backend.POSTGRES,
+        )
+        backend = PGUserdataAdapter(sesh)
+        backend.create_table(table_uuid, columns)
+        gh = GithubFollower()
+        follow = confirm_package["follow"]
+        org = follow["org"]
+        repo = follow["repo"]
+        branch = follow["branch"]
+        path = follow["path"]
+        gh_f = gh.retrieve(org, repo, branch, path)
+        str_buf = streams.byte_buf_to_str_buf(gh_f.body)
+        dialect = streams.sniff_csv(str_buf)
+        rows = table_io.csv_to_rows(str_buf, columns, dialect)
+        table = svc.get_table(sesh, current_user.username, table_name)
+        backend.insert_table_data(table, columns, rows)
+        svc.mark_table_changed(sesh, table.table_uuid)
+        sesh.commit()
+        return redirect(
+            url_for(
+                "csvbase.table_view",
+                username=current_user.username,
+                table_name=table_name,
+            )
+        )
 
 
 bp.add_url_rule(
@@ -200,11 +246,11 @@ def new_table_form_submission() -> Response:
     try:
         dialect, columns = streams.peek_csv(csv_buf)
         backend.create_table(table_uuid, columns)
-        table = svc.get_table(sesh, current_user.username, table_name)
         rows = table_io.csv_to_rows(csv_buf, columns, dialect)
     except UnicodeDecodeError as e:
         raise exc.WrongEncodingException() from e
 
+    table = svc.get_table(sesh, current_user.username, table_name)
     backend.insert_table_data(
         table,
         columns,
@@ -252,6 +298,7 @@ def blank_table() -> str:
 
     return render_template(
         "new-blank-table.html",
+        method="blank",
         action_url=url_for("create_table.blank_table_form_post"),
         DataLicence=DataLicence,
         cols=cols,

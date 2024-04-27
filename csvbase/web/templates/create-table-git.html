@@ -47,31 +47,6 @@
         <option>Automatic</option>
       </select>
     </div>
-    <div class="form-text">The file will be kept updated when it changes in git</div>
+    <div class="form-text">The table will be kept updated when the file changes in git</div>
   </div>
-
-  <h3>Column types</h3>
-  <div class="form-text">The following types were inferred, but you can adjust:</div>
-
-  {% for column in columns %}
-    <div class="row mb-3 align-items-center">
-      <div class="col-auto">
-        <input type="text"
-               id="col-name-{{ loop.index }}"
-               class="form-control"
-               required
-               readonly
-               name="col-name-{{ loop.index }}"
-               value="{{ column.name }}">
-      </div>
-      <div class="col-auto">
-        <select name="col-type-{{ loop.index }}" class="form-control form-select">
-          {% for ct in ColumnType %}
-            <option value="{{ ct.name }}" {% if ct == column.type_ %}selected{% endif %}>{{ ct.pretty_name()}}</option>
-          {% endfor %}
-        </select>
-      </div>
-    </div>
-  {% endfor %}
-
 {% endblock %}

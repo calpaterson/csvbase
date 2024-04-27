@@ -15,20 +15,20 @@
           <ul class="nav nav-tabs">
             <li class="nav-item">
               <a class="nav-link {% if method == 'paste' %}active{%endif%}"
-                 href="{{ url_for('create_table.paste') }}">Paste</a>
+                 href="{{ url_for('create_table.paste') }}">From paste</a>
             </li>
             <li class="nav-item">
               <a class="nav-link {% if method == 'upload-file' %}active{%endif%}"
-                 href="{{ url_for('create_table.upload_file') }}">Upload file</a>
+                 href="{{ url_for('create_table.upload_file') }}">From a file</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link {% if request.endpoint == 'csvbase.blank_table' %}active{%endif%}"
-                 href="{{ url_for('create_table.blank_table') }}">Blank table</a>
+              <a class="nav-link {% if method == 'blank' %}active{%endif%}"
+                 href="{{ url_for('create_table.blank_table') }}">As blank</a>
             </li>
-            {# <li class="nav-item"> #}
-            {#   <a class="nav-link {% if method == 'from-git' %}active{%endif%}" #}
-            {#      href="{{ url_for('create_table.from_git') }}">From git</a> #}
-            {# </li> #}
+            <li class="nav-item">
+              <a class="nav-link {% if method == 'git' %}active{%endif%}"
+                 href="{{ url_for('create_table.from_git') }}">From git</a>
+            </li>
           </ul>
         </div>
 

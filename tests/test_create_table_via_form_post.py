@@ -39,6 +39,7 @@ def test_new_blank_table_form(client, query, kwargs):
     template_kwargs.pop("action_url")
     template_kwargs.pop("DataLicence")
     template_kwargs.pop("table_name")
+    template_kwargs.pop("method")
     assert template_kwargs == kwargs
 
 
