@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
 from typing import Iterable
 
-from csvbase.value_objs import Table
+from csvbase.value_objs import Table, GithubSource
 
 from github import Github
 
@@ -12,7 +12,7 @@ from github import Github
 class GithubFile:
     body: BytesIO
     commit_date: datetime
-    sha: str
+    sha: bytes
 
 
 _github_obj = None
@@ -30,13 +30,15 @@ class GithubFollower:
         self.g = _get_github_obj()
 
     def retrieve(self, org: str, repo: str, branch: str, path: str) -> GithubFile:
+        # FIXME: last_sha does not appear to be the right thing.  we want last
+        # commit hash.  more work required.
         repo_obj = self.g.get_repo(f"{org}/{repo}")
         contents = repo_obj.get_contents(path, ref=branch)
         # FIXME: This is incredibly slow for large files and needs some kind of alternative
         github_file = GithubFile(
             BytesIO(contents.decoded_content),  # type: ignore
             contents.last_modified_datetime,  # type: ignore
-            contents.sha,  # type: ignore
+            bytes.fromhex(contents.sha),  # type: ignore
         )
         return github_file
 

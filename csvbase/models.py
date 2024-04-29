@@ -150,8 +150,8 @@ class Table(Base):
     backend_obj: "RelationshipProperty[TableBackend]" = relationship(
         "TableBackend", uselist=False, backref="table_objs"
     )
-    github_follows_obj: "RelationshipProperty[GithubFollows]" = relationship(
-        "GithubFollows", uselist=False, backref="table_objs"
+    github_follows_obj: "RelationshipProperty[GithubFollow]" = relationship(
+        "GithubFollow", uselist=False, backref="table_objs"
     )
 
 
@@ -165,7 +165,7 @@ class UniqueColumns(Base):
     column_name = Column(satypes.String, nullable=False)
 
 
-class GithubFollows(Base):
+class GithubFollow(Base):
     __tablename__ = "github_follows"
     __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
 

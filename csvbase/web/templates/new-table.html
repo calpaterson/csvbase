@@ -33,6 +33,9 @@
         </div>
 
         <div class="container">
+          {% block before_form %}
+          {% endblock %}
+
           <form action="{{ action_url }}" method="POST" enctype="multipart/form-data">
             <div class="form-floating mb-3">
               <input type="text"

@@ -123,7 +123,11 @@
       </ul>
     </div>
   </div>
-
+    {% if table.external_source %}
+      <div class="alert alert-secondary">
+      Tracking: <a href="{{table.external_source.link()}}">{{table.external_source.pretty_ref()}}</a>, last changed <a href="{{ table.external_source.commit_link() }}">{{ value_macros.render_human_datetime(table.external_source.last_modified) }} ago</a>
+      </div>
+    {% endif %}
 
   {% block tab_contents %}
   {% endblock %}

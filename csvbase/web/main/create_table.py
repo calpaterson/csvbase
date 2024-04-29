@@ -24,6 +24,7 @@ from ...value_objs import (
     Encoding,
     DataLicence,
     Backend,
+    GithubSource,
 )
 from ...streams import UserSubmittedCSVData
 from ..billing import svc as billing_svc
@@ -93,15 +94,16 @@ class CreateTableFromGit(MethodView):
             file_id = temp.store_temp_file(github_file.body)
 
             data_licence = DataLicence(request.form.get("data-licence", type=int))
+        github_source = GithubSource(
+            last_modified=github_file.commit_date,
+            last_sha=github_file.sha,
+            org=org,
+            repo=repo,
+            path=path,
+            branch=branch
+        )
         confirm_package = {
-            "follow": {
-                "type": "github",
-                "sha": github_file.sha,
-                "repo": repo,
-                "branch": branch,
-                "org": org,
-                "path": path,
-            },
+            "follow": github_source.to_json_dict(),
             "table_name": form["table-name"],
             "file_id": file_id,
             "is_public": False,  # FIXME:
@@ -167,15 +169,14 @@ class CreateTableConfirm(MethodView):
             DataLicence(confirm_package["data_licence"]),
             Backend.POSTGRES,
         )
+        source = GithubSource.from_json_dict(confirm_package["follow"])
+        gh = GithubFollower()
+        gh_f = gh.retrieve(source.org, source.repo, source.branch, source.path)
+        source.last_sha = gh_f.sha
+        source.last_modified = gh_f.commit_date
+        svc.create_github_source(sesh, table_uuid, source)
         backend = PGUserdataAdapter(sesh)
         backend.create_table(table_uuid, columns)
-        gh = GithubFollower()
-        follow = confirm_package["follow"]
-        org = follow["org"]
-        repo = follow["repo"]
-        branch = follow["branch"]
-        path = follow["path"]
-        gh_f = gh.retrieve(org, repo, branch, path)
         str_buf = streams.byte_buf_to_str_buf(gh_f.body)
         dialect = streams.sniff_csv(str_buf)
         rows = table_io.csv_to_rows(str_buf, columns, dialect)

@@ -1,6 +1,12 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "new-table.html" %}
 
+{% block before_form %}
+  <div class="alert alert-warning">
+    Creating a table from git is currently experimental, and works only with Github.
+  </div>
+{% endblock %}
+
 {% block form_section %}
   <div class="form-floating mb-3">
     <input type="url"

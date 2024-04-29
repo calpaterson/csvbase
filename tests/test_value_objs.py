@@ -1,6 +1,8 @@
+import json
+from datetime import datetime
 import itertools
 
-from csvbase.value_objs import ColumnType
+from csvbase.value_objs import ColumnType, GithubSource
 from csvbase.conv import from_string_to_python
 
 import pytest
@@ -26,3 +28,17 @@ def _make_versions(inp, expected):
 )
 def test_bool_parsing_from_string(bool_str, expected):
     assert from_string_to_python(ColumnType.BOOLEAN, bool_str) == expected
+
+
+def test_github_source__json_roundtrip():
+    source = GithubSource(
+        last_modified=datetime(2018, 1, 3),
+        last_sha=b"f" * 32,
+        org="calpaterson",
+        repo="csvbase",
+        branch="main",
+        path="data/moocows.csv"
+    )
+
+    assert GithubSource.from_json_dict(json.loads(json.dumps(source.to_json_dict()))) == source
+

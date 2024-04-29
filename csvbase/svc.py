@@ -52,6 +52,7 @@ from .value_objs import (
     RowCount,
     Usage,
     Backend,
+    GithubSource,
 )
 from .json import value_to_json
 
@@ -195,6 +196,10 @@ def table_exists(sesh: Session, user_uuid: UUID, table_name: str) -> bool:
 
 
 def get_table(sesh: Session, username: str, table_name: str) -> Table:
+    # FIXME: this is very hot
+    # - should be cached
+    # - should be doing a single query
+    # o lord give me performance, but not yet
     user = user_by_name(sesh, username)
     table_model: Optional[models.Table] = (
         sesh.query(models.Table)
@@ -209,7 +214,14 @@ def get_table(sesh: Session, username: str, table_name: str) -> Table:
     backend = PGUserdataAdapter(sesh)
     columns = backend.get_columns(table_model.table_uuid)
     row_count = backend.count(table_model.table_uuid)
-    return _make_table(user.username, table_model, columns, row_count)
+    source: Optional[models.GithubFollow] = (
+        sesh.query(models.GithubFollow)
+        .filter(
+            models.GithubFollow.table_uuid==table_model.table_uuid
+        )
+        .first()
+    )
+    return _make_table(user.username, table_model, columns, row_count, source)
 
 
 def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> None:
@@ -264,6 +276,20 @@ def create_table_metadata(
     table_obj.licence_id = licence.value
     sesh.add(table_obj)
     return table_uuid
+
+
+def create_github_source(sesh: Session, table_uuid: UUID, source: GithubSource) -> None:
+    sesh.add(
+        models.GithubFollow(
+            table_uuid=table_uuid,
+            last_sha=source.last_sha,
+            last_modified=source.last_modified,
+            org=source.org,
+            repo=source.repo,
+            branch=source.branch,
+            path=source.path,
+        )
+    )
 
 
 def update_table_metadata(
@@ -434,18 +460,20 @@ def tables_for_user(
     sesh: Session, user_uuid: UUID, include_private: bool = False
 ) -> Iterable[Table]:
     rp = (
-        sesh.query(models.Table, models.User.username)
+        sesh.query(models.Table, models.User.username, models.GithubFollow)
         .join(models.User)
+        .leftjoin(models.GithubFollow)
         .filter(models.Table.user_uuid == user_uuid)
+        .filter(models.GithubFollow)
         .order_by(models.Table.created.desc())
     )
     if not include_private:
         rp = rp.filter(models.Table.public)
     backend = PGUserdataAdapter(sesh)
-    for table_model, username in rp:
+    for table_model, username, source in rp:
         columns = backend.get_columns(table_model.table_uuid)
         row_count = backend.count(table_model.table_uuid)
-        yield _make_table(username, table_model, columns, row_count)
+        yield _make_table(username, table_model, columns, row_count, source)
 
 
 def _make_table(
@@ -453,6 +481,7 @@ def _make_table(
     table_model: models.Table,
     columns: Sequence[Column],
     row_count: RowCount,
+    source: Optional[models.GithubFollow],
 ) -> Table:
     return Table(
         table_uuid=table_model.table_uuid,
@@ -465,7 +494,23 @@ def _make_table(
         created=table_model.created,
         row_count=row_count,
         last_changed=table_model.last_changed,
+        external_source=_make_source(source)
     )
+
+
+def _make_source(source_model: Optional[models.GithubFollow]) -> Optional[GithubSource]:
+    if source_model is None:
+        return None
+    else:
+        return GithubSource(
+            last_sha=source_model.last_sha,
+            last_modified=source_model.last_modified,
+            org=source_model.org,
+            repo=source_model.repo,
+            branch=source_model.branch,
+            path=source_model.path
+        )
+
 
 
 def get_top_n(sesh: Session, n: int = 10) -> Iterable[Table]:

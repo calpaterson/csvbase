@@ -16,7 +16,7 @@ from typing import (
 from typing_extensions import Literal
 from uuid import UUID
 from datetime import datetime, date, timedelta, timezone
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict as dataclass_as_dict
 import enum
 import binascii
 import encodings.aliases
@@ -131,6 +131,7 @@ class Table:
     created: datetime
     row_count: RowCount
     last_changed: datetime
+    external_source: Optional["GithubSource"] = None
 
     def has_caption(self) -> bool:
         return len(self.caption.strip()) > 0
@@ -146,6 +147,39 @@ class Table:
 
     def age(self) -> timedelta:
         return self.created - datetime.now(timezone.utc)
+
+
+@dataclass
+class GithubSource:
+    last_modified: datetime
+    last_sha: bytes
+    org: str
+    repo: str
+    branch: str
+    path: str
+
+    def link(self) -> str:
+        return f"https://github.com/{self.org}/{self.repo}/blob/{self.branch}/{self.path}"
+
+    def pretty_ref(self) -> str:
+        return f"git@github.com:{self.org}/{self.repo}/{self.path}"
+
+    def commit_link(self):
+        return f"https://github.com/hugovk/top-pypi-packages/commit/{self.last_sha.hex()}"
+
+    def to_json_dict(self) -> Dict[str, Any]:
+        json_dict = dataclass_as_dict(self)
+        json_dict["last_sha"] = json_dict["last_sha"].hex()
+        json_dict["last_modified"] = json_dict["last_modified"].isoformat()
+        return json_dict
+
+    @staticmethod
+    def from_json_dict(json_dict: Dict[str, Any]) -> "GithubSource":
+        # no mutations
+        parsed: Dict[str, Any] = {}
+        parsed["last_sha"] = bytes.fromhex(json_dict["last_sha"])
+        parsed["last_modified"] = datetime.fromisoformat(json_dict["last_modified"])
+        return GithubSource(**{**json_dict, **parsed})
 
 
 @enum.unique
