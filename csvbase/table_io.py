@@ -58,7 +58,10 @@ class CSVParseErrorLocation:
 
 
 def csv_to_rows(
-    csv_buf: UserSubmittedCSVData, columns: Sequence[Column], dialect
+    csv_buf: UserSubmittedCSVData,
+    columns: Sequence[Column],
+    dialect,
+    error_threshold=10,
 ) -> Iterable[UnmappedRow]:
     """Parse a csv file into rows.
 
@@ -82,11 +85,10 @@ def csv_to_rows(
         # stop yielding if we've encountered errors
         if error_count == 0:
             yield row
-        elif error_count > 10:
+        elif error_count > error_threshold:
             break
-    else:
-        if error_locations:
-            raise exc.CSVParseError("parse error(s)", error_locations)
+    if error_locations:
+        raise exc.CSVParseError("parse error(s)", error_locations)
 
 
 def buf_to_pf(buf: IO[bytes]) -> pq.ParquetFile:
