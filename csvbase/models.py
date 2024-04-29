@@ -157,9 +157,7 @@ class Table(Base):
 
 class UniqueColumns(Base):
     __tablename__ = "unique_columns"
-    __table_args__ = (
-        METADATA_SCHEMA_TABLE_ARG,
-    )
+    __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
 
     table_uuid = Column(
         PGUUID, ForeignKey("metadata.tables.table_uuid"), primary_key=True
