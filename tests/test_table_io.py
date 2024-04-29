@@ -1,11 +1,14 @@
 import io
 import csv
+import pandas as pd
+import string
 
 import pytest
 
 from csvbase.exc import CSVParseError
 from csvbase.value_objs import Column, ColumnType
 from csvbase import table_io
+from csvbase.streams import rewind
 
 
 def test_scientific_notation_not_put_into_csv():
@@ -37,3 +40,12 @@ def test_csv_to_rows__errors(csv_str, columns, expected_locations):
     with pytest.raises(CSVParseError) as e:
         x = list(table_io.csv_to_rows(buf, columns, csv.excel))
     assert e.value.error_locations == expected_locations
+
+
+def test_csv_to_rows__many_errors():
+    df = pd.DataFrame(dict(a=list(string.ascii_letters)))
+    buf = io.StringIO()
+    with rewind(buf):
+        df.to_csv(buf, index=False)
+    with pytest.raises(CSVParseError) as e:
+        list(table_io.csv_to_rows(buf, [Column("a", ColumnType.INTEGER)], csv.excel))

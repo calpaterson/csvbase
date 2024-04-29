@@ -6,40 +6,41 @@
     <div class="row">
       <div class="col-md-8 offset-md-2">
         <h1>Confirm table structure</h1>
-
-        <form>
-          <h2>Column types</h2>
-          {% for column in columns %}
-            <div class="row mb-3 align-items-center">
-              <div class="col-auto">
-                <label>{{column.name}}</label>
-              </div>
-              <div class="col-auto">
-                <select name="column-{{loop.index}}-type" class="form-control form-select">
-                  {% for ct in ColumnType %}
-                    <option value="{{ ct.name }}" {% if ct == column.type_ %}selected{% endif %}>{{ ct.pretty_name()}}</option>
-                  {% endfor %}
-                </select>
-              </div>
+        <h2>Column types</h2>
+      </div>
+      <form method="POST">
+        {% for column in columns %}
+          <div class="row mb-3 align-items-center">
+            <div class="col-sm-4 offset-sm-2">
+              <label>{{column.name}}</label>
             </div>
-          {% endfor %}
-
-          <h2>Unique key</h2>
-            <div class="row mb-3 align-items-center">
-              <div class="col-auto">
-                <p>Optionally, select which columns form a unique key.  When updating the table, this will be used to avoid cycling row ids.</p>
-                {% for column in columns %}
-                  <div class="form-check">
-                    <input class="form-check-input"
-                           type="checkbox"
-                           name="column-{{loop.index}}-is-unique"
-                           id="col-{{loop.index}}-is-unique"
-                           >
-                    <label class="form-check-label" for="column-{{loop.index}}-is-unique">{{column.name}}</label>
-                  </div>
+            <div class="col-sm-4">
+              <select name="column-{{loop.index}}-type" class="form-control form-select">
+                {% for ct in ColumnType %}
+                  <option value="{{ ct.name }}" {% if ct == column.type_ %}selected{% endif %}>{{ ct.pretty_name()}}</option>
                 {% endfor %}
-              </div>
+              </select>
             </div>
+          </div>
+        {% endfor %}
+
+        <div class="col-md-8 offset-md-2">
+          <h2>Unique key</h2>
+          <div class="row mb-3 align-items-center">
+            <div class="col-auto">
+              <p>Optionally, select which columns form a unique key.  When updating the table, this will be used to avoid cycling row ids.</p>
+              {% for column in columns %}
+                <div class="form-check">
+                  <input class="form-check-input"
+                         type="checkbox"
+                         name="column-{{loop.index}}-is-unique"
+                         id="column-{{loop.index}}-is-unique"
+                         >
+                         <label class="form-check-label" for="column-{{loop.index}}-is-unique">{{column.name}}</label>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
 
           <div class="row">
             <div class="mb-3">
@@ -48,9 +49,9 @@
               </div>
             </div>
           </div>
+        </div>
 
-        </form>
-      </div>
+      </form>
     </div>
   </div>
 {% endblock %}
