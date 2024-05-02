@@ -31,15 +31,21 @@ def test_canonicalise_git_url(inp, expected_output):
 
 
 @pytest.mark.parametrize(
-    "inp", [
+    "inp",
+    [
         pytest.param("gasdasdasd", id="garbage"),
-        pytest.param("https://my-internal-git-server/some-user/a-repo.git", id="internal server"),
-        pytest.param("https://user:1234@github.com/some-user/a-repo.git", id="auth token")
-    ]
+        pytest.param(
+            "https://my-internal-git-server/some-user/a-repo.git", id="internal server"
+        ),
+        pytest.param(
+            "https://user:1234@github.com/some-user/a-repo.git", id="auth token"
+        ),
+    ],
 )
 def test_canonicalise_git_url__invalid(inp):
     with pytest.raises(exc.InvalidRequest) as e:
         canonicalise_git_url(inp)
+
 
 def test_get_form_blank(client, test_user):
     set_current_user(test_user)
