@@ -34,11 +34,12 @@ def test_github_source__json_roundtrip():
     source = GithubSource(
         last_modified=datetime(2018, 1, 3),
         last_sha=b"f" * 32,
-        org="calpaterson",
-        repo="csvbase",
+        repo_url="https://github.com/calpaterson/csvbase.get",
         branch="main",
-        path="data/moocows.csv"
+        path="data/moocows.csv",
     )
 
-    assert GithubSource.from_json_dict(json.loads(json.dumps(source.to_json_dict()))) == source
-
+    assert (
+        GithubSource.from_json_dict(json.loads(json.dumps(source.to_json_dict())))
+        == source
+    )

@@ -12,6 +12,7 @@ from typing import (
     Set,
     cast,
     Any,
+    IO,
 )
 from typing_extensions import Literal
 from uuid import UUID
@@ -21,6 +22,7 @@ import enum
 import binascii
 import encodings.aliases
 
+import giturlparse
 from dateutil.tz import gettz
 from sqlalchemy import types as satypes
 
@@ -153,19 +155,22 @@ class Table:
 class GithubSource:
     last_modified: datetime
     last_sha: bytes
-    org: str
-    repo: str
+    repo_url: str
     branch: str
     path: str
 
     def link(self) -> str:
-        return f"https://github.com/{self.org}/{self.repo}/blob/{self.branch}/{self.path}"
+        url = giturlparse.parse(self.repo_url).url2https[:-4]
+        url += f"/blob/{self.branch}/{self.path}"
+        return url
 
     def pretty_ref(self) -> str:
-        return f"git@github.com:{self.org}/{self.repo}/{self.path}"
+        as_git_url = giturlparse.parse(self.repo_url).url2git
+        return as_git_url
 
-    def commit_link(self):
-        return f"https://github.com/hugovk/top-pypi-packages/commit/{self.last_sha.hex()}"
+    def commit_link(self) -> str:
+        base_url = giturlparse.parse(self.repo_url).url2https[:-4]
+        return f"{base_url}/commit/{self.last_sha.hex()}"
 
     def to_json_dict(self) -> Dict[str, Any]:
         json_dict = dataclass_as_dict(self)
@@ -180,6 +185,23 @@ class GithubSource:
         parsed["last_sha"] = bytes.fromhex(json_dict["last_sha"])
         parsed["last_modified"] = datetime.fromisoformat(json_dict["last_modified"])
         return GithubSource(**{**json_dict, **parsed})
+
+
+@dataclass
+class UpstreamVersion:
+    """Represents a version of a file in an external system.
+
+    For git it is commit_date and commit sha.
+    """
+
+    last_changed: datetime
+    version_id: str
+
+
+@dataclass
+class UpstreamFile:
+    version: UpstreamVersion
+    filelike: IO[bytes]
 
 
 @enum.unique

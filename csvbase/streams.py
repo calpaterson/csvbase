@@ -28,7 +28,7 @@ from .value_objs import ColumnType, Column, Encoding
 
 UserSubmittedCSVData = Union[codecs.StreamReader, io.StringIO]
 
-UserSubmittedBytes = Union[werkzeug.datastructures.FileStorage, io.BytesIO]
+UserSubmittedBytes = Union[werkzeug.datastructures.FileStorage, io.BytesIO, IO[bytes]]
 
 logger = getLogger(__name__)
 

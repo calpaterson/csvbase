@@ -216,9 +216,7 @@ def get_table(sesh: Session, username: str, table_name: str) -> Table:
     row_count = backend.count(table_model.table_uuid)
     source: Optional[models.GithubFollow] = (
         sesh.query(models.GithubFollow)
-        .filter(
-            models.GithubFollow.table_uuid==table_model.table_uuid
-        )
+        .filter(models.GithubFollow.table_uuid == table_model.table_uuid)
         .first()
     )
     return _make_table(user.username, table_model, columns, row_count, source)
@@ -284,8 +282,8 @@ def create_github_source(sesh: Session, table_uuid: UUID, source: GithubSource) 
             table_uuid=table_uuid,
             last_sha=source.last_sha,
             last_modified=source.last_modified,
-            org=source.org,
-            repo=source.repo,
+            org="",
+            repo=source.repo_url,
             branch=source.branch,
             path=source.path,
         )
@@ -462,9 +460,9 @@ def tables_for_user(
     rp = (
         sesh.query(models.Table, models.User.username, models.GithubFollow)
         .join(models.User)
-        .leftjoin(models.GithubFollow)
+        .outerjoin(models.GithubFollow)
         .filter(models.Table.user_uuid == user_uuid)
-        .filter(models.GithubFollow)
+        .filter(models.GithubFollow.table_uuid == models.Table.table_uuid)
         .order_by(models.Table.created.desc())
     )
     if not include_private:
@@ -494,7 +492,7 @@ def _make_table(
         created=table_model.created,
         row_count=row_count,
         last_changed=table_model.last_changed,
-        external_source=_make_source(source)
+        external_source=_make_source(source),
     )
 
 
@@ -505,12 +503,10 @@ def _make_source(source_model: Optional[models.GithubFollow]) -> Optional[Github
         return GithubSource(
             last_sha=source_model.last_sha,
             last_modified=source_model.last_modified,
-            org=source_model.org,
-            repo=source_model.repo,
+            repo_url=source_model.repo,
             branch=source_model.branch,
-            path=source_model.path
+            path=source_model.path,
         )
-
 
 
 def get_top_n(sesh: Session, n: int = 10) -> Iterable[Table]:

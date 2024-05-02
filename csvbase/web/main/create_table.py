@@ -9,6 +9,7 @@ from typing import List, Tuple, Dict, Mapping
 from urllib.parse import urlparse
 import secrets
 
+import giturlparse
 from flask.views import MethodView
 from flask import Blueprint, redirect, render_template, request, url_for, request
 from werkzeug.wrappers.response import Response
@@ -17,7 +18,7 @@ from ..func import get_current_user_or_401, register_and_sign_in_new_user
 from ... import exc, svc, streams, table_io, temp
 from ...sesh import get_sesh
 from ...userdata import PGUserdataAdapter
-from ...follow.github import GithubFollower
+from ...follow.git import GitSource
 from ...value_objs import (
     Column,
     ColumnType,
@@ -57,17 +58,15 @@ def upload_file() -> str:
     )
 
 
-def parse_github_url(repo: str) -> Tuple[str, str]:
-    """Parse the org and repo out of a github url.
+def canonicalise_git_url(input_url: str) -> str:
+    """We allow various different forms for git urls to be passed by users.
 
-    This is designed to be forgiving, so supports a few different formats.
+    However we canonicalise to "smart HTTP", even though that may not always be
+    the protocol that is used.
 
     """
-    parsed = urlparse(repo)
-    path = parsed.path.split("/")
-    if len(path) < 3:
-        raise exc.InvalidRequest("couldn't parse repo url")
-    return path[1], path[2]
+    git_url = giturlparse.parse(input_url)
+    return git_url.url2https
 
 
 class CreateTableFromGit(MethodView):
@@ -81,26 +80,26 @@ class CreateTableFromGit(MethodView):
         )
 
     def post(self) -> Response:
-        backend = GithubFollower()
+        source = GitSource()
         form = request.form
-        org, repo = parse_github_url(form["repo"])
+        org = ""
+        repo = canonicalise_git_url(form["repo"])
         branch = form["branch"]
         path = form["path"]
-        github_file = backend.retrieve(org, repo, branch, path)
-        str_buf = streams.byte_buf_to_str_buf(github_file.body)
-        dialect, columns = streams.peek_csv(str_buf)
+        with source.retrieve(repo, branch, path) as git_file:
+            str_buf = streams.byte_buf_to_str_buf(git_file.filelike)
+            dialect, columns = streams.peek_csv(str_buf)
 
-        with streams.rewind(github_file.body):
-            file_id = temp.store_temp_file(github_file.body)
+            with streams.rewind(git_file.filelike):
+                file_id = temp.store_temp_file(git_file.filelike)
 
-            data_licence = DataLicence(request.form.get("data-licence", type=int))
+                data_licence = DataLicence(request.form.get("data-licence", type=int))
         github_source = GithubSource(
-            last_modified=github_file.commit_date,
-            last_sha=github_file.sha,
-            org=org,
-            repo=repo,
+            last_modified=git_file.version.last_changed,
+            last_sha=bytes.fromhex(git_file.version.version_id),
+            repo_url=repo,
             path=path,
-            branch=branch
+            branch=branch,
         )
         confirm_package = {
             "follow": github_source.to_json_dict(),
@@ -170,18 +169,22 @@ class CreateTableConfirm(MethodView):
             Backend.POSTGRES,
         )
         source = GithubSource.from_json_dict(confirm_package["follow"])
-        gh = GithubFollower()
-        gh_f = gh.retrieve(source.org, source.repo, source.branch, source.path)
-        source.last_sha = gh_f.sha
-        source.last_modified = gh_f.commit_date
-        svc.create_github_source(sesh, table_uuid, source)
-        backend = PGUserdataAdapter(sesh)
-        backend.create_table(table_uuid, columns)
-        str_buf = streams.byte_buf_to_str_buf(gh_f.body)
-        dialect = streams.sniff_csv(str_buf)
-        rows = table_io.csv_to_rows(str_buf, columns, dialect)
-        table = svc.get_table(sesh, current_user.username, table_name)
-        backend.insert_table_data(table, columns, rows)
+        gh = GitSource()
+        with gh.retrieve(source.repo_url, source.branch, source.path) as gh_f:
+
+            # Correct these if they have changed since the upload was created
+            source.last_sha = bytes.fromhex(gh_f.version.version_id)
+            source.last_modified = gh_f.version.last_changed
+
+            svc.create_github_source(sesh, table_uuid, source)
+
+            backend = PGUserdataAdapter(sesh)
+            backend.create_table(table_uuid, columns)
+            str_buf = streams.byte_buf_to_str_buf(gh_f.filelike)
+            dialect = streams.sniff_csv(str_buf)
+            rows = table_io.csv_to_rows(str_buf, columns, dialect)
+            table = svc.get_table(sesh, current_user.username, table_name)
+            backend.insert_table_data(table, columns, rows)
         svc.mark_table_changed(sesh, table.table_uuid)
         sesh.commit()
         return redirect(

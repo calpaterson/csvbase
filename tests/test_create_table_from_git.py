@@ -1,7 +1,7 @@
 from unittest.mock import ANY
 
 from csvbase.web.func import set_current_user
-from csvbase.web.main.create_table import parse_github_url, cookie_to_dict
+from csvbase.web.main.create_table import canonicalise_git_url, cookie_to_dict
 
 import pytest
 
@@ -10,10 +10,23 @@ from .utils import parse_form, random_string
 
 @pytest.mark.parametrize(
     "inp, expected_output",
-    [("https://github.com/calpaterson/csvbase", ("calpaterson", "csvbase"))],
+    [
+        (
+            "https://github.com/calpaterson/csvbase",
+            "https://github.com/calpaterson/csvbase.git",
+        ),
+        (
+            "git@github.com:calpaterson/csvbase.git",
+            "https://github.com/calpaterson/csvbase.git",
+        ),
+        (
+            "https://github.com/calpaterson/csvbase.git",
+            "https://github.com/calpaterson/csvbase.git",
+        ),
+    ],
 )
-def test_parse_github_url(inp, expected_output):
-    assert expected_output == parse_github_url(inp)
+def test_canonicalise_git_url(inp, expected_output):
+    assert expected_output == canonicalise_git_url(inp)
 
 
 def test_get_form_blank(client, test_user):
