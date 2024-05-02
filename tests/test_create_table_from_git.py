@@ -2,6 +2,7 @@ from unittest.mock import ANY
 
 from csvbase.web.func import set_current_user
 from csvbase.web.main.create_table import canonicalise_git_url, cookie_to_dict
+from csvbase import exc
 
 import pytest
 
@@ -28,6 +29,17 @@ from .utils import parse_form, random_string
 def test_canonicalise_git_url(inp, expected_output):
     assert expected_output == canonicalise_git_url(inp)
 
+
+@pytest.mark.parametrize(
+    "inp", [
+        pytest.param("gasdasdasd", id="garbage"),
+        pytest.param("https://my-internal-git-server/some-user/a-repo.git", id="internal server"),
+        pytest.param("https://user:1234@github.com/some-user/a-repo.git", id="auth token")
+    ]
+)
+def test_canonicalise_git_url__invalid(inp):
+    with pytest.raises(exc.InvalidRequest) as e:
+        canonicalise_git_url(inp)
 
 def test_get_form_blank(client, test_user):
     set_current_user(test_user)

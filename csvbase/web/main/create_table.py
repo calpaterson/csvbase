@@ -65,8 +65,16 @@ def canonicalise_git_url(input_url: str) -> str:
     the protocol that is used.
 
     """
-    git_url = giturlparse.parse(input_url)
-    return git_url.url2https
+    try:
+        git_url = giturlparse.parse(input_url)
+        if git_url.platform != "github":
+            raise exc.InvalidRequest()
+        if hasattr(git_url, "access_token") and git_url.access_token != "":
+            raise exc.InvalidRequest()
+        return git_url.url2https
+    except AttributeError:
+        logger.warning("unable to parse git url: '%s'", input_url)
+        raise exc.InvalidRequest()
 
 
 class CreateTableFromGit(MethodView):
