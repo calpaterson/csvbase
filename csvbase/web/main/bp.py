@@ -3,6 +3,7 @@ from uuid import UUID
 from pathlib import Path
 import shutil
 from datetime import date, timedelta, timezone
+import codecs
 from logging import getLogger
 from typing import (
     Any,
@@ -56,6 +57,10 @@ from ..func import (
     safe_redirect,
     sign_in_user,
     register_and_sign_in_new_user,
+    ensure_table_access,
+    am_user,
+    am_a_user,
+    am_user_or_400,
 )
 from ... import exc, svc, streams, table_io
 from ...json import value_to_json, json_to_row
@@ -192,29 +197,16 @@ class TableView(MethodView):
     def put(self, username: str, table_name: str) -> Response:
         """Create or overwrite a table."""
         sesh = get_sesh()
-        if not am_user(username):
-            is_public = svc.is_public(sesh, username, table_name)
-            if is_public and am_a_user():
-                raise exc.NotAllowedException()
-            elif is_public:
-                raise exc.NotAuthenticatedException()
-            else:
-                raise exc.TableDoesNotExistException(username, table_name)
         user = svc.user_by_name(sesh, username)
-
         response_content_type = negotiate_content_type(
             [ContentType.JSON], default=ContentType.JSON
         )
 
-        # FIXME: add checking for forms here
-        byte_buf = io.BytesIO()
-        with streams.rewind(byte_buf):
-            shutil.copyfileobj(request.stream, byte_buf)
-        str_buf = streams.byte_buf_to_str_buf(byte_buf)
         backend = PGUserdataAdapter(sesh)
 
         if svc.table_exists(sesh, user.user_uuid, table_name):
             table = svc.get_table(sesh, username, table_name)
+            ensure_table_access(sesh, table, "write")
             provided_etag = request.headers.get("If-Weak-Match", None)
             if provided_etag is not None:
                 keyset = KeySet(
@@ -226,6 +218,7 @@ class TableView(MethodView):
                 if provided_etag != expected_etag:
                     raise exc.ETagMismatch()
 
+            str_buf = get_user_str_buf()
             dialect, csv_columns = streams.peek_csv(str_buf, table.columns)
             rows = table_io.csv_to_rows(str_buf, csv_columns, dialect)
 
@@ -243,6 +236,19 @@ class TableView(MethodView):
             status = 200
             message = f"upserted {username}/{table_name}"
         else:
+            # FIXME: this logic to check if the user *could* write to this
+            # table, if it existed, should be encapsulated somewhere else and
+            # re-used here
+            if not am_user(username):
+                is_public = svc.is_public(sesh, username, table_name)
+                if is_public and am_a_user():
+                    raise exc.NotAllowedException()
+                elif is_public:
+                    raise exc.NotAuthenticatedException()
+                else:
+                    raise exc.TableDoesNotExistException(username, table_name)
+
+            str_buf = get_user_str_buf()
             dialect, csv_columns = streams.peek_csv(str_buf)
             rows = table_io.csv_to_rows(str_buf, csv_columns, dialect)
             is_public = request.args.get("public", default=False, type=bool)
@@ -289,11 +295,7 @@ class TableView(MethodView):
             [ContentType.JSON], default=ContentType.JSON
         )
 
-        # FIXME: add checking for forms here
-        byte_buf = io.BytesIO()
-        with streams.rewind(byte_buf):
-            shutil.copyfileobj(request.stream, byte_buf)
-        str_buf = streams.byte_buf_to_str_buf(byte_buf)
+        str_buf = get_user_str_buf()
         dialect, columns = streams.peek_csv(str_buf, table.columns)
         rows = table_io.csv_to_rows(str_buf, columns, dialect)
 
@@ -812,8 +814,9 @@ def praise_table(username: str, table_name: str) -> Response:
     whence = get_whence(
         url_for("csvbase.table_view", username=username, table_name=table_name)
     )
-    am_a_user_or_400()
     sesh = get_sesh()
+    table = svc.get_table(sesh, username, table_name)
+    ensure_table_access(sesh, table, "read")
     praise_id = request.form.get("praise-id", type=int, default=None)
     if praise_id:
         svc.unpraise(sesh, praise_id)
@@ -1244,30 +1247,6 @@ def sign_out():
     return response
 
 
-def am_user(username: str) -> bool:
-    """Return true if the current user has the given username."""
-    current_user = g.get("current_user", None)
-    if current_user is None or current_user.username != username:
-        return False
-    else:
-        return True
-
-
-def am_a_user() -> bool:
-    return "current_user" in g
-
-
-def am_user_or_400(username: str) -> bool:
-    if not am_user(username):
-        raise exc.NotAuthenticatedException()
-    return True
-
-
-def am_a_user_or_400():
-    if not am_a_user():
-        raise exc.NotAuthenticatedException()
-
-
 def make_download_filename(username: str, table_name: str, extension: str) -> str:
     timestamp = date.today().isoformat()
     return f"{table_name}-{timestamp}.{extension}"
@@ -1489,20 +1468,10 @@ def get_whence(default: W) -> Union[str, W]:
         return request.form.get("whence", default)
 
 
-def ensure_table_access(
-    sesh: Session, table: Table, mode: Union[Literal["read"], Literal["write"]]
-) -> None:
-    """Ensures that the current user can access the particular table with that level."""
-    is_public = svc.is_public(sesh, table.username, table.table_name)
-    if mode == "read":
-        if not is_public and not am_user(table.username):
-            raise exc.TableDoesNotExistException(table.username, table.table_name)
-    else:
-        if not am_user(table.username):
-            if is_public and am_a_user():
-                raise exc.NotAllowedException()
-            elif is_public:
-                raise exc.NotAuthenticatedException()
-            else:
-                raise exc.TableDoesNotExistException(table.username, table.table_name)
-    return None
+def get_user_str_buf() -> codecs.StreamReader:
+    """Return the streamed request data the user supplied, as a a StringIO."""
+    byte_buf = io.BytesIO()
+    with streams.rewind(byte_buf):
+        shutil.copyfileobj(request.stream, byte_buf)
+    str_buf = streams.byte_buf_to_str_buf(byte_buf)
+    return str_buf

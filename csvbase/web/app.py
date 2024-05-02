@@ -84,6 +84,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
         "unable to convert the data you provided to the required type",
         422,
     ),
+    exc.ReadOnlyException: ("that table is read-only", 400),
 }
 
 

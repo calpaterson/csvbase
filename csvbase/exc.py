@@ -138,3 +138,7 @@ class WrongEncodingException(CSVBaseException):
 
 class MissingTempFile(CSVBaseException):
     pass
+
+
+class ReadOnlyException(CSVBaseException):
+    pass

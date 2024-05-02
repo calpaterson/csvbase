@@ -7,7 +7,7 @@ from pandas.testing import assert_frame_equal
 import pytest
 
 from csvbase import svc
-from csvbase.value_objs import ContentType
+from csvbase.value_objs import ContentType, GithubSource
 from csvbase.web.func import set_current_user
 
 from .conftest import ROMAN_NUMERALS
@@ -617,6 +617,33 @@ def test_overwrite__wrong_user(
         assert resp.status_code == 403
     else:
         assert resp.status_code == 404
+
+
+def test_overwrite__read_only(sesh, client, test_user, ten_rows):
+    # (falsely) mark it read-only via git repo
+    svc.create_github_source(
+        sesh,
+        ten_rows.table_uuid,
+        GithubSource(
+            datetime.now(timezone.utc),
+            b"f" * 32,
+            f"https://example.com/{utils.random_string()}.git",
+            "main",
+            "ten-rows.csv",
+        ),
+    )
+    sesh.commit()
+
+    set_current_user(test_user)
+    new_csv = """roman_numeral,is_even,as_date,as_float
+"""
+    set_current_user(test_user)
+    resp = client.put(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        data=new_csv,
+    )
+    assert resp.status_code == 400
+    assert resp.json == {"error": "that table is read-only"}
 
 
 def test_append__happy(client, test_user, ten_rows):

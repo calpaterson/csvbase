@@ -1,9 +1,10 @@
 import re
 import functools
 from datetime import datetime, timezone
-from typing import Optional, Callable, Mapping, Tuple, Any
+from typing import Optional, Callable, Mapping, Tuple, Any, Union
 from logging import getLogger
 from urllib.parse import urlsplit, urlparse
+from typing_extensions import Literal
 
 from sqlalchemy.orm import Session
 
@@ -15,7 +16,7 @@ from flask import request, g, current_app, Request, redirect as unsafe_redirect,
 from flask_babel import get_locale, dates
 
 from .. import exc, sentry, svc
-from ..value_objs import User
+from ..value_objs import User, Table
 
 logger = getLogger(__name__)
 
@@ -182,3 +183,53 @@ def sign_in_user(user: User, session: Optional[Any] = None) -> None:
     session["user_uuid"] = user.user_uuid
     # Make it last for 31 days
     session.permanent = True
+
+
+def ensure_table_access(
+    sesh: Session, table: Table, mode: Union[Literal["read"], Literal["write"]]
+) -> None:
+    """Ensures that the current user can access the particular table in the
+    given mode.
+
+    """
+    is_public = svc.is_public(sesh, table.username, table.table_name)
+    if mode == "read":
+        if not is_public and not am_user(table.username):
+            raise exc.TableDoesNotExistException(table.username, table.table_name)
+    else:
+        if not am_user(table.username):
+            if is_public and am_a_user():
+                raise exc.NotAllowedException()
+            elif is_public:
+                raise exc.NotAuthenticatedException()
+            else:
+                raise exc.TableDoesNotExistException(table.username, table.table_name)
+        source = table.external_source
+        if source is not None:
+            if source.is_read_only():
+                raise exc.ReadOnlyException()
+    return None
+
+
+def am_user(username: str) -> bool:
+    """Return true if the current user has the given username."""
+    current_user = g.get("current_user", None)
+    if current_user is None or current_user.username != username:
+        return False
+    else:
+        return True
+
+
+def am_a_user() -> bool:
+    return "current_user" in g
+
+
+def am_user_or_400(username: str) -> bool:
+    if not am_user(username):
+        raise exc.NotAuthenticatedException()
+    return True
+
+
+def am_a_user_or_400():
+    if not am_a_user():
+        raise exc.NotAuthenticatedException()

@@ -35,7 +35,7 @@ def raise_on_error(completed_process: subprocess.CompletedProcess) -> None:
 
 
 class GitSource:
-    def clone(self, url: str, branch: str, checkout_path: Path):
+    def clone(self, url: str, branch: str, checkout_path: Path) -> None:
         # We are cloning "bloblessly" [*: actually includes many blobs] to get
         # only the most recent versions of each file.
         # Not currently possible with pygit2

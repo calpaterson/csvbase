@@ -186,6 +186,10 @@ class GithubSource:
         parsed["last_modified"] = datetime.fromisoformat(json_dict["last_modified"])
         return GithubSource(**{**json_dict, **parsed})
 
+    def is_read_only(self) -> bool:
+        # for now:
+        return True
+
 
 @dataclass
 class UpstreamVersion:
