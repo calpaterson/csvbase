@@ -89,13 +89,16 @@ class PGUserdataAdapter:
         This should be done after inserts that raise the csvbase_row_id.
 
         """
-        # FIXME: this should probably set it to the max of the current sequence
-        # value or the max of the column
         fullname = tableclause.fullname  # type: ignore
         stmt = select(
             func.setval(
                 func.pg_get_serial_sequence(fullname, "csvbase_row_id"),
-                func.max(tableclause.c.csvbase_row_id),
+                func.greatest(
+                    func.max(tableclause.c.csvbase_row_id),
+                    func.currval(
+                        func.pg_get_serial_sequence(fullname, "csvbase_row_id")
+                    ),
+                ),
             )
         )
         self.sesh.execute(stmt)
@@ -416,7 +419,10 @@ class PGUserdataAdapter:
         self._reset_pk_sequence(to_tableclause)
 
     def upsert_table_data(
-        self, table: Table, row_columns: Sequence[Column], rows: Iterable
+        self,
+        table: Table,
+        row_columns: Sequence[Column],
+        rows: Iterable[Sequence[PythonType]],
     ) -> None:
         """Upsert table data from rows into the SQL table.
 

@@ -1,4 +1,4 @@
-from csvbase.value_objs import Column, ColumnType
+from csvbase.value_objs import Column, ColumnType, ROW_ID_COLUMN
 from csvbase.userdata import PGUserdataAdapter
 
 from .utils import create_table
@@ -33,3 +33,26 @@ def test_row_id_bounds_negative_row_ids(sesh, test_user):
     min_row_id, max_row_id = backend.row_id_bounds(test_table.table_uuid)
     assert min_row_id is -1
     assert max_row_id is 1
+
+
+def test_upsert__by_csvbase_row_id(sesh, test_user):
+    backend = PGUserdataAdapter(sesh)
+
+    n_col = Column("n", ColumnType.INTEGER)
+    test_table = create_table(sesh, test_user, [n_col])
+    backend.insert_table_data(test_table, [n_col], [[n] for n in range(1, 11)])
+
+    upsert = [
+        (1, 1),  # column the same
+        (3, 5),  # column changed
+        (None, 11),  # new row
+    ]  # all other rows deleted implicitly
+
+    backend.upsert_table_data(test_table, (ROW_ID_COLUMN, n_col), upsert)
+
+    end_state = list(backend.table_as_rows(test_table.table_uuid))
+    assert end_state == [
+        (1, 1),
+        (3, 5),
+        (11, 11),
+    ]
