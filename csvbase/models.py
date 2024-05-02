@@ -150,8 +150,8 @@ class Table(Base):
     backend_obj: "RelationshipProperty[TableBackend]" = relationship(
         "TableBackend", uselist=False, backref="table_objs"
     )
-    github_follows_obj: "RelationshipProperty[GithubFollow]" = relationship(
-        "GithubFollow", uselist=False, backref="table_objs"
+    github_upstream_obj: "RelationshipProperty[GithubUpstream]" = relationship(
+        "GithubUpstream", uselist=False, backref="table_objs"
     )
 
 
@@ -165,7 +165,8 @@ class UniqueColumns(Base):
     column_name = Column(satypes.String, nullable=False)
 
 
-class GithubFollow(Base):
+class GithubUpstream(Base):
+    # FIXME: should be called "github_upstreams"
     __tablename__ = "github_follows"
     __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
 
@@ -174,8 +175,7 @@ class GithubFollow(Base):
     )
     last_sha = Column(BYTEA, nullable=False)
     last_modified = Column(satypes.DateTime(timezone=True), nullable=False)
-    org = Column(satypes.String, nullable=False)
-    repo = Column(satypes.String, nullable=False)
+    https_repo_url = Column(satypes.String, nullable=False)
     branch = Column(satypes.String, nullable=False)
     path = Column(satypes.String, nullable=False)
 

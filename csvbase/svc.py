@@ -214,9 +214,9 @@ def get_table(sesh: Session, username: str, table_name: str) -> Table:
     backend = PGUserdataAdapter(sesh)
     columns = backend.get_columns(table_model.table_uuid)
     row_count = backend.count(table_model.table_uuid)
-    source: Optional[models.GithubFollow] = (
-        sesh.query(models.GithubFollow)
-        .filter(models.GithubFollow.table_uuid == table_model.table_uuid)
+    source: Optional[models.GithubUpstream] = (
+        sesh.query(models.GithubUpstream)
+        .filter(models.GithubUpstream.table_uuid == table_model.table_uuid)
         .first()
     )
     return _make_table(user.username, table_model, columns, row_count, source)
@@ -278,12 +278,11 @@ def create_table_metadata(
 
 def create_github_source(sesh: Session, table_uuid: UUID, source: GithubSource) -> None:
     sesh.add(
-        models.GithubFollow(
+        models.GithubUpstream(
             table_uuid=table_uuid,
             last_sha=source.last_sha,
             last_modified=source.last_modified,
-            org="",
-            repo=source.repo_url,
+            https_repo_url=source.repo_url,
             branch=source.branch,
             path=source.path,
         )
@@ -458,11 +457,11 @@ def tables_for_user(
     sesh: Session, user_uuid: UUID, include_private: bool = False
 ) -> Iterable[Table]:
     rp = (
-        sesh.query(models.Table, models.User.username, models.GithubFollow)
+        sesh.query(models.Table, models.User.username, models.GithubUpstream)
         .join(models.User)
-        .outerjoin(models.GithubFollow)
+        .outerjoin(models.GithubUpstream)
         .filter(models.Table.user_uuid == user_uuid)
-        .filter(models.GithubFollow.table_uuid == models.Table.table_uuid)
+        .filter(models.GithubUpstream.table_uuid == models.Table.table_uuid)
         .order_by(models.Table.created.desc())
     )
     if not include_private:
@@ -479,7 +478,7 @@ def _make_table(
     table_model: models.Table,
     columns: Sequence[Column],
     row_count: RowCount,
-    source: Optional[models.GithubFollow],
+    source: Optional[models.GithubUpstream],
 ) -> Table:
     return Table(
         table_uuid=table_model.table_uuid,
@@ -496,14 +495,16 @@ def _make_table(
     )
 
 
-def _make_source(source_model: Optional[models.GithubFollow]) -> Optional[GithubSource]:
+def _make_source(
+    source_model: Optional[models.GithubUpstream],
+) -> Optional[GithubSource]:
     if source_model is None:
         return None
     else:
         return GithubSource(
             last_sha=source_model.last_sha,
             last_modified=source_model.last_modified,
-            repo_url=source_model.repo,
+            repo_url=source_model.https_repo_url,
             branch=source_model.branch,
             path=source_model.path,
         )
