@@ -44,6 +44,7 @@ from ..value_objs import (
     PythonType,
     Row,
     Table,
+    ROW_ID_COLUMN,
 )
 from ..streams import UserSubmittedCSVData
 
@@ -84,12 +85,21 @@ class PGUserdataAdapter:
             return f"table_{table_uuid.hex}"
 
     def _reset_pk_sequence(self, tableclause: TableClause) -> None:
-        """Reset the csvbase_row_id sequence (to the max of the column.
+        """Reset the csvbase_row_id sequence to the max of the column.
 
         This should be done after inserts that raise the csvbase_row_id.
 
         """
         fullname = tableclause.fullname  # type: ignore
+
+        # this awful hack is used to bring the current value of the sequence
+        # into the session, which is necessary for the below code to work
+        init_stmt = func.setval(
+            func.pg_get_serial_sequence(fullname, "csvbase_row_id"),
+            func.greatest(func.nextval(func.pg_get_serial_sequence(fullname, "csvbase_row_id")) - 1, 1)
+        )
+        self.sesh.execute(init_stmt)
+
         stmt = select(
             func.setval(
                 func.pg_get_serial_sequence(fullname, "csvbase_row_id"),
@@ -418,11 +428,13 @@ class PGUserdataAdapter:
         self.sesh.execute(stmt)
         self._reset_pk_sequence(to_tableclause)
 
+    # FIXME: this is "replace", not "upsert"
     def upsert_table_data(
         self,
         table: Table,
         row_columns: Sequence[Column],
         rows: Iterable[Sequence[PythonType]],
+        key: Sequence[Column] = (ROW_ID_COLUMN,),
     ) -> None:
         """Upsert table data from rows into the SQL table.
 
@@ -449,33 +461,40 @@ class PGUserdataAdapter:
         # Next selectively use the temp table to update the 'main' one
         temp_tableclause = self._get_tableclause(temp_table_name, table.columns)
 
+        join_clause = [
+            (main_tableclause.c[key_column.name] == temp_tableclause.c[key_column.name])
+            for key_column in key
+        ]
+
         # 1. for removals
-        ids_to_delete = select(main_tableclause.c.csvbase_row_id).select_from(  # type: ignore
-            main_tableclause.outerjoin(
-                temp_tableclause,
-                and_(
-                    main_tableclause.c.csvbase_row_id
-                    == temp_tableclause.c.csvbase_row_id,
-                    temp_tableclause.c.csvbase_row_id.is_(None),
-                ),
+        ids_to_delete = (
+            select(main_tableclause.c.csvbase_row_id)
+            .select_from(  # type: ignore
+                main_tableclause.outerjoin(
+                    temp_tableclause,
+                    and_(*join_clause),
+                )
             )
+            .where(temp_tableclause.c[key[0].name].is_(None))
         )
         remove_stmt = delete(main_tableclause).where(
             main_tableclause.c.csvbase_row_id.in_(ids_to_delete)
         )
 
         # 2. updates
+        update_values = {}
+        for col in table.columns:
+            if col == ROW_ID_COLUMN and ROW_ID_COLUMN not in key:
+                update_values[col.name] = func.coalesce(
+                    main_tableclause.c.csvbase_row_id,
+                    func.nextval(
+                        func.pg_get_serial_sequence(main_table_name, "csvbase_row_id")
+                    ),
+                )
+            else:
+                update_values[col.name] = getattr(temp_tableclause.c, col.name)
         update_stmt = (
-            main_tableclause.update()
-            .values(
-                **{
-                    col.name: getattr(temp_tableclause.c, col.name)
-                    for col in table.columns
-                }
-            )
-            .where(
-                main_tableclause.c.csvbase_row_id == temp_tableclause.c.csvbase_row_id
-            )
+            main_tableclause.update().values(**update_values).where(and_(*join_clause))
         )
 
         # 3a. and additions where the csvbase_row_id as been set
@@ -516,11 +535,7 @@ class PGUserdataAdapter:
             existing_column_names,
             select(*select_columns)  # type: ignore
             .select_from(
-                temp_tableclause.outerjoin(
-                    main_tableclause,
-                    main_tableclause.c.csvbase_row_id
-                    == temp_tableclause.c.csvbase_row_id,
-                )
+                temp_tableclause.outerjoin(main_tableclause, and_(*join_clause))
             )
             .where(
                 main_tableclause.c.csvbase_row_id.is_(None),

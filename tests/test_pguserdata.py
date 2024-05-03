@@ -56,3 +56,46 @@ def test_upsert__by_csvbase_row_id(sesh, test_user):
         (3, 5),
         (11, 11),
     ]
+
+
+import pytest
+
+
+def test_upsert__by_other_unique_key(sesh, test_user):
+    backend = PGUserdataAdapter(sesh)
+
+    country_col = Column("country", ColumnType.TEXT)
+    capital_col = Column("capital", ColumnType.TEXT)
+    pop_col = Column("population", ColumnType.INTEGER)
+    test_table = create_table(sesh, test_user, [country_col, capital_col, pop_col])
+    backend.insert_table_data(
+        test_table,
+        [country_col, capital_col, pop_col],
+        [
+            ("UK", "London", 10),
+            ("FR", "Paris", 9),
+            ("US", "Washington", 1),
+        ],
+    )
+
+    upsert = [
+        ("UK", "London", 10),  # kept the same
+        ("US", "Washington", 2),  # changed
+        ("DE", "Berlin", 3),  # added
+    ]  # Paris is removed
+
+    backend.upsert_table_data(
+        test_table,
+        [country_col, capital_col, pop_col],
+        upsert,
+        key=(country_col, capital_col),
+    )
+
+    actual = list(backend.table_as_rows(test_table.table_uuid))
+    expected = [
+        (1, "UK", "London", 10),
+        (3, "US", "Washington", 2),
+        (4, "DE", "Berlin", 3),
+    ]
+
+    assert expected == actual
