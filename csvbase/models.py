@@ -165,8 +165,9 @@ class UniqueColumns(Base):
     column_name = Column(satypes.String, nullable=False)
 
 
+# FIXME: should be called "git upstream"
 class GithubUpstream(Base):
-    # FIXME: should be called "github_upstreams"
+    # FIXME: should be called "git_upstreams"
     __tablename__ = "github_follows"
     __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
 

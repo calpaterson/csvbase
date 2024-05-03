@@ -7,16 +7,7 @@ import secrets
 from contextlib import closing
 from datetime import datetime, timezone, date
 from logging import getLogger
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    Optional,
-    Sequence,
-    Tuple,
-    Mapping,
-    Union,
-)
+from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Mapping, Union, cast
 from uuid import UUID, uuid4
 
 import bleach
@@ -28,7 +19,7 @@ from sqlalchemy import (
     func,
     update,
     types as satypes,
-    cast,
+    cast as sacast,
     text,
     or_,
 )
@@ -567,7 +558,7 @@ def get_public_table_names(sesh: Session) -> Iterable[Tuple[str, str, date]]:
         sesh.query(
             models.User.username,
             models.Table.table_name,
-            cast(models.Table.last_changed, satypes.Date),
+            sacast(models.Table.last_changed, satypes.Date),
         )
         .join(models.Table, models.User.user_uuid == models.Table.user_uuid)
         .filter(models.Table.public)
@@ -725,3 +716,25 @@ def record_copy(sesh: Session, existing_uuid: UUID, new_uuid: UUID) -> None:
 
     """
     sesh.add(models.Copy(from_uuid=existing_uuid, to_uuid=new_uuid))
+
+
+def git_tables(sesh: Session) -> Iterable[Tuple[Table, GithubSource]]:
+    """Return all external tables that come from git."""
+    rows = (
+        sesh.query(models.Table, models.User.username, models.GithubUpstream)
+        .join(models.User, models.User.user_uuid == models.Table.user_uuid)
+        .join(
+            models.GithubUpstream,
+            models.Table.table_uuid == models.GithubUpstream.table_uuid,
+        )
+        .where(~models.GithubUpstream.https_repo_url.like("https://example.com%"))
+    )
+    backend = PGUserdataAdapter(sesh)
+    for table_model, username, git_upstream_model in rows:
+        columns = backend.get_columns(table_model.table_uuid)
+        row_count = backend.count(table_model.table_uuid)
+        table = _make_table(
+            username, table_model, columns, row_count, git_upstream_model
+        )
+        ext_source = cast(GithubSource, table.external_source)
+        yield (table, ext_source)

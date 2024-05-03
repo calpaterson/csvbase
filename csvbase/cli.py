@@ -10,10 +10,12 @@ from .value_objs import DataLicence
 from .models import Base
 from .logging import configure_logging
 from .config import load_config, default_config_file
-from csvbase import svc
+from csvbase import svc, streams, table_io
 from .sesh import get_sesh
 from .web.app import init_app
 from .web.billing import svc as billing_svc
+from csvbase.follow.git import GitSource
+from .userdata import PGUserdataAdapter
 
 logger = getLogger(__name__)
 
@@ -104,3 +106,37 @@ def update_stripe_subscriptions(full: bool) -> None:
         all_updated = billing_svc.update_stripe_subscriptions(sesh, full)
         if not all_updated:
             sys.exit(1)
+
+
+@click.command("csvbase-update-external-tables")
+def update_external_tables() -> None:
+    configure_logging()
+    sesh = get_sesh()
+    app = init_app()
+    errors = 0
+    with app.app_context():
+        git_source = GitSource()
+        backend = PGUserdataAdapter(sesh)
+        for table, source in svc.git_tables(sesh):
+            logger.info("retrieving %s", source.repo_url)
+            try:
+                with git_source.retrieve(
+                    source.repo_url, source.branch, source.path
+                ) as upstream_file:
+                    if upstream_file.version != source.version():
+                        logger.info("updating %s/%s", table.username, table.table_name)
+                        str_buf = streams.byte_buf_to_str_buf(upstream_file.filelike)
+                        dialect, csv_columns = streams.peek_csv(str_buf, table.columns)
+                        rows = table_io.csv_to_rows(str_buf, csv_columns, dialect)
+                        # FIXME: set keys below
+                        backend.upsert_table_data(table, csv_columns, rows)
+                        # FIXME: update the version
+                        svc.mark_table_changed(sesh, table.table_uuid)
+                        sesh.commit()
+            except:
+                errors += 1
+                logger.exception(
+                    "exception while updating %s/%s", table.username, table.table_name
+                )
+                sesh.rollback()
+    sys.exit(errors)

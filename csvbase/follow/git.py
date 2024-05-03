@@ -56,7 +56,7 @@ class GitSource:
         """Gets the UpstreamVersion for a specific file (that must be inside a
         repo)."""
         # Get the last version.  Possible with pygit2 but quite difficult.
-        command = ["git", "log", "--format=%H|%cI", str(file_path)]
+        command = ["git", "log", "-n" "1", "--format=%H|%cI", str(file_path)]
         logger.info("executing '%s'", command)
         completed_process = subprocess.run(command, cwd=repo_path, capture_output=True)
         raise_on_error(completed_process)

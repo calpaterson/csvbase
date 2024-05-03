@@ -22,6 +22,7 @@ setup(
             "csvbase-load-prohibited-usernames=csvbase.cli:load_prohibited_usernames",
             "csvbase-config=csvbase.cli:config_cli",
             "csvbase-update-stripe-subscriptions=csvbase.cli:update_stripe_subscriptions",
+            "csvbase-update-external-tables=csvbase.cli:update_external_tables",
         ]
     },
 )
