@@ -466,8 +466,8 @@ class PGUserdataAdapter:
 
         # 1. for removals
         ids_to_delete = (
-            select(main_tableclause.c.csvbase_row_id)
-            .select_from(  # type: ignore
+            select(main_tableclause.c.csvbase_row_id)  # type: ignore
+            .select_from(
                 main_tableclause.outerjoin(
                     temp_tableclause,
                     and_(*join_clause),
