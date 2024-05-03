@@ -17,6 +17,7 @@ logger = getLogger(__name__)
 
 
 def initialise_stripe() -> None:
+    """Set the Stripe API key from the config."""
     if stripe.api_key is None:
         config = get_config()
         stripe.api_key = config.stripe_api_key
