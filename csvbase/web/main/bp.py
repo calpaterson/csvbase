@@ -710,6 +710,7 @@ class CopyView(MethodView):
             raise exc.NotEnoughQuotaException()
 
         existing_table = svc.get_table(sesh, username, table_name)
+        ensure_table_access(sesh, existing_table, "read")
         new_table_name = request.form["table-name"]
 
         is_public = not private
