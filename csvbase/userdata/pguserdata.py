@@ -92,21 +92,19 @@ class PGUserdataAdapter:
         """
         fullname = tableclause.fullname  # type: ignore
 
-        # this awful hack is used to bring the current value of the sequence
-        # into the session, which is necessary for the below code to work
-        init_stmt = func.setval(
-            func.pg_get_serial_sequence(fullname, "csvbase_row_id"),
-            func.greatest(func.nextval(func.pg_get_serial_sequence(fullname, "csvbase_row_id")) - 1, 1)
-        )
-        self.sesh.execute(init_stmt)
-
         stmt = select(
             func.setval(
                 func.pg_get_serial_sequence(fullname, "csvbase_row_id"),
                 func.greatest(
                     func.max(tableclause.c.csvbase_row_id),
-                    func.currval(
-                        func.pg_get_serial_sequence(fullname, "csvbase_row_id")
+                    # the below awful hack is required because currval is only
+                    # for when the current value is already in the session
+                    func.greatest(
+                        func.nextval(
+                            func.pg_get_serial_sequence(fullname, "csvbase_row_id")
+                        )
+                        - 1,
+                        1,
                     ),
                 ),
             )
