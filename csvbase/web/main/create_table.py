@@ -109,11 +109,12 @@ class CreateTableFromGit(MethodView):
             path=path,
             branch=branch,
         )
+        private = "private" in request.form
         confirm_package = {
             "follow": github_source.to_json_dict(),
             "table_name": form["table-name"],
             "file_id": file_id,
-            "is_public": False,  # FIXME:
+            "is_public": not private,
             "data_licence": data_licence.value,
             "columns": [[c.name, c.type_.value] for c in columns],
         }
@@ -176,6 +177,9 @@ class CreateTableConfirm(MethodView):
             DataLicence(confirm_package["data_licence"]),
             Backend.POSTGRES,
         )
+        unique_columns = [c for c in columns if c.name in request.form.getlist("unique")]
+        if len(unique_columns) > 0:
+            svc.set_key(sesh, table_uuid, unique_columns)
         source = GithubSource.from_json_dict(confirm_package["follow"])
         gh = GitSource()
         with gh.retrieve(source.repo_url, source.branch, source.path) as gh_f:

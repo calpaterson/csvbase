@@ -63,6 +63,7 @@ def test_table_view_etag():
             created=datetime(2018, 1, 3, 9),
             row_count=RowCount(0, 0),
             last_changed=t[1],
+            key=None,
         )
         for t in table_tuples
     ]

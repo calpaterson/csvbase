@@ -210,7 +210,14 @@ def get_table(sesh: Session, username: str, table_name: str) -> Table:
         .filter(models.GithubUpstream.table_uuid == table_model.table_uuid)
         .first()
     )
-    return _make_table(user.username, table_model, columns, row_count, source)
+    unique_column_names = (
+        sesh.query(func.array_agg(models.UniqueColumn.column_name))
+        .filter(models.UniqueColumn.table_uuid == table_model.table_uuid)
+        .scalar()
+    )
+    return _make_table(
+        user.username, table_model, columns, row_count, source, unique_column_names
+    )
 
 
 def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> None:
@@ -234,6 +241,7 @@ def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> 
             models.Copy.to_uuid == table_model.table_uuid,
         )
     ).delete()
+    sesh.query(models.GithubUpstream).filter(models.GithubUpstream.table_uuid == table_model.table_uuid).delete()
     sesh.delete(table_model)
     backend = PGUserdataAdapter(sesh)
     backend.drop_table(table_model.table_uuid)
@@ -265,6 +273,13 @@ def create_table_metadata(
     table_obj.licence_id = licence.value
     sesh.add(table_obj)
     return table_uuid
+
+
+def set_key(sesh: Session, table_uuid: UUID, key: Sequence[Column]) -> None:
+    for column in key:
+        sesh.add(
+            models.UniqueColumn(table_uuid, column.name)
+        )
 
 
 def create_github_source(sesh: Session, table_uuid: UUID, source: GithubSource) -> None:
@@ -461,7 +476,14 @@ def tables_for_user(
     for table_model, username, source in rp:
         columns = backend.get_columns(table_model.table_uuid)
         row_count = backend.count(table_model.table_uuid)
-        yield _make_table(username, table_model, columns, row_count, source)
+        unique_column_names = (
+            sesh.query(func.array_agg(models.UniqueColumn.column_name))
+            .filter(models.UniqueColumn.table_uuid == table_model.table_uuid)
+            .scalar()
+        )
+        yield _make_table(
+            username, table_model, columns, row_count, source, unique_column_names
+        )
 
 
 def _make_table(
@@ -470,7 +492,12 @@ def _make_table(
     columns: Sequence[Column],
     row_count: RowCount,
     source: Optional[models.GithubUpstream],
+    unique_column_names: Optional[Sequence[str]],
 ) -> Table:
+    if unique_column_names is not None:
+        key = [c for c in columns if c in unique_column_names]
+    else:
+        key = None
     return Table(
         table_uuid=table_model.table_uuid,
         username=username,
@@ -483,6 +510,7 @@ def _make_table(
         row_count=row_count,
         last_changed=table_model.last_changed,
         external_source=_make_source(source),
+        key=key,
     )
 
 
@@ -538,6 +566,15 @@ LIMIT :n;
         last_changed,
     ) in rp:
         columns = backend.get_columns(table_uuid)
+        unique_column_names = (
+            sesh.query(func.array_agg(models.UniqueColumn.column_name))
+            .filter(models.UniqueColumn.table_uuid == table_uuid)
+            .scalar()
+        )
+        if unique_column_names is not None:
+            key = [c for c in columns if c in unique_column_names]
+        else:
+            key = None
         table = Table(
             table_uuid,
             username,
@@ -549,6 +586,7 @@ LIMIT :n;
             created,
             backend.count(table_uuid),
             last_changed,
+            key=key,
         )
         yield table
 
@@ -733,8 +771,18 @@ def git_tables(sesh: Session) -> Iterable[Tuple[Table, GithubSource]]:
     for table_model, username, git_upstream_model in rows:
         columns = backend.get_columns(table_model.table_uuid)
         row_count = backend.count(table_model.table_uuid)
+        unique_column_names = (
+            sesh.query(func.array_agg(models.UniqueColumn.column_name))
+            .filter(models.UniqueColumn.table_uuid == table_model.table_uuid)
+            .scalar()
+        )
         table = _make_table(
-            username, table_model, columns, row_count, git_upstream_model
+            username,
+            table_model,
+            columns,
+            row_count,
+            git_upstream_model,
+            unique_column_names,
         )
         ext_source = cast(GithubSource, table.external_source)
         yield (table, ext_source)

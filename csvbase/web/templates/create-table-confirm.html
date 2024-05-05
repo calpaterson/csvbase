@@ -33,7 +33,8 @@
                 <div class="form-check">
                   <input class="form-check-input"
                          type="checkbox"
-                         name="column-{{loop.index}}-is-unique"
+                         name="unique-columns"
+                         value="{{column.name}}"
                          id="column-{{loop.index}}-is-unique"
                          >
                          <label class="form-check-label" for="column-{{loop.index}}-is-unique">{{column.name}}</label>

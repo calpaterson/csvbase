@@ -133,6 +133,7 @@ class Table:
     created: datetime
     row_count: RowCount
     last_changed: datetime
+    key: Optional[Sequence["Column"]]
     external_source: Optional["GithubSource"] = None
 
     def has_caption(self) -> bool:

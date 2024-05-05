@@ -155,7 +155,7 @@ class Table(Base):
     )
 
 
-class UniqueColumns(Base):
+class UniqueColumn(Base):
     __tablename__ = "unique_columns"
     __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
 
