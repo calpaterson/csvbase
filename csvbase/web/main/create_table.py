@@ -178,7 +178,7 @@ class CreateTableConfirm(MethodView):
             Backend.POSTGRES,
         )
         unique_columns = [
-            c for c in columns if c.name in request.form.getlist("unique")
+            c for c in columns if c.name in request.form.getlist("unique-columns")
         ]
         if len(unique_columns) > 0:
             svc.set_key(sesh, table_uuid, unique_columns)

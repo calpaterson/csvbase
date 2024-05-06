@@ -441,6 +441,7 @@ class PGUserdataAdapter:
         present, it will be used to correlate changes.
 
         """
+
         # First, make a temp table and COPY the new rows into it
         temp_table_name = self._make_temp_table_name(prefix="upsert")
         main_table_name = self._make_userdata_table_name(

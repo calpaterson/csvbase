@@ -1,12 +1,12 @@
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple, Sequence
 from logging import getLogger
 
 import click
 from sqlalchemy.sql.expression import text
 
-from .value_objs import DataLicence
+from .value_objs import DataLicence, ROW_ID_COLUMN, Column
 from .models import Base
 from .logging import configure_logging
 from .config import load_config, default_config_file
@@ -128,9 +128,18 @@ def update_external_tables() -> None:
                         str_buf = streams.byte_buf_to_str_buf(upstream_file.filelike)
                         dialect, csv_columns = streams.peek_csv(str_buf, table.columns)
                         rows = table_io.csv_to_rows(str_buf, csv_columns, dialect)
-                        # FIXME: set keys below
-                        backend.upsert_table_data(table, csv_columns, rows)
-                        # FIXME: update the version
+                        key_column_names = svc.get_key(sesh, table.table_uuid)
+                        key: Sequence[Column]
+                        if len(key_column_names) > 0:
+                            key = [
+                                c
+                                for c in table.user_columns()
+                                if c.name in key_column_names
+                            ]
+                        else:
+                            key = (ROW_ID_COLUMN,)
+                        backend.upsert_table_data(table, csv_columns, rows, key=key)
+                        svc.set_version(sesh, table.table_uuid, upstream_file.version)
                         svc.mark_table_changed(sesh, table.table_uuid)
                         sesh.commit()
             except:

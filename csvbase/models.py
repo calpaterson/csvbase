@@ -162,7 +162,7 @@ class UniqueColumn(Base):
     table_uuid = Column(
         PGUUID, ForeignKey("metadata.tables.table_uuid"), primary_key=True
     )
-    column_name = Column(satypes.String, nullable=False)
+    column_name = Column(satypes.String, nullable=False, primary_key=True)
 
 
 # FIXME: should be called "git upstream"

@@ -44,6 +44,7 @@ from .value_objs import (
     Usage,
     Backend,
     GithubSource,
+    UpstreamVersion,
 )
 from .json import value_to_json
 
@@ -282,6 +283,13 @@ def set_key(sesh: Session, table_uuid: UUID, key: Sequence[Column]) -> None:
         sesh.add(models.UniqueColumn(table_uuid=table_uuid, column_name=column.name))
 
 
+def get_key(sesh: Session, table_uuid: UUID) -> Sequence[str]:
+    rs = sesh.query(models.UniqueColumn.column_name).filter(
+        models.UniqueColumn.table_uuid == table_uuid
+    )
+    return list(t[0] for t in rs)
+
+
 def create_github_source(sesh: Session, table_uuid: UUID, source: GithubSource) -> None:
     sesh.add(
         models.GithubUpstream(
@@ -292,6 +300,17 @@ def create_github_source(sesh: Session, table_uuid: UUID, source: GithubSource) 
             branch=source.branch,
             path=source.path,
         )
+    )
+
+
+def set_version(sesh: Session, table_uuid: UUID, version: UpstreamVersion) -> None:
+    sesh.query(models.GithubUpstream).where(  # type: ignore
+        models.GithubUpstream.table_uuid == table_uuid
+    ).update(
+        {
+            "last_sha": bytes.fromhex(version.version_id),
+            "last_modified": version.last_changed,
+        }
     )
 
 
