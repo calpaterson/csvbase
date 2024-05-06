@@ -278,7 +278,7 @@ def create_table_metadata(
 def set_key(sesh: Session, table_uuid: UUID, key: Sequence[Column]) -> None:
     for column in key:
         sesh.add(
-            models.UniqueColumn(table_uuid, column.name)
+            models.UniqueColumn(table_uuid=table_uuid, column_name=column.name)
         )
 
 

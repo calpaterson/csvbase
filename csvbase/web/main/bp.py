@@ -61,6 +61,7 @@ from ..func import (
     am_user,
     am_a_user,
     am_user_or_400,
+    ensure_not_read_only,
 )
 from ... import exc, svc, streams, table_io
 from ...json import value_to_json, json_to_row
@@ -207,6 +208,8 @@ class TableView(MethodView):
         if svc.table_exists(sesh, user.user_uuid, table_name):
             table = svc.get_table(sesh, username, table_name)
             ensure_table_access(sesh, table, "write")
+            ensure_not_read_only(table)
+
             provided_etag = request.headers.get("If-Weak-Match", None)
             if provided_etag is not None:
                 keyset = KeySet(
@@ -273,7 +276,7 @@ class TableView(MethodView):
         return response
 
     def delete(self, username: str, table_name: str) -> Response:
-        """Create or overwrite a table."""
+        """Delete a table"""
         sesh = get_sesh()
         table = svc.get_table(sesh, username, table_name)
         ensure_table_access(sesh, table, "write")
@@ -290,6 +293,7 @@ class TableView(MethodView):
         sesh = get_sesh()
         table = svc.get_table(sesh, username, table_name)
         ensure_table_access(sesh, table, "write")
+        ensure_not_read_only(table)
 
         response_content_type = negotiate_content_type(
             [ContentType.JSON], default=ContentType.JSON
@@ -833,6 +837,7 @@ def row_add_form(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
     ensure_table_access(sesh, table, "write")
+    ensure_not_read_only(table)
 
     return make_response(
         render_template(
@@ -876,6 +881,7 @@ def create_row(username: str, table_name: str) -> Response:
     svc.user_exists(sesh, username)
     table = svc.get_table(sesh, username, table_name)
     ensure_table_access(sesh, table, "write")
+    ensure_not_read_only(table)
 
     row: Row
     if request.mimetype == ContentType.JSON.value:
@@ -960,6 +966,7 @@ class RowView(MethodView):
         sesh = get_sesh()
         table = svc.get_table(sesh, username, table_name)
         ensure_table_access(sesh, table, "write")
+        ensure_not_read_only(table)
 
         body = json_or_400()
         try:
@@ -1016,6 +1023,7 @@ class RowView(MethodView):
         sesh = get_sesh()
         table = svc.get_table(sesh, username, table_name)
         ensure_table_access(sesh, table, "write")
+        ensure_not_read_only(table)
         if request.form.get("csvbase_row_id", None) is None:
             raise exc.InvalidRequest()
         row = form_to_row(table.columns, request.form)
@@ -1052,6 +1060,7 @@ def row_delete_check(username: str, table_name: str, row_id: int) -> Response:
     svc.user_exists(sesh, username)
     table = svc.get_table(sesh, username, table_name)
     ensure_table_access(sesh, table, "write")
+    ensure_not_read_only(table)
     backend = PGUserdataAdapter(sesh)
     row = backend.get_row(table.table_uuid, row_id)
     if row is None:
@@ -1077,6 +1086,7 @@ def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Resp
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
     ensure_table_access(sesh, table, "write")
+    ensure_not_read_only(table)
     backend = PGUserdataAdapter(sesh)
     if not backend.delete_row(table.table_uuid, row_id):
         raise exc.RowDoesNotExistException(username, table_name, row_id)

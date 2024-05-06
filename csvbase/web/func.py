@@ -204,11 +204,21 @@ def ensure_table_access(
                 raise exc.NotAuthenticatedException()
             else:
                 raise exc.TableDoesNotExistException(table.username, table.table_name)
-        source = table.external_source
-        if source is not None:
-            if source.is_read_only():
-                raise exc.ReadOnlyException()
     return None
+
+
+def ensure_not_read_only(table: Table) -> None:
+    """Raises ReadOnlyException if a table is read-only.
+
+    This is should be called before modifying userdata (but not when only
+    modifying metadata).
+
+    """
+    source = table.external_source
+    if source is not None:
+        if source.is_read_only():
+            raise exc.ReadOnlyException()
+
 
 
 def am_user(username: str) -> bool:
