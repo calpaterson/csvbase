@@ -241,7 +241,9 @@ def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> 
             models.Copy.to_uuid == table_model.table_uuid,
         )
     ).delete()
-    sesh.query(models.GithubUpstream).filter(models.GithubUpstream.table_uuid == table_model.table_uuid).delete()
+    sesh.query(models.GithubUpstream).filter(
+        models.GithubUpstream.table_uuid == table_model.table_uuid
+    ).delete()
     sesh.delete(table_model)
     backend = PGUserdataAdapter(sesh)
     backend.drop_table(table_model.table_uuid)
@@ -277,9 +279,7 @@ def create_table_metadata(
 
 def set_key(sesh: Session, table_uuid: UUID, key: Sequence[Column]) -> None:
     for column in key:
-        sesh.add(
-            models.UniqueColumn(table_uuid=table_uuid, column_name=column.name)
-        )
+        sesh.add(models.UniqueColumn(table_uuid=table_uuid, column_name=column.name))
 
 
 def create_github_source(sesh: Session, table_uuid: UUID, source: GithubSource) -> None:

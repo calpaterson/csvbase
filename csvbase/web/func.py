@@ -220,7 +220,6 @@ def ensure_not_read_only(table: Table) -> None:
             raise exc.ReadOnlyException()
 
 
-
 def am_user(username: str) -> bool:
     """Return true if the current user has the given username."""
     current_user = g.get("current_user", None)

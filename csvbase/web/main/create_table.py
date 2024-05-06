@@ -177,7 +177,9 @@ class CreateTableConfirm(MethodView):
             DataLicence(confirm_package["data_licence"]),
             Backend.POSTGRES,
         )
-        unique_columns = [c for c in columns if c.name in request.form.getlist("unique")]
+        unique_columns = [
+            c for c in columns if c.name in request.form.getlist("unique")
+        ]
         if len(unique_columns) > 0:
             svc.set_key(sesh, table_uuid, unique_columns)
         source = GithubSource.from_json_dict(confirm_package["follow"])
