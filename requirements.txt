@@ -28,5 +28,5 @@ stripe==5.4.0
 systemd-python==235; sys_platform == "linux"
 toml==0.10.2
 typing-extensions==4.10.0
-werkzeug==3.0.2
+werkzeug==3.0.3
 xlsxwriter==3.0.9
