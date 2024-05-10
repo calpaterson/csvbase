@@ -77,7 +77,7 @@ class GitSource:
         """Pull the latest state of the repo from the remote."""
         # in order to handle rebased/changed history on the remote, this does
         # not pull but fetches and then resets to match the remote branch
-        fetch_command = ["git", "fetch", "origin", "main"]
+        fetch_command = ["git", "fetch", "origin", branch]
         self.run(fetch_command, cwd=repo_path)
 
         reset_command = ["git", "reset", "--hard", f"origin/{branch}"]
