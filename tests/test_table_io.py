@@ -38,7 +38,7 @@ integer_col = Column("i", ColumnType.INTEGER)
 def test_csv_to_rows__errors(csv_str, columns, expected_locations):
     buf = io.StringIO(csv_str)
     with pytest.raises(CSVParseError) as e:
-        x = list(table_io.csv_to_rows(buf, columns, csv.excel))
+        list(table_io.csv_to_rows(buf, columns, csv.excel))
     assert e.value.error_locations == expected_locations
 
 
@@ -47,5 +47,5 @@ def test_csv_to_rows__many_errors():
     buf = io.StringIO()
     with rewind(buf):
         df.to_csv(buf, index=False)
-    with pytest.raises(CSVParseError) as e:
+    with pytest.raises(CSVParseError):
         list(table_io.csv_to_rows(buf, [Column("a", ColumnType.INTEGER)], csv.excel))

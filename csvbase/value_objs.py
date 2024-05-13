@@ -51,7 +51,7 @@ class User:
         datetime.replace or datetime.now."""
         try:
             return gettz(self.timezone)
-        except Exception as e:
+        except Exception:
             logger.exception("unable to load timezone for user, using UTC")
             return timezone.utc
 

@@ -12,7 +12,7 @@ from csvbase.web.app import init_app
 from csvbase.config import get_config
 from csvbase.db import get_db_url
 from csvbase.userdata import PGUserdataAdapter
-from csvbase.value_objs import Column, ColumnType, ContentType, Table
+from csvbase.value_objs import Column, ColumnType, Table
 
 from .utils import make_user, create_table
 

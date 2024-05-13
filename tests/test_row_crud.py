@@ -533,7 +533,7 @@ def test_update__etag_matches(client, test_user, ten_rows):
 
 @pytest.mark.xfail(reason="not implemented")
 def test_update__etag_doesnt_match(client, test_user, ten_rows):
-    resp = client.put(
+    resp = client.put(  # noqa: F841
         f"/{test_user.username}/{ten_rows.table_name}",
         json={
             "row_id": 1,

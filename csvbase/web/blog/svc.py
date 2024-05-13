@@ -1,4 +1,3 @@
-from uuid import uuid4
 from datetime import date
 from typing import Sequence, Tuple
 

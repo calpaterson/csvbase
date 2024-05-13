@@ -1,4 +1,3 @@
-from os import environ
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
@@ -10,7 +9,7 @@ from alembic import context
 # access to the values within the .ini file in use.
 config = context.config
 
-from csvbase.config import get_config
+from csvbase.config import get_config  # noqa: E402
 
 csvbase_config = get_config()
 
@@ -25,7 +24,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from csvbase.models import metadata
+from csvbase.models import metadata  # noqa: E402
 
 target_metadata = metadata
 

@@ -7,7 +7,6 @@ Create Date: 2023-10-08 14:33:09.338971+01:00
 """
 
 from alembic import op
-import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.

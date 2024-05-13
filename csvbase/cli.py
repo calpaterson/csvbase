@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import Optional, Tuple, Sequence
+from typing import Optional, Sequence
 from logging import getLogger
 
 import click
@@ -142,7 +142,7 @@ def update_external_tables() -> None:
                         svc.set_version(sesh, table.table_uuid, upstream_file.version)
                         svc.mark_table_changed(sesh, table.table_uuid)
                         sesh.commit()
-            except:
+            except Exception:
                 errors += 1
                 logger.exception(
                     "exception while updating %s/%s", table.username, table.table_name

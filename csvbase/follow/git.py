@@ -1,12 +1,8 @@
-from io import BytesIO
 from logging import getLogger
-from datetime import datetime, timedelta, timezone
-from dataclasses import dataclass
-from typing import Iterable, Optional, Generator, Sequence
+from typing import Generator, Sequence
 import contextlib
 import subprocess
 from pathlib import Path
-from tempfile import TemporaryDirectory
 import hashlib
 import re
 
@@ -14,7 +10,7 @@ from platformdirs import user_cache_dir
 from dateutil.parser import isoparse
 
 
-from csvbase.value_objs import Table, GithubSource, UpstreamVersion, UpstreamFile
+from csvbase.value_objs import UpstreamVersion, UpstreamFile
 
 logger = getLogger(__name__)
 

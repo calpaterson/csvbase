@@ -8,17 +8,14 @@ from logging import getLogger
 from typing import (
     Any,
     Dict,
-    List,
     Mapping,
     Optional,
     Sequence,
-    Tuple,
     Union,
     cast,
     Iterator,
     IO,
     TypeVar,
-    Type,
 )
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import hashlib
@@ -47,10 +44,8 @@ from flask import session as flask_session
 from flask_cors import cross_origin, CORS
 from typing_extensions import Literal
 from werkzeug.wrappers.response import Response
-from werkzeug.wrappers.request import ImmutableMultiDict
 
 from ..func import (
-    set_current_user,
     get_current_user_or_401,
     get_current_user,
     reverse_url_for,
@@ -74,17 +69,14 @@ from ...value_objs import (
     Column,
     ColumnType,
     ContentType,
-    Encoding,
     DataLicence,
     KeySet,
     Page,
     PythonType,
     Row,
     Table,
-    User,
     Backend,
 )
-from ...streams import UserSubmittedCSVData
 from ...constants import COPY_BUFFER_SIZE
 from ..billing import svc as billing_svc
 
@@ -199,9 +191,7 @@ class TableView(MethodView):
         """Create or overwrite a table."""
         sesh = get_sesh()
         user = svc.user_by_name(sesh, username)
-        response_content_type = negotiate_content_type(
-            [ContentType.JSON], default=ContentType.JSON
-        )
+        negotiate_content_type([ContentType.JSON], default=ContentType.JSON)
 
         backend = PGUserdataAdapter(sesh)
 
@@ -295,9 +285,7 @@ class TableView(MethodView):
         ensure_table_access(sesh, table, "write")
         ensure_not_read_only(table)
 
-        response_content_type = negotiate_content_type(
-            [ContentType.JSON], default=ContentType.JSON
-        )
+        negotiate_content_type([ContentType.JSON], default=ContentType.JSON)
 
         str_buf = get_user_str_buf()
         dialect, columns = streams.peek_csv(str_buf, table.columns)
@@ -869,9 +857,7 @@ def create_row_body_model(columns: Sequence[Column], with_row_id: bool):
     kwargs["url"] = (Optional[str], None)
     # kwargs["row"] = (create_row_model(columns), ...)
     kwargs["row"] = (Dict[str, Any], ...)
-    model = pydantic.create_model(
-        "DynamicRowBodyModel", __config__={"extra": "forbid"}, **kwargs
-    )
+    model = pydantic.create_model(title, __config__={"extra": "forbid"}, **kwargs)
     return model
 
 
@@ -1204,8 +1190,6 @@ def register() -> Response:
         return response
     else:
         sesh = get_sesh()
-        username = request.form["username"]
-
         user = register_and_sign_in_new_user(sesh)
         # FIXME: why doesn't commenting this out cause tests to fail
         # https://github.com/calpaterson/csvbase/issues/117

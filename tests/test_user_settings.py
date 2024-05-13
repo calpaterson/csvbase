@@ -1,7 +1,6 @@
 from csvbase.web.func import set_current_user
 from csvbase import svc
 
-import pytest
 
 from .utils import make_user, parse_form
 

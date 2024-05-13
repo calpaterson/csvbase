@@ -12,7 +12,7 @@ import werkzeug
 import werkzeug.exceptions
 from werkzeug.wrappers.response import Response
 from flask import session as flask_session
-from flask import request, g, current_app, Request, redirect as unsafe_redirect, flash
+from flask import request, g, current_app, redirect as unsafe_redirect, flash
 from flask_babel import get_locale, dates
 
 from .. import exc, sentry, svc
@@ -132,7 +132,7 @@ def is_url(text_string: str) -> bool:
     # before even trying to parse it
     if _URL_REGEX.match(text_string):
         try:
-            parsed_url = urlparse(text_string)
+            urlparse(text_string)
             return True
         except ValueError:
             pass

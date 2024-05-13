@@ -6,7 +6,6 @@ from typing import Union, Tuple, Type, List, Dict, Set, IO, Optional, Sequence
 import codecs
 import csv
 import io
-import contextlib
 
 from typing_extensions import Protocol
 import charset_normalizer
@@ -50,7 +49,9 @@ def detect_encoding(byte_buf: UserSubmittedBytes) -> Encoding:
         logger.warning("unable to detect encoding: falling back to utf-8")
     else:
         encoding = Encoding(match.encoding)
-        logger.info("detected: %s after %d bytes", encoding, bytes_read)
+        logger.info(
+            "detected: %s after %d bytes read (of %d)", encoding, bytes_read, byte_count
+        )
 
     return encoding
 

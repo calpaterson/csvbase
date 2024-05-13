@@ -1,19 +1,13 @@
 import binascii
-import csv
-import io
-import json
 import re
 import secrets
 from contextlib import closing
 from datetime import datetime, timezone, date
 from logging import getLogger
-from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Mapping, Union, cast
+from typing import Iterable, Optional, Sequence, Tuple, cast
 from uuid import UUID, uuid4
 
 import bleach
-import pyarrow as pa
-import pyarrow.parquet as pq
-import xlsxwriter
 from sqlalchemy import (
     column as sacolumn,
     func,
@@ -27,15 +21,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import table as satable
 from sqlalchemy.dialects.postgresql import insert as pginsert
-from typing_extensions import Literal
 import importlib_resources
 
-from .web.billing.svc import get_quota
-from . import data, exc, models
+from . import exc, models
 from .userdata import PGUserdataAdapter
 from .value_objs import (
     Column,
-    ColumnType,
     DataLicence,
     Row,
     Table,
@@ -46,7 +37,6 @@ from .value_objs import (
     GithubSource,
     UpstreamVersion,
 )
-from .json import value_to_json
 
 logger = getLogger(__name__)
 

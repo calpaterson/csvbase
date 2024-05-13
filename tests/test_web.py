@@ -1,7 +1,6 @@
 from uuid import UUID
 from datetime import date, datetime
 import itertools
-import re
 
 import pytest
 

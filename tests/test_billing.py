@@ -4,7 +4,7 @@ from uuid import uuid4
 import sqlalchemy
 
 from csvbase.svc import create_user
-from csvbase.web.main.bp import set_current_user
+from csvbase.web.func import set_current_user
 from csvbase.web.billing import svc, bp
 
 from .utils import (

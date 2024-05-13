@@ -6,12 +6,11 @@ import zlib
 import io
 from logging import getLogger
 from typing import List, Tuple, Dict, Mapping
-from urllib.parse import urlparse
 import secrets
 
 import giturlparse
 from flask.views import MethodView
-from flask import Blueprint, redirect, render_template, request, url_for, request
+from flask import Blueprint, redirect, render_template, url_for, request
 from werkzeug.wrappers.response import Response
 
 from ..func import get_current_user_or_401, register_and_sign_in_new_user
@@ -90,7 +89,6 @@ class CreateTableFromGit(MethodView):
     def post(self) -> Response:
         source = GitSource()
         form = request.form
-        org = ""
         repo = canonicalise_git_url(form["repo"])
         branch = form["branch"]
         path = form["path"]

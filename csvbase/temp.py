@@ -6,19 +6,16 @@ adjust to that it writes to an object store.
 
 """
 
-import os
 from typing import IO, Generator
-from io import BytesIO
 from logging import getLogger
 from pathlib import Path
 import secrets
 from datetime import datetime, timedelta, timezone
-from contextlib import contextmanager, closing
+from contextlib import contextmanager
 import shutil
 import gzip
 
 from platformdirs import user_cache_dir
-from sqlalchemy.orm import Session
 
 from . import exc
 from .streams import rewind

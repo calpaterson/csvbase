@@ -1,6 +1,7 @@
 import json
 import csv
 from typing import List, Iterable, Mapping, Set, Tuple, Sequence, IO, Dict, Any
+from logging import getLogger
 import io
 from dataclasses import dataclass
 
@@ -12,6 +13,8 @@ from . import conv, exc
 from .streams import UserSubmittedCSVData, rewind
 from .value_objs import ColumnType, PythonType, Column
 from .json import value_to_json
+
+logger = getLogger(__name__)
 
 PARQUET_TYPE_MAP: Mapping[ColumnType, pa.lib.DataType] = {
     ColumnType.TEXT: pa.string(),
@@ -73,6 +76,7 @@ def csv_to_rows(
     reader = csv.reader(csv_buf, dialect)
     # FIXME: check that contents of this header matches the columns
     header = next(reader)  # pop the header, which is not useful
+    logger.debug("header = '%s'", header)
     for index, line in enumerate(reader, start=1):
         row: List[PythonType] = []
         for column, cell in zip(columns, line):

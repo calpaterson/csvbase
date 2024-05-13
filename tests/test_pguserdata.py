@@ -32,7 +32,7 @@ def test_row_id_bounds_negative_row_ids(sesh, test_user):
     )
     min_row_id, max_row_id = backend.row_id_bounds(test_table.table_uuid)
     assert min_row_id is -1
-    assert max_row_id is 1
+    assert max_row_id == 1
 
 
 def test_upsert__by_csvbase_row_id(sesh, test_user):
@@ -56,9 +56,6 @@ def test_upsert__by_csvbase_row_id(sesh, test_user):
         (3, 5),
         (11, 11),
     ]
-
-
-import pytest
 
 
 def test_upsert__by_other_unique_key(sesh, test_user):

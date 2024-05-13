@@ -1,9 +1,9 @@
-from typing import Union, Optional, Sequence, Dict, Any, Optional
+from typing import Union, Sequence, Dict, Any, Optional
 from datetime import date
 import functools
 
 from . import exc
-from .value_objs import PythonType, ColumnType, Column, Row
+from .value_objs import PythonType, ColumnType, Column
 
 JsonType = Union[str, int, float, bool, None]
 

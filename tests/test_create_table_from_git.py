@@ -1,5 +1,3 @@
-from unittest.mock import ANY
-
 from csvbase.web.func import set_current_user
 from csvbase.web.main.create_table import canonicalise_git_url, cookie_to_dict
 from csvbase import exc
@@ -43,7 +41,7 @@ def test_canonicalise_git_url(inp, expected_output):
     ],
 )
 def test_canonicalise_git_url__invalid(inp):
-    with pytest.raises(exc.InvalidRequest) as e:
+    with pytest.raises(exc.InvalidRequest):
         canonicalise_git_url(inp)
 
 

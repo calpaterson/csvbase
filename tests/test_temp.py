@@ -3,10 +3,11 @@ from datetime import timedelta
 
 import pytest
 from csvbase import temp, exc
+from .utils import random_string
 
 
 def test_temp__set_and_get():
-    contents = f"random_string()\n".encode("utf-8")
+    contents = f"{random_string()}\n".encode("utf-8")
     buf = BytesIO(contents)
 
     file_id = temp.store_temp_file(buf)
@@ -21,7 +22,7 @@ def test_temp__missing():
 
 
 def test_temp__expiry():
-    contents = f"random_string()\n".encode("utf-8")
+    contents = f"{random_string()}\n".encode("utf-8")
     buf = BytesIO(contents)
 
     file_id = temp.store_temp_file(buf, duration=timedelta(seconds=-1))

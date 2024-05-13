@@ -1,12 +1,9 @@
-import csv
 from typing import (
     TYPE_CHECKING,
     Iterable,
     List,
     Optional,
     Sequence,
-    Type,
-    Collection,
     Tuple,
 )
 from uuid import UUID, uuid4
@@ -34,7 +31,6 @@ from sqlalchemy.sql.expression import (
 )
 from sqlalchemy.ext.compiler import compiles
 
-from .. import conv
 from ..value_objs import (
     RowCount,
     Column,
@@ -46,7 +42,6 @@ from ..value_objs import (
     Table,
     ROW_ID_COLUMN,
 )
-from ..streams import UserSubmittedCSVData
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import RowProxy
