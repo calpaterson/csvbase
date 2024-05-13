@@ -626,7 +626,8 @@ def get_public_table_names(sesh: Session) -> Iterable[Tuple[str, str, date]]:
 def praise(
     sesh: Session, owner_username: str, table_name: str, praiser_uuid: UUID
 ) -> int:
-    stmt = """
+    stmt = text(
+        """
     INSERT INTO metadata.praise (table_uuid, user_uuid)
     SELECT table_uuid, :praiser_uuid
     FROM metadata.tables
@@ -635,6 +636,7 @@ def praise(
     AND username = :owner_username
     RETURNING praise_id
     """
+    )
     rp = sesh.execute(
         stmt,
         dict(
@@ -661,7 +663,7 @@ def is_praised(sesh: Session, user_uuid: UUID, table_uuid: UUID) -> Optional[int
 
 def unpraise(sesh: Session, praise_id: int) -> None:
     rp = sesh.execute(
-        "DELETE FROM metadata.praise where praise_id = :praise_id",
+        text("DELETE FROM metadata.praise where praise_id = :praise_id"),
         dict(praise_id=praise_id),
     )
     if rp.rowcount != 1:

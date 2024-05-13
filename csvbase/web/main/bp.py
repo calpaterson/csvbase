@@ -403,7 +403,7 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                 page=page,
                 keyset=keyset,
                 ROW_ID_COLUMN=ROW_ID_COLUMN,
-                praise_id=get_praise_id_if_exists(table),
+                praise_id=get_praise_id_if_exists(sesh, table),
                 is_first_page=is_first_page,
                 is_last_page=is_last_page,
                 max_row_id=max_row_id,
@@ -613,7 +613,7 @@ def table_readme(username: str, table_name: str) -> Response:
             page_title=f"Readme for {username}/{table_name}",
             table=table,
             table_readme=readme_html,
-            praise_id=get_praise_id_if_exists(table),
+            praise_id=get_praise_id_if_exists(sesh, table),
         )
     )
 
@@ -642,7 +642,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
         row_to_json_dict=row_to_json_dict,
         table_to_json_dict=table_to_json_dict,
         url_for_with_auth=url_for_with_auth,
-        praise_id=get_praise_id_if_exists(table),
+        praise_id=get_praise_id_if_exists(sesh, table),
     )
 
 
@@ -675,7 +675,7 @@ def table_export(username: str, table_name: str) -> str:
         table=table,
         table_url=table_url,
         private_table_url=private_table_url,
-        praise_id=get_praise_id_if_exists(table),
+        praise_id=get_praise_id_if_exists(sesh, table),
     )
 
 
@@ -760,7 +760,7 @@ def table_details(username: str, table_name: str) -> str:
         page_title=f"Schema & Details: {username}/{table_name}",
         DataLicence=DataLicence,
         table=table,
-        praise_id=get_praise_id_if_exists(table),
+        praise_id=get_praise_id_if_exists(sesh, table),
     )
 
 
@@ -779,7 +779,7 @@ def table_settings(username: str, table_name: str) -> str:
         table_readme=table_readme_markdown or "",
         DataLicence=DataLicence,
         table=table,
-        praise_id=get_praise_id_if_exists(table),
+        praise_id=get_praise_id_if_exists(sesh, table),
     )
 
 
@@ -816,6 +816,8 @@ def post_table_settings(username: str, table_name: str) -> Response:
 
 @bp.post("/<username>/<table_name:table_name>/praise")
 def praise_table(username: str, table_name: str) -> Response:
+    if not am_a_user():
+        raise exc.NotAuthenticatedException()
     whence = get_whence(
         url_for("csvbase.table_view", username=username, table_name=table_name)
     )
@@ -1412,8 +1414,7 @@ def url_for_with_auth(endpoint: str, **values) -> str:
     return final_url
 
 
-def get_praise_id_if_exists(table: Table) -> Optional[int]:
-    sesh = get_sesh()
+def get_praise_id_if_exists(sesh: Session, table: Table) -> Optional[int]:
     if "current_user" in g:
         return svc.is_praised(sesh, g.current_user.user_uuid, table.table_uuid)
     else:
