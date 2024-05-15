@@ -125,9 +125,7 @@ def update_external_tables() -> None:
                     source.repo_url, source.branch, source.path
                 ) as upstream_file:
                     if upstream_file.version != source.version():
-                        update_external_table(
-                            sesh, backend, table, upstream_file, source
-                        )
+                        update_external_table(sesh, backend, table, upstream_file)
                         svc.mark_table_changed(sesh, table.table_uuid)
                         sesh.commit()
             except Exception:
