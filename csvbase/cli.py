@@ -1,20 +1,21 @@
 import sys
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Optional
 from logging import getLogger
 
 import click
 from sqlalchemy.sql.expression import text
 
-from .value_objs import DataLicence, ROW_ID_COLUMN, Column
+from .value_objs import DataLicence
 from .models import Base
 from .logging import configure_logging
 from .config import load_config, default_config_file
-from csvbase import svc, streams, table_io
+from csvbase import svc
 from .sesh import get_sesh
 from .web.app import init_app
 from .web.billing import svc as billing_svc
-from csvbase.follow.git import GitSource
+from .follow.git import GitSource
+from .follow.update import update_external_table
 from .userdata import PGUserdataAdapter
 
 logger = getLogger(__name__)
@@ -113,7 +114,7 @@ def update_external_tables() -> None:
     configure_logging()
     sesh = get_sesh()
     app = init_app()
-    errors = 0
+    error_count = 0
     with app.app_context():
         git_source = GitSource()
         backend = PGUserdataAdapter(sesh)
@@ -124,28 +125,15 @@ def update_external_tables() -> None:
                     source.repo_url, source.branch, source.path
                 ) as upstream_file:
                     if upstream_file.version != source.version():
-                        logger.info("updating %s/%s", table.username, table.table_name)
-                        str_buf = streams.byte_buf_to_str_buf(upstream_file.filelike)
-                        dialect, csv_columns = streams.peek_csv(str_buf, table.columns)
-                        rows = table_io.csv_to_rows(str_buf, csv_columns, dialect)
-                        key_column_names = svc.get_key(sesh, table.table_uuid)
-                        key: Sequence[Column]
-                        if len(key_column_names) > 0:
-                            key = [
-                                c
-                                for c in table.user_columns()
-                                if c.name in key_column_names
-                            ]
-                        else:
-                            key = (ROW_ID_COLUMN,)
-                        backend.upsert_table_data(table, csv_columns, rows, key=key)
-                        svc.set_version(sesh, table.table_uuid, upstream_file.version)
+                        update_external_table(
+                            sesh, backend, table, upstream_file, source
+                        )
                         svc.mark_table_changed(sesh, table.table_uuid)
                         sesh.commit()
             except Exception:
-                errors += 1
+                error_count += 1
                 logger.exception(
                     "exception while updating %s/%s", table.username, table.table_name
                 )
                 sesh.rollback()
-    sys.exit(errors)
+    sys.exit(0 if error_count == 0 else 1)

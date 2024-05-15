@@ -179,6 +179,7 @@ class GithubUpstream(Base):
     https_repo_url = Column(satypes.String, nullable=False)
     branch = Column(satypes.String, nullable=False)
     path = Column(satypes.String, nullable=False)
+    last_checked = Column(satypes.DateTime(timezone=True), nullable=False)
 
 
 class TableReadme(Base):
