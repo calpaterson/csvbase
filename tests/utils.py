@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, Iterable
+from typing import Optional, Iterable, Mapping
 from datetime import datetime
 import random
 import string
@@ -34,6 +34,21 @@ test_data_path = path.join(path.dirname(__file__), "test-data")
 
 def random_string() -> str:
     return "".join(random.choice(string.ascii_lowercase) for _ in range(32))
+
+
+def random_integer() -> int:
+    # FIXME: possibly this should be a wider range
+    return random.randint(-100, 100)
+
+
+def random_df() -> pd.DataFrame:
+    return pd.DataFrame(
+        dict(
+            letter=list(string.ascii_lowercase),
+            text=[random_string() for _ in range(26)],
+            integer=[random_integer() for _ in range(26)],
+        )
+    )
 
 
 def make_user(sesh: Session, crypt_context) -> ExtendedUser:
@@ -142,7 +157,24 @@ def assert_is_valid_etag(etag: str) -> None:
     assert ETAG_REGEX.match(etag), etag
 
 
-def parse_form(html_str: str) -> "MultiDict[str, str]":
+class Form(MultiDict):
+    """Basic wrapper for a multidict that let's us transmit other key bits of
+    form HTML data.
+
+    """
+
+    def __init__(
+        self,
+        action: Optional[str],
+        method: Optional[str],
+        mapping: Optional[Mapping[str, str]] = None,
+    ) -> None:
+        self.action = action
+        self.method = method
+        super().__init__(mapping=mapping)
+
+
+def parse_form(html_str: str) -> Form:
     """Parses a form out of HTML."""
 
     html_parser = etree.HTMLParser()
@@ -155,7 +187,7 @@ def parse_form(html_str: str) -> "MultiDict[str, str]":
     input_sel = CSSSelector("input")
     input_elements = input_sel(form)
 
-    rv: MultiDict[str, str] = MultiDict()
+    rv = Form(form.attrib.get("action", None), form.attrib.get("method", None))
     for input_element in input_elements:
         attrs = input_element.attrib
         if "name" in attrs:

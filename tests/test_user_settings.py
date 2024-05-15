@@ -11,8 +11,10 @@ def test_user_settings__cycle(sesh, client, test_user):
     settings_url = f"/{test_user.username}/settings"
     get_resp = client.get(settings_url)
     assert get_resp.status_code == 200
-    form = dict(parse_form(get_resp.data))
-    assert form == {
+    form = parse_form(get_resp.data)
+    assert form.method == "POST"
+    dict_form = dict(parse_form(get_resp.data))
+    assert dict_form == {
         "timezone": "UTC",
         "email": "",
     }

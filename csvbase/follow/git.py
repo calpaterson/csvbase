@@ -70,6 +70,33 @@ class GitSource:
         ]
         self.run_git(git_args, cwd=checkout_path.parent)
 
+    def init_repo(self, repo_path: Path) -> None:
+        """Create a new repo on the given path.
+
+        For compatibility with Github, the initial branch is 'main'.
+
+        """
+        self.run_git(
+            ["init", "--initial-branch=main", str(repo_path)], cwd=repo_path.parent
+        )
+
+    def initial_commit(self, repo_path: Path) -> None:
+        """Create the standard 'Initial commit'.
+
+        Mainly useful for testing at this point.
+
+        """
+        self.run_git(["commit", "--allow-empty", "-m", "Initial commit"], cwd=repo_path)
+
+    def commit(self, repo_path: Path, message: str = "csvbase commit") -> None:
+        """Commit the current state of the repo.
+
+        Note that untracked files must be "git add"'d at least once prior to a
+        commit.
+
+        """
+        self.run_git(["commit", "-a", "-m", message], cwd=repo_path)
+
     def pull(self, repo_path: Path, branch: str) -> None:
         """Pull the latest state of the repo from the remote."""
         # in order to handle rebased/changed history on the remote, this does
