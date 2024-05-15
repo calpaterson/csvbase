@@ -47,9 +47,11 @@ class GitSource:
         rv.mkdir(parents=True, exist_ok=True)
         return rv
 
-    def run(self, command: Sequence[str], **kwargs) -> subprocess.CompletedProcess:
+    def run_git(self, git_args: Sequence[str], **kwargs) -> subprocess.CompletedProcess:
         """Run a subprocess, checking that it exited happily."""
         kwargs["capture_output"] = True
+        command = ["git"]
+        command.extend(git_args)
         logger.info("executing '%s'", command)
         completed_process = subprocess.run(command, **kwargs)
         raise_on_error(completed_process)
@@ -58,8 +60,7 @@ class GitSource:
     def clone(self, url: str, branch: str, checkout_path: Path) -> None:
         # We are cloning "bloblessly" [actually includes many blobs] to get
         # only the most recent versions of each file.
-        command = [
-            "git",
+        git_args = [
             "clone",
             url,
             "-b",
@@ -67,24 +68,24 @@ class GitSource:
             "--filter=blob:none",
             str(checkout_path),
         ]
-        self.run(command, cwd=checkout_path.parent)
+        self.run_git(git_args, cwd=checkout_path.parent)
 
     def pull(self, repo_path: Path, branch: str) -> None:
         """Pull the latest state of the repo from the remote."""
         # in order to handle rebased/changed history on the remote, this does
         # not pull but fetches and then resets to match the remote branch
-        fetch_command = ["git", "fetch", "origin", branch]
-        self.run(fetch_command, cwd=repo_path)
+        fetch_git_args = ["fetch", "origin", branch]
+        self.run_git(fetch_git_args, cwd=repo_path)
 
-        reset_command = ["git", "reset", "--hard", f"origin/{branch}"]
-        self.run(reset_command, cwd=repo_path)
+        reset_git_args = ["reset", "--hard", f"origin/{branch}"]
+        self.run_git(reset_git_args, cwd=repo_path)
 
     def get_last_version(self, repo_path: Path, file_path: str) -> UpstreamVersion:
         """Gets the UpstreamVersion for a specific file (that must be inside a
         repo)."""
         # Get the last version.  Possible with pygit2 but quite difficult.
-        command = ["git", "log", "-n" "1", "--format=%H|%cI", file_path]
-        completed_process = self.run(command, cwd=repo_path)
+        git_args = ["log", "-n1", "--format=%H|%cI", file_path]
+        completed_process = self.run_git(git_args, cwd=repo_path)
         raise_on_error(completed_process)
         sha, last_commit_str = (
             completed_process.stdout.decode("utf-8").strip().split("|")
