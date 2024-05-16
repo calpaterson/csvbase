@@ -69,6 +69,7 @@ class GitSource:
             str(checkout_path),
         ]
         self.run_git(git_args, cwd=checkout_path.parent)
+        self.set_identity(checkout_path)
 
     def init_repo(self, repo_path: Path) -> None:
         """Create a new repo on the given path.
@@ -79,6 +80,7 @@ class GitSource:
         self.run_git(
             ["init", "--initial-branch=main", str(repo_path)], cwd=repo_path.parent
         )
+        self.set_identity(repo_path)
 
     def initial_commit(self, repo_path: Path) -> None:
         """Create the standard 'Initial commit'.
@@ -96,6 +98,14 @@ class GitSource:
 
         """
         self.run_git(["commit", "-a", "-m", message], cwd=repo_path)
+
+    def set_identity(self, repo_path: Path) -> None:
+        """Set the git author and author email."""
+        self.run_git(["config", "--local", "user.name", "csvbase"], cwd=repo_path)
+        # FIXME: this email address should be configurable
+        self.run_git(
+            ["config", "--local", "user.email", "git@csvbase.com"], cwd=repo_path
+        )
 
     def pull(self, repo_path: Path, branch: str) -> None:
         """Pull the latest state of the repo from the remote."""
