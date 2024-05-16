@@ -1,6 +1,9 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "base.html" %}
 
+{# This template is for the majority of app pages and will consider
+current_user and should sign in/username in the navbar. #}
+
 {% block navbar_elements %}
   {{ super() }}
   <ul class="navbar-nav ms-auto">

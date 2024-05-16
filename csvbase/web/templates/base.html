@@ -1,4 +1,10 @@
 {# -*- mode: jinja2 -*- #}
+
+{# This is the base html template from which all other templates inherit.  It
+is important that it does not look at the current user because often it will be
+served statically.  Most templates should not descend from this but from
+app_base. #}
+
 {%- import 'other_macros.html' as other_macros -%}
 <!doctype html>
 <html lang="en">
