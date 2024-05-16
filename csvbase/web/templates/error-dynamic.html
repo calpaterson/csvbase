@@ -1,0 +1,23 @@
+{# -*- mode: jinja2 -*- #}
+
+{# This is a dynamic error page, and is served in cases where the app seems to #}
+{# working - so usually for 400 series errors. #}
+
+{% extends "app_base.html" %}
+
+{% block main %}
+  <div class="container">
+    <div class="row my-2">
+      <div class="col-md-8 offset-md-2">
+        <h1>{{ http_code }} error</h1>
+      </div>
+    </div>
+    <div class="row my-2">
+      <div class="col-md-8 offset-md-2">
+        <div class="col-auto">
+          Sorry - {{ message }}.
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

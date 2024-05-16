@@ -98,13 +98,13 @@ CORS(
 )
 
 
-@bp.route("/")
+@bp.get("/")
 def index() -> str:
     sesh = get_sesh()
     return render_template("index.html", top_ten=svc.get_top_n(sesh))
 
 
-@bp.route("/about")
+@bp.get("/about")
 def about() -> str:
     return render_template(
         "about.html", page_title="About csvbase, a simple web database"

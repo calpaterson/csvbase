@@ -22,12 +22,13 @@ from flask import (
     request,
     url_for,
 )
-from flask import session as flask_session
+from flask import session as flask_session, render_template
 from flask.wrappers import Response as FlaskResponse
 from flask_babel import Babel
 from passlib.context import CryptContext
 from werkzeug.routing import BaseConverter
 from werkzeug.wrappers.response import Response
+import werkzeug.exceptions
 
 from .func import set_current_user, user_timezone_or_utc, format_timedelta
 from .. import exc, svc
@@ -159,7 +160,11 @@ def init_app() -> Flask:
                 flash("You need to subscribe in order to do that")
                 return redirect(url_for("billing.pricing"))
             else:
-                resp = make_response(f"http error code {http_code}: {message}")
+                resp = make_response(
+                    render_template(
+                        "error-dynamic.html", http_code=http_code, message=message
+                    )
+                )
                 resp.status_code = http_code
                 return resp
         else:
@@ -170,6 +175,9 @@ def init_app() -> Flask:
             resp = jsonify(doc)
             resp.status_code = http_code
             return resp
+
+    app.register_error_handler(404, handle_app_level_404_and_405)
+    app.register_error_handler(405, handle_app_level_404_and_405)
 
     @app.before_request
     def put_user_in_g() -> None:
@@ -224,3 +232,26 @@ def snake_case(inp: str) -> str:
 
 def ppjson(inp: Union[Mapping, Sequence]) -> str:
     return json.dumps(inp, indent=4)
+
+
+def handle_app_level_404_and_405(
+    e: Union[werkzeug.exceptions.NotFound, werkzeug.exceptions.MethodNotAllowed]
+) -> Response:
+    """'Application level' exceptions like some 404s and most 405s (where there
+    is no flask endpoint to route to) require specific handling on the flask
+    app level."""
+
+    code: int = e.code
+    if code == 404:
+        message = "that page does not exist"
+    else:
+        message = "that verb is not allowed"
+    if is_browser():
+        resp = make_response(
+            render_template("error-dynamic.html", http_code=e.code, message=message)
+        )
+    else:
+        doc = {"error": message}
+        resp = jsonify(doc)
+    resp.status_code = e.code
+    return resp

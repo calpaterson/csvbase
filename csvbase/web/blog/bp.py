@@ -17,7 +17,7 @@ bp = Blueprint("blog", __name__)
 CACHE_TTL = int(timedelta(hours=1).total_seconds())
 
 
-@bp.route("/blog")
+@bp.get("/blog")
 def blog_index() -> Response:
     sesh = get_sesh()
     posts = [post for post in blog_svc.get_posts(sesh) if not post.draft]
@@ -64,7 +64,7 @@ def post(post_id: int) -> Response:
     return response
 
 
-@bp.route("/blog/posts.rss")
+@bp.get("/blog/posts.rss")
 def rss() -> Response:
     sesh = get_sesh()
     feed = make_feed(sesh, url_for("blog.rss", _external=True))

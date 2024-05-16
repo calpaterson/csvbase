@@ -34,7 +34,7 @@ bp = Blueprint("create_table", __name__)
 logger = getLogger(__name__)
 
 
-@bp.route("/new-table/paste")
+@bp.get("/new-table/paste")
 def paste() -> str:
     return render_template(
         "new-table.html",
