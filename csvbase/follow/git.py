@@ -17,7 +17,6 @@ logger = getLogger(__name__)
 
 def raise_on_error(completed_process: subprocess.CompletedProcess) -> None:
     """Raise an exception if the subprocess failed."""
-    # FIXME: if used elsewhere this should be moved
     if completed_process.returncode != 0:
         logger.error(
             'failed to execute "%s": stderr: "%s", stdout: "%s"',
@@ -25,6 +24,7 @@ def raise_on_error(completed_process: subprocess.CompletedProcess) -> None:
             completed_process.stderr,
             completed_process.stdout,
         )
+        # FIXME: this should raise some kind of git-specific error
         raise RuntimeError(
             "git failed: %s, status code: %d",
             completed_process.args,
