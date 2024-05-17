@@ -21,7 +21,6 @@ platformdirs==4.2.0
 psycopg2==2.9.6
 pyarrow==15.0.2
 pydantic==2.7.0
-pygithub==2.3.0
 sentry-sdk[flask]==1.44.1
 sqlalchemy==1.4.52
 stripe==5.4.0
