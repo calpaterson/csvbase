@@ -45,7 +45,7 @@
     </p>
 
     <p>
-      Here&apos;s an example{% if g.current_user %}, using your API
+      Here&apos;s an example{% if current_user %}, using your API
       credentials, which will be used throughout this page{% endif %}:
     </p>
 
@@ -68,7 +68,7 @@
     </p>
 
     <p>
-      {% if owner == g.current_username %}
+      {% if owner == current_username %}
         Your API key is <code>{{ user.hex_api_key() }}</code> and this has been
         inserted where required in all the below examples.
       {% endif %}

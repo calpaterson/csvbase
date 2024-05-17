@@ -40,11 +40,11 @@
     <nav>
       <div class="row">
         <div class="col-auto">
-          {% if table.username == g.current_username %}
+          {% if table.username == current_username %}
             <a class="btn btn-success" href=" {{ url_for('csvbase.row_add_form', username=table.username, table_name=table.table_name) }}">Add row</a>
           {% endif %}
         </div>
-        <div class="col-md-4 {% if table.username == g.current_username %}offset-md-3{% else %}offset-md-4{% endif %}">
+        <div class="col-md-4 {% if table.username == current_username %}offset-md-3{% else %}offset-md-4{% endif %}">
           <ul class="pagination justify-content-center">
             {% if is_first_page %}
               <li class="page-item disabled">

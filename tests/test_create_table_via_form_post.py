@@ -10,11 +10,10 @@ from flask import url_for
 import pytest
 from csvbase.web import main
 from csvbase.value_objs import ColumnType, Encoding
-from csvbase.web.func import set_current_user
 from csvbase import svc
 
 from .conftest import ROMAN_NUMERALS
-from .utils import random_string, get_df_as_csv, subscribe_user
+from .utils import random_string, get_df_as_csv, subscribe_user, current_user
 
 
 def render_pickle(*args, **kwargs):
@@ -45,9 +44,8 @@ def test_new_blank_table_form(client, query, kwargs):
 
 @pytest.mark.parametrize("url", ["/new-table", "/new-table/blank"])
 def test_uploading_a_table__invalid_name(client, url, test_user):
-    set_current_user(test_user)
-
-    resp = client.post(url, data={"table-name": "some table", "data-licence": 1})
+    with current_user(test_user):
+        resp = client.post(url, data={"table-name": "some table", "data-licence": 1})
 
     assert resp.status_code == 400
     assert resp.json == {"error": "that table name is invalid"}
@@ -118,48 +116,47 @@ def test_uploading_a_table__not_logged_in__username_that_differs_only_by_case(
 
 
 def test_uploading_a_table__over_quota(client, test_user):
-    set_current_user(test_user)
+    with current_user(test_user):
+        resp1 = client.post(
+            "/new-table",
+            data={
+                "table-name": "private-table-1",
+                "private": "on",
+                "data-licence": "1",
+                "csv-file": (FileStorage(BytesIO(b"a,b,c\n1,2,3"), "test.csv")),
+            },
+            content_type="multipart/form-data",
+        )
+        assert resp1.status_code == 302
+        assert resp1.headers["Location"] == f"/{test_user.username}/private-table-1"
 
-    resp1 = client.post(
-        "/new-table",
-        data={
-            "table-name": "private-table-1",
-            "private": "on",
-            "data-licence": "1",
-            "csv-file": (FileStorage(BytesIO(b"a,b,c\n1,2,3"), "test.csv")),
-        },
-        content_type="multipart/form-data",
-    )
-    assert resp1.status_code == 302
-    assert resp1.headers["Location"] == f"/{test_user.username}/private-table-1"
-
-    resp2 = client.post(
-        "/new-table",
-        data={
-            "table-name": "private-table-2",
-            "private": "on",
-            "data-licence": "1",
-            "csv-file": (FileStorage(BytesIO(b"a,b,c\n1,2,3"), "test.csv")),
-        },
-        content_type="multipart/form-data",
-    )
-    assert resp2.status_code == 400
+        resp2 = client.post(
+            "/new-table",
+            data={
+                "table-name": "private-table-2",
+                "private": "on",
+                "data-licence": "1",
+                "csv-file": (FileStorage(BytesIO(b"a,b,c\n1,2,3"), "test.csv")),
+            },
+            content_type="multipart/form-data",
+        )
+        assert resp2.status_code == 400
 
 
 def test_uploading_a_table(client, test_user):
     table_name = f"test-table-{random_string()}"
-    set_current_user(test_user)
-    resp = client.post(
-        "/new-table",
-        data={
-            "table-name": table_name,
-            "data-licence": "1",
-            "csv-file": (FileStorage(BytesIO(b"a,b,c\n1,2,3"), "test.csv")),
-        },
-        content_type="multipart/form-data",
-    )
-    assert resp.status_code == 302
-    assert resp.headers["Location"] == f"/{test_user.username}/{table_name}"
+    with current_user(test_user):
+        resp = client.post(
+            "/new-table",
+            data={
+                "table-name": table_name,
+                "data-licence": "1",
+                "csv-file": (FileStorage(BytesIO(b"a,b,c\n1,2,3"), "test.csv")),
+            },
+            content_type="multipart/form-data",
+        )
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == f"/{test_user.username}/{table_name}"
 
 
 def test_uploading_a_table__csvbase_row_ids(client, test_user, ten_rows):
@@ -167,8 +164,6 @@ def test_uploading_a_table__csvbase_row_ids(client, test_user, ten_rows):
     re-upload them.
 
     """
-    set_current_user(test_user)
-
     ten_rows_df = get_df_as_csv(
         client, f"/{test_user.username}/{ten_rows.table_name}.csv"
     )
@@ -183,15 +178,16 @@ def test_uploading_a_table__csvbase_row_ids(client, test_user, ten_rows):
     csv_buf_for_upload.seek(0)
 
     new_table_name = f"test-table-{random_string()}"
-    resp = client.post(
-        "/new-table",
-        data={
-            "table-name": new_table_name,
-            "data-licence": "1",
-            "csv-file": (FileStorage(csv_buf_for_upload, "test.csv")),
-        },
-        content_type="multipart/form-data",
-    )
+    with current_user(test_user):
+        resp = client.post(
+            "/new-table",
+            data={
+                "table-name": new_table_name,
+                "data-licence": "1",
+                "csv-file": (FileStorage(csv_buf_for_upload, "test.csv")),
+            },
+            content_type="multipart/form-data",
+        )
     assert resp.status_code == 302
 
     expected_df = (
@@ -228,17 +224,17 @@ def test_uploading_a_table__encoding(
     """
 
     table_name = f"test-table-{random_string()}"
-    set_current_user(test_user)
-    resp = client.post(
-        "/new-table",
-        data={
-            "table-name": table_name,
-            "data-licence": "1",
-            "encoding": encoding.value,
-            "csv-file": (FileStorage(BytesIO(csv_data), "test.csv")),
-        },
-        content_type="multipart/form-data",
-    )
+    with current_user(test_user):
+        resp = client.post(
+            "/new-table",
+            data={
+                "table-name": table_name,
+                "data-licence": "1",
+                "encoding": encoding.value,
+                "csv-file": (FileStorage(BytesIO(csv_data), "test.csv")),
+            },
+            content_type="multipart/form-data",
+        )
     assert resp.status_code == 302
     assert resp.headers["Location"] == f"/{test_user.username}/{table_name}"
 
@@ -260,33 +256,33 @@ def test_uploading_a_table__wrong_encoding(
     file that does not match the specified encoding."""
 
     table_name = f"test-table-{random_string()}"
-    set_current_user(test_user)
-    resp = client.post(
-        "/new-table",
-        data={
-            "table-name": table_name,
-            "data-licence": "1",
-            "encoding": encoding.value,
-            "csv-file": (FileStorage(BytesIO(csv_data), "test.csv")),
-        },
-        content_type="multipart/form-data",
-    )
+    with current_user(test_user):
+        resp = client.post(
+            "/new-table",
+            data={
+                "table-name": table_name,
+                "data-licence": "1",
+                "encoding": encoding.value,
+                "csv-file": (FileStorage(BytesIO(csv_data), "test.csv")),
+            },
+            content_type="multipart/form-data",
+        )
     assert resp.status_code == 400
     assert resp.json == {"error": "you sent a file with the wrong encoding"}
 
 
 def test_blank_table(client, test_user):
-    set_current_user(test_user)
-    resp1 = client.post(
-        "/new-table/blank",
-        data={
-            "col-name-1": "test",
-            "col-type-1": "TEXT",
-            "table-name": random_string(),
-            "data-licence": 1,
-            "private": "on",
-        },
-    )
+    with current_user(test_user):
+        resp1 = client.post(
+            "/new-table/blank",
+            data={
+                "col-name-1": "test",
+                "col-type-1": "TEXT",
+                "table-name": random_string(),
+                "data-licence": 1,
+                "private": "on",
+            },
+        )
 
     assert resp1.status_code == 302
 
@@ -311,63 +307,62 @@ def test_blank_table__and_register(client):
 
 
 def test_blank_table__over_quota(client, test_user):
-    set_current_user(test_user)
+    with current_user(test_user):
+        resp1 = client.post(
+            "/new-table/blank",
+            data={
+                "col-name-1": "test",
+                "col-type-1": "TEXT",
+                "table-name": random_string(),
+                "data-licence": 1,
+                "private": "on",
+            },
+        )
 
-    resp1 = client.post(
-        "/new-table/blank",
-        data={
-            "col-name-1": "test",
-            "col-type-1": "TEXT",
-            "table-name": random_string(),
-            "data-licence": 1,
-            "private": "on",
-        },
-    )
+        assert resp1.status_code == 302
 
-    assert resp1.status_code == 302
+        resp2 = client.post(
+            "/new-table/blank",
+            data={
+                "col-name-1": "test",
+                "col-type-1": "TEXT",
+                "table-name": random_string(),
+                "data-licence": 1,
+                "private": "on",
+            },
+        )
 
-    resp2 = client.post(
-        "/new-table/blank",
-        data={
-            "col-name-1": "test",
-            "col-type-1": "TEXT",
-            "table-name": random_string(),
-            "data-licence": 1,
-            "private": "on",
-        },
-    )
-
-    assert resp2.status_code == 400
+        assert resp2.status_code == 400
 
 
 def test_second_blank_table__into_subscription_quota(sesh, client, test_user):
-    set_current_user(test_user)
-    subscribe_user(sesh, test_user)
-    sesh.commit()
+    with current_user(test_user):
+        subscribe_user(sesh, test_user)
+        sesh.commit()
 
-    resp1 = client.post(
-        "/new-table/blank",
-        data={
-            "col-name-1": "test",
-            "col-type-1": "TEXT",
-            "table-name": random_string(),
-            "data-licence": 1,
-            "private": "on",
-        },
-    )
+        resp1 = client.post(
+            "/new-table/blank",
+            data={
+                "col-name-1": "test",
+                "col-type-1": "TEXT",
+                "table-name": random_string(),
+                "data-licence": 1,
+                "private": "on",
+            },
+        )
 
-    assert resp1.status_code == 302
+        assert resp1.status_code == 302
 
-    resp2 = client.post(
-        "/new-table/blank",
-        data={
-            "col-name-1": "test",
-            "col-type-1": "TEXT",
-            "table-name": random_string(),
-            "data-licence": 1,
-            "private": "on",
-        },
-    )
+        resp2 = client.post(
+            "/new-table/blank",
+            data={
+                "col-name-1": "test",
+                "col-type-1": "TEXT",
+                "table-name": random_string(),
+                "data-licence": 1,
+                "private": "on",
+            },
+        )
 
     assert resp2.status_code == 302
 
@@ -378,30 +373,30 @@ def test_copy__form(client, test_user, ten_rows):
 
 
 def test_copy__post(client, test_user, ten_rows):
-    set_current_user(test_user)
-    new_table_name = random_string()
-    new_url = f"/{test_user.username}/{new_table_name}"
-    post_resp = client.post(
-        f"{test_user.username}/{ten_rows.table_name}/copy",
-        data={"table-name": new_table_name},
-    )
-    assert post_resp.status_code == 302
-    assert post_resp.headers["Location"] == new_url
+    with current_user(test_user):
+        new_table_name = random_string()
+        new_url = f"/{test_user.username}/{new_table_name}"
+        post_resp = client.post(
+            f"{test_user.username}/{ten_rows.table_name}/copy",
+            data={"table-name": new_table_name},
+        )
+        assert post_resp.status_code == 302
+        assert post_resp.headers["Location"] == new_url
 
-    get_resp = client.get(new_url)
+        get_resp = client.get(new_url)
     assert get_resp.status_code == 200
 
 
 def test_copy__post_private(client, test_user, ten_rows):
-    set_current_user(test_user)
-    new_table_name = random_string()
-    new_url = f"/{test_user.username}/{new_table_name}"
-    post_resp = client.post(
-        f"{test_user.username}/{ten_rows.table_name}/copy",
-        data={"table-name": new_table_name, "private": "on"},
-    )
-    assert post_resp.status_code == 302
-    assert post_resp.headers["Location"] == new_url
+    with current_user(test_user):
+        new_table_name = random_string()
+        new_url = f"/{test_user.username}/{new_table_name}"
+        post_resp = client.post(
+            f"{test_user.username}/{ten_rows.table_name}/copy",
+            data={"table-name": new_table_name, "private": "on"},
+        )
+        assert post_resp.status_code == 302
+        assert post_resp.headers["Location"] == new_url
 
-    get_resp = client.get(new_url, headers={"Accept": "application/json"})
+        get_resp = client.get(new_url, headers={"Accept": "application/json"})
     assert not get_resp.json["is_public"]

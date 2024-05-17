@@ -1,11 +1,13 @@
 from dataclasses import dataclass, field
-from typing import Optional, Iterable, Mapping
+from typing import Optional, Iterable, Mapping, Generator
 from datetime import datetime
 import random
 import string
 from os import path
 from io import StringIO
 import re
+import contextlib
+from unittest import mock
 
 from lxml import etree
 from lxml.cssselect import CSSSelector
@@ -26,6 +28,7 @@ from csvbase.value_objs import (
     Backend,
 )
 from csvbase.web.billing import svc as billing_svc
+from csvbase.web import func
 
 from .value_objs import ExtendedUser
 
@@ -210,3 +213,15 @@ def parse_form(html_str: str) -> Form:
                 rv[name] = value
                 break
     return rv
+
+
+@contextlib.contextmanager
+def current_user(user: User) -> Generator[None, None, None]:
+    """Context manager to set the current user (as seen by the web app) to the
+    passed user."""
+    # Originally the current user was set on flask.g but that caused problems
+    # because flask.g is attached to the _app_ context (and not the request
+    # context) which is ordinarily popped between requests but is not when
+    # testing.
+    with mock.patch.object(func, "_get_current_user_inner", return_value=user):
+        yield

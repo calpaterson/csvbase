@@ -1,4 +1,4 @@
-from csvbase.web.func import set_current_user
+from .utils import current_user
 
 
 def test_table_export(ten_rows, test_user, client):
@@ -12,6 +12,6 @@ def test_table_rest_api_docs__public(ten_rows, test_user, client):
 
 
 def test_table_rest_api_docs__private(private_table, test_user, client):
-    set_current_user(test_user)
-    resp = client.get(f"/{test_user.username}/{private_table}/docs")
+    with current_user(test_user):
+        resp = client.get(f"/{test_user.username}/{private_table}/docs")
     assert resp.status_code == 200

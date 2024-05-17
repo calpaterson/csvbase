@@ -9,10 +9,15 @@ from werkzeug.wrappers.response import Response
 
 from csvbase import svc
 from csvbase.value_objs import ContentType, GithubSource
-from csvbase.web.func import set_current_user
 
 from .conftest import ROMAN_NUMERALS
-from . import utils
+from .utils import (
+    random_string,
+    assert_is_valid_etag,
+    create_table,
+    make_user,
+    current_user,
+)
 
 
 @pytest.fixture(
@@ -34,7 +39,9 @@ def content_type(request):
     yield request.param
 
 
-def get_table(client, username: str, table_name: str, content_type: ContentType) -> Response:
+def get_table(
+    client, username: str, table_name: str, content_type: ContentType
+) -> Response:
     """Helper function to get a table in the appropriate way given the content type."""
     url = f"/{username}/{table_name}"
     return client.get(url, headers={"Accept": content_type.value})
@@ -44,17 +51,17 @@ def test_create__happy(client, test_user, content_type):
     new_csv = """a,b,c,d,e
 hello,1,1.5,FALSE,2018-01-03
 """
-    table_name = utils.random_string()
+    table_name = random_string()
     url = f"/{test_user.username}/{table_name}"
-    resp = client.put(
-        url,
-        data=new_csv,
-        headers={"Authorization": test_user.basic_auth(), "Content-Type": "text/csv"},
-    )
-    assert resp.status_code == 201
+    with current_user(test_user):
+        resp = client.put(
+            url,
+            data=new_csv,
+            headers={"Content-Type": "text/csv"},
+        )
+        assert resp.status_code == 201
 
-    # FIXME: set_current_user should be required
-    resp = get_table(client, test_user.username, table_name, content_type)
+        resp = get_table(client, test_user.username, table_name, content_type)
     assert resp.status_code == 200
     if content_type == ContentType.CSV:
         expected_df = (
@@ -71,7 +78,7 @@ def test_create__public(client, test_user):
 hello,1,1.5,FALSE,2018-01-03
 """
     """Provide a way to set the public/private status for creation only."""
-    table_name = utils.random_string()
+    table_name = random_string()
     url = f"/{test_user.username}/{table_name}?public=yes"
     resp = client.put(
         url,
@@ -118,7 +125,7 @@ def test_create__blank_column_name(client, test_user):
     new_csv = """a,,c
 1,2,3"""
 
-    table_name = utils.random_string()
+    table_name = random_string()
     resp = client.put(
         f"/{test_user.username}/{table_name}?public=yes",
         data=new_csv,
@@ -134,21 +141,23 @@ def test_create__blank_column_name(client, test_user):
 def test_create__just_header(client, test_user):
     """Users often just pass a rowless csv with just a header."""
     new_csv = "a,b,c\n"
-    set_current_user(test_user)
-    table_name = utils.random_string()
+    table_name = random_string()
     url = f"/{test_user.username}/{table_name}"
-    resp = client.put(
-        url,
-        data=new_csv,
-        headers={"Authorization": test_user.basic_auth(), "Content-Type": "text/csv"},
-    )
-    assert resp.status_code == 201, resp.data
+    with current_user(test_user):
+        resp = client.put(
+            url,
+            data=new_csv,
+            headers={"Content-Type": "text/csv"},
+        )
+        assert resp.status_code == 201, resp.data
 
-    expected_columns = [{"name": "csvbase_row_id", "type": "integer"}]
-    expected_columns.extend([{"name": letter, "type": "string"} for letter in "abc"])
+        expected_columns = [{"name": "csvbase_row_id", "type": "integer"}]
+        expected_columns.extend(
+            [{"name": letter, "type": "string"} for letter in "abc"]
+        )
 
-    get_resp = client.get(url + ".json")
-    assert expected_columns == get_resp.json["columns"]
+        get_resp = client.get(url + ".json")
+        assert expected_columns == get_resp.json["columns"]
 
 
 def test_read__happy(client, ten_rows, test_user, content_type):
@@ -237,7 +246,7 @@ def test_read__etag_cache_hit(client, ten_rows, test_user, content_type):
         assert etag is None
         assert first_cc.private
     else:
-        utils.assert_is_valid_etag(etag)
+        assert_is_valid_etag(etag)
         assert not first_cc.private
 
     second_resp = client.get(
@@ -267,7 +276,7 @@ def test_read__etag_cache_miss(client, ten_rows, test_user, content_type):
     assert content_type.value in first_resp.headers["Content-Type"]
     etag = first_resp.headers["ETag"]
 
-    utils.assert_is_valid_etag(etag)
+    assert_is_valid_etag(etag)
 
 
 def test_read__last_changed_updates_the_etag(
@@ -325,7 +334,7 @@ def test_read__metadata_headers(client, ten_rows, test_user, content_type, sesh)
 
 
 def test_read__with_no_rows(sesh, client, test_user, content_type):
-    table = utils.create_table(sesh, test_user, [])
+    table = create_table(sesh, test_user, [])
     sesh.commit()
     resp = client.get(
         f"/{test_user.username}/{table.table_name}",
@@ -387,17 +396,17 @@ def test_read__is_private_am_authed(client, private_table, test_user, content_ty
 def test_read__is_private_am_wrong_user(
     client, private_table, content_type, test_user, sesh, crypt_context
 ):
-    user = utils.make_user(sesh, crypt_context)
+    user = make_user(sesh, crypt_context)
     sesh.commit()
-    set_current_user(user)
-    resp = client.get(
-        f"/{test_user.username}/{private_table}",
-    )
+    with current_user(user):
+        resp = client.get(
+            f"/{test_user.username}/{private_table}",
+        )
     assert resp.status_code == 404, resp.data
 
 
 def test_read__empty_table(sesh, client, test_user, content_type):
-    table = utils.create_table(sesh, test_user, [])
+    table = create_table(sesh, test_user, [])
     sesh.commit()
     resp = client.get(f"/{test_user.username}/{table.table_name}")
     assert resp.status_code == 200, resp.data
@@ -529,15 +538,15 @@ def test_overwrite__with_blank_no_headers(client, test_user, ten_rows):
 def test_overwrite__with_just_header(client, test_user, ten_rows):
     new_csv = """roman_numeral,is_even,as_date,as_float
 """
-    set_current_user(test_user)
-    resp = client.put(
-        f"/{test_user.username}/{ten_rows.table_name}",
-        data=new_csv,
-    )
-    assert resp.status_code == 200
-    get_resp = client.get(
-        f"/{test_user.username}/{ten_rows.table_name}.parquet",
-    )
+    with current_user(test_user):
+        resp = client.put(
+            f"/{test_user.username}/{ten_rows.table_name}",
+            data=new_csv,
+        )
+        assert resp.status_code == 200
+        get_resp = client.get(
+            f"/{test_user.username}/{ten_rows.table_name}.parquet",
+        )
     df = pd.read_parquet(BytesIO(get_resp.data))
     assert len(df) == 0
 
@@ -545,15 +554,15 @@ def test_overwrite__with_just_header(client, test_user, ten_rows):
 def test_overwrite__with_just_header_including_row_id(client, test_user, ten_rows):
     new_csv = """csvbase_row_id,roman_numeral,is_even,as_date,as_float
 """
-    set_current_user(test_user)
-    resp = client.put(
-        f"/{test_user.username}/{ten_rows.table_name}",
-        data=new_csv,
-    )
-    assert resp.status_code == 200
-    get_resp = client.get(
-        f"/{test_user.username}/{ten_rows.table_name}.parquet",
-    )
+    with current_user(test_user):
+        resp = client.put(
+            f"/{test_user.username}/{ten_rows.table_name}",
+            data=new_csv,
+        )
+        assert resp.status_code == 200
+        get_resp = client.get(
+            f"/{test_user.username}/{ten_rows.table_name}.parquet",
+        )
     df = pd.read_parquet(BytesIO(get_resp.data))
     assert len(df) == 0
 
@@ -593,7 +602,7 @@ def test_overwrite__etag_doesnt_match(client, test_user, ten_rows):
 
 @pytest.mark.parametrize("is_public", [True, False])
 def test_overwrite__not_authed(sesh, client, test_user, is_public):
-    table = utils.create_table(sesh, test_user, is_public=is_public)
+    table = create_table(sesh, test_user, is_public=is_public)
     sesh.commit()
     new_csv = """a
 1"""
@@ -611,16 +620,16 @@ def test_overwrite__not_authed(sesh, client, test_user, is_public):
 def test_overwrite__wrong_user(
     sesh, client, test_user, ten_rows, is_public, crypt_context
 ):
-    user = utils.make_user(sesh, crypt_context)
-    table = utils.create_table(sesh, user, is_public=is_public)
+    user = make_user(sesh, crypt_context)
+    table = create_table(sesh, user, is_public=is_public)
     sesh.commit()
     new_csv = """a
 1"""
-    set_current_user(test_user)
-    resp = client.put(
-        f"/{user.username}/{table.table_name}",
-        data=new_csv,
-    )
+    with current_user(test_user):
+        resp = client.put(
+            f"/{user.username}/{table.table_name}",
+            data=new_csv,
+        )
     if is_public:
         assert resp.status_code == 403
     else:
@@ -635,21 +644,20 @@ def test_overwrite__read_only(sesh, client, test_user, ten_rows):
         GithubSource(
             datetime.now(timezone.utc),
             b"f" * 32,
-            f"https://example.com/{utils.random_string()}.git",
+            f"https://example.com/{random_string()}.git",
             "main",
             "ten-rows.csv",
         ),
     )
     sesh.commit()
 
-    set_current_user(test_user)
     new_csv = """roman_numeral,is_even,as_date,as_float
 """
-    set_current_user(test_user)
-    resp = client.put(
-        f"/{test_user.username}/{ten_rows.table_name}",
-        data=new_csv,
-    )
+    with current_user(test_user):
+        resp = client.put(
+            f"/{test_user.username}/{ten_rows.table_name}",
+            data=new_csv,
+        )
     assert resp.status_code == 400
     assert resp.json == {"error": "that table is read-only"}
 
@@ -679,17 +687,18 @@ XV,no,2018-01-15,15.0
 def test_append__just_header(client, test_user, ten_rows):
     """Users often just pass a rowless csv with just a header."""
     new_csv = "roman_numeral,is_even,as_date,as_float\n"
-    set_current_user(test_user)
 
-    resp = client.post(
-        f"/{test_user.username}/{ten_rows.table_name}",
-        data=new_csv,
-    )
-    assert resp.status_code == 204
+    with current_user(test_user):
+        resp = client.post(
+            f"/{test_user.username}/{ten_rows.table_name}",
+            data=new_csv,
+        )
+        assert resp.status_code == 204
 
-    get_resp = client.get(
-        f"/{test_user.username}/{ten_rows.table_name}", headers={"Accept": "text/csv"}
-    )
+        get_resp = client.get(
+            f"/{test_user.username}/{ten_rows.table_name}",
+            headers={"Accept": "text/csv"},
+        )
     df = pd.read_csv(BytesIO(get_resp.data))
     assert len(df) == 10
 
@@ -710,15 +719,15 @@ def delete_mode(request):
 
 def test_delete__has_readme(sesh, client, test_user, ten_rows, delete_mode):
     url_template, verb = delete_mode
-    set_current_user(test_user)
     svc.set_readme_markdown(sesh, test_user.user_uuid, ten_rows.table_name, "something")
     sesh.commit()
-    resp = client.open(
-        url_template.format(
-            username=test_user.username, table_name=ten_rows.table_name
-        ),
-        method=verb,
-    )
+    with current_user(test_user):
+        resp = client.open(
+            url_template.format(
+                username=test_user.username, table_name=ten_rows.table_name
+            ),
+            method=verb,
+        )
     if verb == "POST":
         assert resp.status_code == 302
         assert resp.headers["Location"] == f"/{test_user.username}"
@@ -729,14 +738,13 @@ def test_delete__has_readme(sesh, client, test_user, ten_rows, delete_mode):
 @pytest.mark.parametrize("is_public", [True, False])
 def test_delete__am_authed(sesh, client, test_user, is_public, ten_rows, delete_mode):
     url_template, verb = delete_mode
-    set_current_user(test_user)
-
-    resp = client.open(
-        url_template.format(
-            username=test_user.username, table_name=ten_rows.table_name
-        ),
-        method=verb,
-    )
+    with current_user(test_user):
+        resp = client.open(
+            url_template.format(
+                username=test_user.username, table_name=ten_rows.table_name
+            ),
+            method=verb,
+        )
     if verb == "POST":
         assert resp.status_code == 302
         assert resp.headers["Location"] == f"/{test_user.username}"
@@ -746,7 +754,7 @@ def test_delete__am_authed(sesh, client, test_user, is_public, ten_rows, delete_
 
 @pytest.mark.parametrize("is_public", [True, False])
 def test_delete__not_authed(sesh, client, is_public, delete_mode, test_user):
-    table = utils.create_table(sesh, test_user, is_public=is_public)
+    table = create_table(sesh, test_user, is_public=is_public)
     sesh.commit()
     url_template, verb = delete_mode
 
@@ -764,16 +772,18 @@ def test_delete__not_authed(sesh, client, is_public, delete_mode, test_user):
 def test_delete__wrong_user(
     sesh, client, test_user, is_public, crypt_context, delete_mode
 ):
-    table = utils.create_table(sesh, test_user, is_public=is_public)
+    table = create_table(sesh, test_user, is_public=is_public)
     sesh.commit()
 
     url_template, verb = delete_mode
 
-    set_current_user(utils.make_user(sesh, crypt_context))
-    resp = client.open(
-        url_template.format(username=test_user.username, table_name=table.table_name),
-        method=verb,
-    )
+    with current_user(make_user(sesh, crypt_context)):
+        resp = client.open(
+            url_template.format(
+                username=test_user.username, table_name=table.table_name
+            ),
+            method=verb,
+        )
     if is_public:
         assert resp.status_code == 403
     else:
@@ -781,12 +791,12 @@ def test_delete__wrong_user(
 
 
 def test_delete__does_not_exist(client, test_user, delete_mode):
-    set_current_user(test_user)
     url_template, verb = delete_mode
-    resp = client.open(
-        url_template.format(
-            username=test_user.username, table_name=utils.random_string()
-        ),
-        method=verb,
-    )
+    with current_user(test_user):
+        resp = client.open(
+            url_template.format(
+                username=test_user.username, table_name=random_string()
+            ),
+            method=verb,
+        )
     assert resp.status_code == 404

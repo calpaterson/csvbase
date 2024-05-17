@@ -9,7 +9,7 @@
 
     <p>Registered {{ user.registered|dateformat }}</p>
 
-    {% if g.current_username == user.username %}
+    {% if current_username == user.username %}
       <p><a href="{{ url_for('csvbase.user_settings', username=user.username) }}">Edit your settings</a></p>
     {% endif %}
 
@@ -27,11 +27,11 @@
         </div>
       </div>
     {% endfor %}
-    {% if g.current_username == user.username %}
+    {% if current_username == user.username %}
       <p>Or <a href="{{ url_for('create_table.paste')}}"> paste a new table</a></p>
 
       <h2>Your API Key</h2>
-      <code>{{ g.current_user.hex_api_key() }}</code>
+      <code>{{ current_user.hex_api_key() }}</code>
 
       <h2>Account controls</h2>
       <a href="{{ url_for('csvbase.sign_out') }}" class="btn btn-danger">Sign out</a>

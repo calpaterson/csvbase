@@ -1,8 +1,8 @@
 import pytest
 
-from csvbase.web.func import set_current_user
+
 from csvbase import svc
-from .utils import random_string
+from .utils import random_string, current_user
 
 
 def test_registering_no_whence(client):
@@ -69,22 +69,21 @@ def test_registering_an_invalid_username(client, invalid_username):
 
 
 def test_going_to_registration_form_when_signed_in(client, test_user):
-    set_current_user(test_user)
-
-    resp = client.get("/register")
-    assert resp.status_code == 302
-    assert resp.headers["Location"] == f"/{test_user.username}"
+    with current_user(test_user):
+        resp = client.get("/register")
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == f"/{test_user.username}"
 
 
 @pytest.mark.parametrize("whence", [None, "/about"])
 def test_sign_out(client, test_user, whence):
-    set_current_user(test_user)
-    headers = {} if whence is None else {"Referer": whence}
-    resp = client.get("/sign-out", headers=headers)
-    assert resp.status_code == 302
-    if whence is None:
-        expected_location = "/"
-    else:
-        expected_location = whence
-    assert expected_location == resp.headers["Location"]
-    assert resp.headers["Clear-Site-Data"] == "*"
+    with current_user(test_user):
+        headers = {} if whence is None else {"Referer": whence}
+        resp = client.get("/sign-out", headers=headers)
+        assert resp.status_code == 302
+        if whence is None:
+            expected_location = "/"
+        else:
+            expected_location = whence
+        assert expected_location == resp.headers["Location"]
+        assert resp.headers["Clear-Site-Data"] == "*"

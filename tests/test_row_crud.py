@@ -1,11 +1,10 @@
 from typing import Any, Dict
-from csvbase.web.func import set_current_user
 from datetime import datetime
 import pytest
 
 from csvbase.value_objs import ContentType
 from csvbase.userdata import PGUserdataAdapter
-from .utils import make_user, assert_is_valid_etag, create_table
+from .utils import make_user, assert_is_valid_etag, create_table, current_user
 
 
 @pytest.fixture(scope="module", params=[ContentType.JSON, ContentType.HTML_FORM])
@@ -69,30 +68,29 @@ def test_create__happy(client, ten_rows, test_user, accept_content_type):
 
 def test_create__with_row_id(client, ten_rows, test_user, accept_content_type):
     """Creating a row with a specific row id is (currently) forbidden"""
-    set_current_user(test_user)
-    post_resp = client.post(
-        f"/{test_user.username}/{ten_rows.table_name}/rows/",
-        json={
-            "row_id": 1,
-            "row": {
-                "roman_numeral": "XI",
-                "is_even": False,
-                "as_date": "2018-01-11",
-                "as_float": 11.5,
+    with current_user(test_user):
+        post_resp = client.post(
+            f"/{test_user.username}/{ten_rows.table_name}/rows/",
+            json={
+                "row_id": 1,
+                "row": {
+                    "roman_numeral": "XI",
+                    "is_even": False,
+                    "as_date": "2018-01-11",
+                    "as_float": 11.5,
+                },
             },
-        },
-        headers={
-            "Accept": accept_content_type.value,
-        },
-    )
-    assert post_resp.status_code == 400
+            headers={
+                "Accept": accept_content_type.value,
+            },
+        )
+        assert post_resp.status_code == 400
 
 
 def test_create__wrong_type(
     client, ten_rows, test_user, accept_content_type, post_content_type
 ):
     """Test that creating a row with the wrong content type generates some kind of 400 error"""
-    set_current_user(test_user)
     kwargs = {"headers": {"Accept": accept_content_type.value}}
     if post_content_type is ContentType.JSON:
         kwargs["json"] = {
@@ -111,9 +109,10 @@ def test_create__wrong_type(
             "as_float": "jake",
         }
 
-    post_resp = client.post(
-        f"/{test_user.username}/{ten_rows.table_name}/rows/", **kwargs
-    )
+    with current_user(test_user):
+        post_resp = client.post(
+            f"/{test_user.username}/{ten_rows.table_name}/rows/", **kwargs
+        )
     assert post_resp.status_code == 422
     if accept_content_type == ContentType.JSON:
         assert post_resp.json == {
@@ -124,7 +123,6 @@ def test_create__wrong_type(
 def test_create__missing_column(
     client, ten_rows, test_user, accept_content_type, post_content_type
 ):
-    set_current_user(test_user)
     kwargs = {"headers": {"Accept": accept_content_type.value}}
     if post_content_type is ContentType.JSON:
         kwargs["json"] = {
@@ -141,9 +139,10 @@ def test_create__missing_column(
             "as_date": "2018-01-11",
         }
 
-    post_resp = client.post(
-        f"/{test_user.username}/{ten_rows.table_name}/rows/", **kwargs
-    )
+    with current_user(test_user):
+        post_resp = client.post(
+            f"/{test_user.username}/{ten_rows.table_name}/rows/", **kwargs
+        )
     if accept_content_type == ContentType.JSON:
         assert post_resp.status_code == 201
     else:
@@ -166,7 +165,6 @@ def test_create__missing_column(
 def test_create__extra_column(
     client, ten_rows, test_user, accept_content_type, post_content_type
 ):
-    set_current_user(test_user)
     kwargs = {"headers": {"Accept": accept_content_type.value}}
     if post_content_type is ContentType.JSON:
         kwargs["json"] = {
@@ -187,9 +185,10 @@ def test_create__extra_column(
             "extra": "kings",
         }
 
-    post_resp = client.post(
-        f"/{test_user.username}/{ten_rows.table_name}/rows/", **kwargs
-    )
+    with current_user(test_user):
+        post_resp = client.post(
+            f"/{test_user.username}/{ten_rows.table_name}/rows/", **kwargs
+        )
     assert post_resp.status_code == 400
     if accept_content_type == ContentType.JSON:
         assert post_resp.json == {"error": "columns or types don't match existing"}
@@ -361,11 +360,11 @@ def test_read__as_another_user(
     other_user = make_user(sesh, crypt_context)
     sesh.commit()
 
-    set_current_user(other_user)
-    resp = client.get(
-        f"/{test_user.username}/{table.table_name}/rows/1",
-        headers={"Accept": accept_content_type.value},
-    )
+    with current_user(other_user):
+        resp = client.get(
+            f"/{test_user.username}/{table.table_name}/rows/1",
+            headers={"Accept": accept_content_type.value},
+        )
     if not is_public:
         resp.status_code == 404
     else:
@@ -378,7 +377,6 @@ POST_CONTENT_TYPE_TO_VERB = {ContentType.HTML_FORM: "POST", ContentType.JSON: "P
 def test_update__happy(client, ten_rows, test_user, post_content_type):
     """Test updating via POST(HTML, browser)/PUT(JSON, client)"""
     url = f"/{test_user.username}/{ten_rows.table_name}/rows/1"
-    set_current_user(test_user)
     json_body = {
         "row_id": 1,
         "row": {
@@ -402,7 +400,8 @@ def test_update__happy(client, ten_rows, test_user, post_content_type):
             "as_float": "1.5",
         }
         kwargs["data"] = form
-    resp = client.open(url, **kwargs)
+    with current_user(test_user):
+        resp = client.open(url, **kwargs)
     if post_content_type is ContentType.JSON:
         assert resp.status_code == 200, resp.data
         assert resp.json == json_body
@@ -421,7 +420,6 @@ def test_update__happy(client, ten_rows, test_user, post_content_type):
 def test_update__missing_row_id(client, ten_rows, test_user, post_content_type):
     """Callers must include the row id for updates, and at the moment, it must match."""
     url = f"/{test_user.username}/{ten_rows.table_name}/rows/1"
-    set_current_user(test_user)
     json_body = {
         "row": {
             "roman_numeral": "i",
@@ -441,14 +439,14 @@ def test_update__missing_row_id(client, ten_rows, test_user, post_content_type):
             "as_date": "2018-02-01",
         }
         kwargs["data"] = form
-    resp = client.open(url, **kwargs)
+    with current_user(test_user):
+        resp = client.open(url, **kwargs)
     assert resp.status_code == 400
 
 
 def test_update__missing_column(client, ten_rows, test_user, post_content_type):
     """Check that missing columns are allowed, but come through as None/NULL"""
     url = f"/{test_user.username}/{ten_rows.table_name}/rows/1"
-    set_current_user(test_user)
     json_body = {
         "row_id": 1,
         "row": {
@@ -470,7 +468,8 @@ def test_update__missing_column(client, ten_rows, test_user, post_content_type):
             "as_date": "2018-02-01",
         }
         kwargs["data"] = form
-    resp = client.open(url, **kwargs)
+    with current_user(test_user):
+        resp = client.open(url, **kwargs)
     if post_content_type is ContentType.JSON:
         assert resp.status_code == 200, resp.data
         assert resp.json == json_body
@@ -498,7 +497,6 @@ def test_update__missing_column(client, ten_rows, test_user, post_content_type):
 
 def test_update__extra_column(client, ten_rows, test_user, post_content_type):
     url = f"/{test_user.username}/{ten_rows.table_name}/rows/1"
-    set_current_user(test_user)
     json_body = {
         "row_id": 1,
         "row": {
@@ -522,7 +520,8 @@ def test_update__extra_column(client, ten_rows, test_user, post_content_type):
             "extra": "kings",
         }
         kwargs["data"] = form
-    resp = client.open(url, **kwargs)
+    with current_user(test_user):
+        resp = client.open(url, **kwargs)
     assert resp.status_code == 400, resp.data
 
 
@@ -634,8 +633,8 @@ def test_update__as_another_user(client, is_public, test_user, crypt_context, se
 
     new = {"row_id": 1, "row": {"a": 2}}
 
-    set_current_user(other_user)
-    resp = client.put(f"/{test_user.username}/{table.table_name}/rows/1", json=new)
+    with current_user(other_user):
+        resp = client.put(f"/{test_user.username}/{table.table_name}/rows/1", json=new)
     if not is_public:
         resp.status_code == 403
     else:
@@ -660,28 +659,29 @@ def delete_mode(request):
 
 @pytest.mark.parametrize("is_public", [True, False])
 def test_delete__am_authed(client, ten_rows, test_user, is_public, delete_mode):
-    set_current_user(test_user)
     url_template, verb = delete_mode
     url = url_template.format(
         username=test_user.username, table_name=ten_rows.table_name, row_id=1
     )
-    resp = client.open(url, method=verb)
-    if verb == "POST":
-        assert resp.status_code == 302
-    else:
-        assert resp.status_code == 204, resp.data
-        assert resp.data == b""
+    with current_user(test_user):
+        resp = client.open(url, method=verb)
+        if verb == "POST":
+            assert resp.status_code == 302
+        else:
+            assert resp.status_code == 204, resp.data
+            assert resp.data == b""
 
-    if verb == "DELETE":
-        # FIXME: check this for POST as well
-        resp = client.get(url)
-        assert resp.status_code == 404, resp.data
-        assert resp.json == {"error": "that row does not exist"}
+        if verb == "DELETE":
+            # FIXME: check this for POST as well
+            resp = client.get(url)
+            assert resp.status_code == 404, resp.data
+            assert resp.json == {"error": "that row does not exist"}
 
-    table_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}.json")
-    assert (
-        datetime.fromisoformat(table_resp.json["last_changed"]) > ten_rows.last_changed
-    )
+        table_resp = client.get(f"/{test_user.username}/{ten_rows.table_name}.json")
+        assert (
+            datetime.fromisoformat(table_resp.json["last_changed"])
+            > ten_rows.last_changed
+        )
 
 
 @pytest.mark.parametrize("is_public", [True, False])
@@ -749,6 +749,6 @@ def test_delete__user_does_not_exist(client, test_user):
 
 def test_delete__html_row_delete_check(client, ten_rows, test_user):
     url = f"/{test_user.username}/{ten_rows.table_name}/rows/1/delete-check"
-    set_current_user(test_user)
-    resp = client.get(url)
+    with current_user(test_user):
+        resp = client.get(url)
     assert resp.status_code == 200

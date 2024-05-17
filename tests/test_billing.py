@@ -4,7 +4,6 @@ from uuid import uuid4
 import sqlalchemy
 
 from csvbase.svc import create_user
-from csvbase.web.func import set_current_user
 from csvbase.web.billing import svc, bp
 
 from .utils import (
@@ -13,6 +12,7 @@ from .utils import (
     FakeStripeSubscription,
     FakeStripePortalSession,
     FakeStripeCheckoutSession,
+    current_user,
 )
 
 import stripe
@@ -20,14 +20,14 @@ import pytest
 
 
 def test_subscribe(client, test_user):
-    set_current_user(test_user)
-    fake_checkout_session = FakeStripeCheckoutSession(
-        status="complete",
-        payment_status="paid",
-    )
-    with patch.object(bp.stripe.checkout.Session, "create") as mock_create:
-        mock_create.return_value = fake_checkout_session
-        subscribe_response = client.get("/billing/subscribe")
+    with current_user(test_user):
+        fake_checkout_session = FakeStripeCheckoutSession(
+            status="complete",
+            payment_status="paid",
+        )
+        with patch.object(bp.stripe.checkout.Session, "create") as mock_create:
+            mock_create.return_value = fake_checkout_session
+            subscribe_response = client.get("/billing/subscribe")
     assert subscribe_response.status_code == 302
     assert subscribe_response.headers["Location"] == fake_checkout_session.url
 
@@ -43,7 +43,6 @@ def test_subscribe__stripe_rejects_customer_email(client, sesh, app):
         sesh, crypt_context, random_string(), random_string(), email="darth@deathstar"
     )
     sesh.commit()
-    set_current_user(test_user)
     fake_checkout_session = FakeStripeCheckoutSession(
         id=random_string(),
         status="complete",
@@ -61,9 +60,10 @@ def test_subscribe__stripe_rejects_customer_email(client, sesh, app):
         else:
             return fake_checkout_session
 
-    with patch.object(bp.stripe.checkout.Session, "create") as mock_create:
-        mock_create.side_effect = reject_if_email_present
-        subscribe_response = client.get("/billing/subscribe")
+    with current_user(test_user):
+        with patch.object(bp.stripe.checkout.Session, "create") as mock_create:
+            mock_create.side_effect = reject_if_email_present
+            subscribe_response = client.get("/billing/subscribe")
     assert subscribe_response.status_code == 302
     assert subscribe_response.headers["Location"] == fake_checkout_session.url
 
@@ -78,14 +78,14 @@ def test_subscribe__not_signed_in(client):
 
 
 def test_subscribe__stripe_rejects_for_other_reason(client, test_user):
-    set_current_user(test_user)
-    with patch.object(bp.stripe.checkout.Session, "create") as mock_create:
-        mock_create.side_effect = stripe.error.InvalidRequestError(
-            message="Something else",
-            param="something",
-        )
-        with pytest.raises(stripe.error.InvalidRequestError):
-            client.get("/billing/subscribe")
+    with current_user(test_user):
+        with patch.object(bp.stripe.checkout.Session, "create") as mock_create:
+            mock_create.side_effect = stripe.error.InvalidRequestError(
+                message="Something else",
+                param="something",
+            )
+            with pytest.raises(stripe.error.InvalidRequestError):
+                client.get("/billing/subscribe")
 
 
 def test_success_url(client, sesh, test_user):
@@ -150,11 +150,11 @@ def test_manage__happy(client, sesh, test_user):
     svc.insert_stripe_customer_id(sesh, test_user.user_uuid, stripe_customer_id)
     sesh.commit()
 
-    set_current_user(test_user)
-    portal_session = FakeStripePortalSession()
-    with patch.object(bp.stripe.billing_portal.Session, "create") as mock_create:
-        mock_create.return_value = portal_session
-        resp = client.get("/billing/manage")
+    with current_user(test_user):
+        portal_session = FakeStripePortalSession()
+        with patch.object(bp.stripe.billing_portal.Session, "create") as mock_create:
+            mock_create.return_value = portal_session
+            resp = client.get("/billing/manage")
     assert resp.status_code == 302
     assert resp.headers["Location"] == portal_session.url
 
@@ -175,14 +175,13 @@ def test_pricing__signed_out(client):
 
 
 def test_pricing__signed_in_but_no_subscription(client, test_user):
-    set_current_user(test_user)
-    pricing_resp = client.get("/billing/pricing")
+    with current_user(test_user):
+        pricing_resp = client.get("/billing/pricing")
     assert pricing_resp.status_code == 200
 
 
 @pytest.mark.xfail(reason="not implemented")
 def test_pricing__signed_in_with_subscription(client, test_user):
-    set_current_user(test_user)
     assert False
 
 

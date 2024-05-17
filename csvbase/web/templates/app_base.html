@@ -7,11 +7,11 @@ current_user and should sign in/username in the navbar. #}
 {% block navbar_elements %}
   {{ super() }}
   <ul class="navbar-nav ms-auto">
-    {% if g.current_user %}
+    {% if current_user %}
       <li class="nav-item">
         <a
-          class="nav-link {% if request.path == url_for('csvbase.user', username=g.current_username) %}active{% endif %}"
-          href="{{ url_for('csvbase.user', username=g.current_username) }}">{{g.current_username}}
+          class="nav-link {% if request.path == url_for('csvbase.user', username=current_user.username) %}active{% endif %}"
+          href="{{ url_for('csvbase.user', username=current_user.username) }}">{{current_user.username}}
         </a>
       </li>
       {% else %}

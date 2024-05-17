@@ -470,7 +470,9 @@ def make_table_view_etag(
 ) -> str:
     """Returns the ETag for a given (table, content_type, keyset)."""
     current_user = get_current_user()
-    current_username = current_user.username if current_user is not None else "anonymous"
+    current_username = (
+        current_user.username if current_user is not None else "anonymous"
+    )
     # we have to hash here because some browsers (eg Chrome) don't seem to
     # handle some characters (eg comma) well in the ETag header
     hash_ = hashlib.blake2b()
@@ -494,7 +496,9 @@ def make_table_view_etag(
 def make_row_etag(table: Table, row: Row, content_type: ContentType) -> str:
     """Returns the ETag for the given Row."""
     current_user = get_current_user()
-    current_username = current_user.username if current_user is not None else "anonymous"
+    current_username = (
+        current_user.username if current_user is not None else "anonymous"
+    )
     hash_ = hashlib.blake2b()
     hash_.update(json.dumps(row_to_json_dict(table, row)).encode("utf-8"))
     hash_.update(content_type.value.encode("utf-8"))

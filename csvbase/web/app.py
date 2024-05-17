@@ -38,7 +38,7 @@ from ..db import db, get_db_url
 from ..logging import configure_logging
 from .. import sentry, datadog
 from ..sesh import get_sesh
-from .func import is_browser, is_url
+from .func import is_browser, is_url, get_current_user
 from .billing import bp as billing_bp
 from .main.bp import bp as main_bp
 from .main.create_table import bp as create_table_bp
@@ -135,6 +135,18 @@ def init_app() -> Flask:
     app.jinja_env.filters["ppjson"] = ppjson
     app.jinja_env.filters["timedeltaformat"] = format_timedelta
 
+    @app.context_processor
+    def inject_user():
+        current_user = get_current_user()
+        return (
+            {
+                "current_user": current_user,
+                "current_username": current_user.username,
+            }
+            if current_user is not None
+            else {}
+        )
+
     app.config["SQLALCHEMY_DATABASE_URI"] = get_db_url()
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
@@ -182,7 +194,7 @@ def init_app() -> Flask:
     app.register_error_handler(405, handle_app_level_404_and_405)
 
     @app.before_request
-    def put_user_in_g() -> None:
+    def put_user_on_request() -> None:
         app_logger = current_app.logger
         user_uuid: Optional[Any] = flask_session.get("user_uuid")
         auth = request.authorization

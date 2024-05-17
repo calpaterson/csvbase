@@ -12,7 +12,7 @@ import werkzeug
 import werkzeug.exceptions
 from werkzeug.wrappers.response import Response
 from flask import session as flask_session
-from flask import request, g, current_app, redirect as unsafe_redirect, flash
+from flask import request, current_app, redirect as unsafe_redirect, flash
 from flask_babel import get_locale, dates
 
 from .. import exc, sentry, svc
@@ -30,24 +30,27 @@ def is_browser() -> bool:
 
 
 def set_current_user(user: User) -> None:
-    g.current_user = user
-
-    # This is duplication but very convenient for jinja templates
-    g.current_username = user.username
+    # Previously flask.g was used but that presents issues in testing, where
+    # the app context is not popped between requests, making it difficult to
+    # test authentication
+    request.current_user = user  # type: ignore
 
     sentry.set_user(user)
 
 
-def get_current_user() -> Optional[User]:
-    """Return the current user.  This function exists primarily for type
-    checking reasons - to avoid accidental assumptions that g.current_user is
-    present.
-
-    """
-    if hasattr(g, "current_user"):
-        return g.current_user
+def _get_current_user_inner() -> Optional[User]:
+    # (This function exists only for mocking/testing purposes.)
+    # current_user is put onto request instead of g because tests don't tear
+    # down the app context between requests
+    if hasattr(request, "current_user"):
+        return request.current_user
     else:
         return None
+
+
+def get_current_user() -> Optional[User]:
+    """Return the current user."""
+    return _get_current_user_inner()
 
 
 def get_current_user_or_401() -> User:
@@ -222,7 +225,7 @@ def ensure_not_read_only(table: Table) -> None:
 
 def am_user(username: str) -> bool:
     """Return true if the current user has the given username."""
-    current_user = g.get("current_user", None)
+    current_user = get_current_user()
     if current_user is None or current_user.username != username:
         return False
     else:
@@ -230,7 +233,7 @@ def am_user(username: str) -> bool:
 
 
 def am_a_user() -> bool:
-    return "current_user" in g
+    return get_current_user() is not None
 
 
 def am_user_or_400(username: str) -> bool:

@@ -95,7 +95,7 @@
              href="{{ url_for('csvbase.get_table_apidocs', username=table.username, table_name=table.table_name) }}"
              >API</a>
         </li>
-        {% if table.username == g.current_username %}
+        {% if table.username == current_username %}
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'csvbase.table_settings' %}active{%endif%}"
                href="{{url_for('csvbase.table_settings', username=table.username, table_name=table.table_name)}}"
@@ -122,7 +122,7 @@
              href="{{ url_for('csvbase.get_table_apidocs', username=table.username, table_name=table.table_name) }}"
              >API</a>
         </li>
-        {% if table.username == g.current_username %}
+        {% if table.username == current_username %}
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint == 'csvbase.table_settings' %}active{%endif%}"
                href="{{url_for('csvbase.table_settings', username=table.username, table_name=table.table_name)}}"

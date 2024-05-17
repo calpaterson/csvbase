@@ -1,11 +1,10 @@
-from csvbase.web.func import set_current_user
-from .utils import make_user
+from .utils import make_user, current_user
 from lxml import etree
 
 
 def test_user_view__self(client, test_user, ten_rows, private_table):
-    set_current_user(test_user)
-    resp = client.get(f"/{test_user.username}")
+    with current_user(test_user):
+        resp = client.get(f"/{test_user.username}")
 
     ten_rows_display_name = test_user.username + "/" + ten_rows.table_name
     private_table_display_name = test_user.username + "/" + private_table
@@ -35,6 +34,6 @@ def test_user_view__while_anon(client, test_user, ten_rows, private_table):
 
 
 def test_user_view__other(app, sesh, client, test_user, ten_rows):
-    set_current_user(make_user(sesh, app.config["CRYPT_CONTEXT"]))
-    resp = client.get(f"/{test_user.username}")
+    with current_user(make_user(sesh, app.config["CRYPT_CONTEXT"])):
+        resp = client.get(f"/{test_user.username}")
     assert resp.status_code == 200

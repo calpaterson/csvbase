@@ -4,14 +4,13 @@ from unittest import mock
 from typing import Generator
 from urllib.parse import quote_plus
 
-from csvbase.web.func import set_current_user
 from csvbase.web.main.create_table import canonicalise_git_url, cookie_to_dict
 from csvbase import exc
 from csvbase.follow.git import GitSource
 
 import pytest
 
-from .utils import parse_form, random_string, random_df
+from .utils import parse_form, random_string, random_df, current_user
 
 
 @pytest.mark.parametrize(
@@ -53,8 +52,8 @@ def test_canonicalise_git_url__invalid(inp):
 
 
 def test_get_form_blank(client, test_user):
-    set_current_user(test_user)
-    resp = client.get("/new-table/git")
+    with current_user(test_user):
+        resp = client.get("/new-table/git")
     assert resp.status_code == 200
 
 
@@ -92,8 +91,6 @@ def test_create_table__happy(client, test_user, tmpdir):
     gs.run_git(["add", "."], cwd=repo_path)
     gs.commit(repo_path)
 
-    set_current_user(test_user)
-
     # POST to create table form
     table_name = random_string()
     initial_form = {
@@ -103,14 +100,17 @@ def test_create_table__happy(client, test_user, tmpdir):
         "path": "test.csv",  # FIXME: test with and without leading slash
         "data-licence": "0",
     }
-    with local_only_gitsource(local_repos):
-        resp = client.post("/new-table/git", data=initial_form)
-    assert resp.status_code == 302
-    token = resp.headers["Location"].split("/")[-1]
-    confirm_package = cookie_to_dict(client.get_cookie(f"confirm-token-{token}").value)
-    assert confirm_package is not None
+    with current_user(test_user):
+        with local_only_gitsource(local_repos):
+            resp = client.post("/new-table/git", data=initial_form)
+        assert resp.status_code == 302
+        token = resp.headers["Location"].split("/")[-1]
+        confirm_package = cookie_to_dict(
+            client.get_cookie(f"confirm-token-{token}").value
+        )
+        assert confirm_package is not None
 
-    confirm_get_resp = client.get(resp.headers["Location"])
+        confirm_get_resp = client.get(resp.headers["Location"])
     confirm_form = parse_form((confirm_get_resp.data))
     form = dict(confirm_form)
 
