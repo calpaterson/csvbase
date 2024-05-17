@@ -31,7 +31,6 @@ from flask import (
     Blueprint,
     current_app,
     flash,
-    g,
     jsonify,
     make_response,
     redirect,
@@ -470,7 +469,8 @@ def make_table_view_etag(
     table: Table, content_type: ContentType, keyset: KeySet
 ) -> str:
     """Returns the ETag for a given (table, content_type, keyset)."""
-    current_username = getattr(g, "current_username", "anonymous")
+    current_user = get_current_user()
+    current_username = current_user.username if current_user is not None else "anonymous"
     # we have to hash here because some browsers (eg Chrome) don't seem to
     # handle some characters (eg comma) well in the ETag header
     hash_ = hashlib.blake2b()
@@ -493,7 +493,8 @@ def make_table_view_etag(
 
 def make_row_etag(table: Table, row: Row, content_type: ContentType) -> str:
     """Returns the ETag for the given Row."""
-    current_username = getattr(g, "current_username", "anonymous")
+    current_user = get_current_user()
+    current_username = current_user.username if current_user is not None else "anonymous"
     hash_ = hashlib.blake2b()
     hash_.update(json.dumps(row_to_json_dict(table, row)).encode("utf-8"))
     hash_.update(content_type.value.encode("utf-8"))
@@ -785,7 +786,8 @@ def post_table_settings(username: str, table_name: str) -> Response:
     data_licence = DataLicence(request.form.get("data-licence", type=int))
 
     readme_markdown = request.form.get("table-readme-markdown", "")
-    svc.set_readme_markdown(sesh, g.current_user.user_uuid, table_name, readme_markdown)
+    current_user = get_current_user_or_401()
+    svc.set_readme_markdown(sesh, current_user.user_uuid, table_name, readme_markdown)
 
     svc.update_table_metadata(sesh, table.table_uuid, is_public, caption, data_licence)
     svc.mark_table_changed(sesh, table.table_uuid)
@@ -813,10 +815,11 @@ def praise_table(username: str, table_name: str) -> Response:
     table = svc.get_table(sesh, username, table_name)
     ensure_table_access(sesh, table, "read")
     praise_id = request.form.get("praise-id", type=int, default=None)
+    current_user = get_current_user_or_401()
     if praise_id:
         svc.unpraise(sesh, praise_id)
     else:
-        svc.praise(sesh, username, table_name, g.current_user.user_uuid)
+        svc.praise(sesh, username, table_name, current_user.user_uuid)
     sesh.commit()
 
     return safe_redirect(whence)
@@ -1090,9 +1093,10 @@ def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Resp
 def user(username: str) -> Response:
     sesh = get_sesh()
     include_private = False
-    if "current_user" in g and g.current_user.username == username:
+    current_user = get_current_user()
+    if current_user is not None and current_user.username == username:
         include_private = True
-        has_subscription = billing_svc.has_subscription(sesh, g.current_user.user_uuid)
+        has_subscription = billing_svc.has_subscription(sesh, current_user.user_uuid)
     else:
         has_subscription = False
     user = svc.user_by_name(sesh, username)
@@ -1386,8 +1390,8 @@ def url_for_with_auth(endpoint: str, **values) -> str:
     flask_url = url_for(endpoint, **values)
     current_user = get_current_user()
     if current_user is not None:
-        username = g.current_user.username
-        password = g.current_user.hex_api_key()
+        username = current_user.username
+        password = current_user.hex_api_key()
     else:
         # if they aren't signed in, just use placeholder strings
         username = "<some_user>"
@@ -1399,8 +1403,9 @@ def url_for_with_auth(endpoint: str, **values) -> str:
 
 
 def get_praise_id_if_exists(sesh: Session, table: Table) -> Optional[int]:
-    if "current_user" in g:
-        return svc.is_praised(sesh, g.current_user.user_uuid, table.table_uuid)
+    current_user = get_current_user()
+    if current_user is not None:
+        return svc.is_praised(sesh, current_user.user_uuid, table.table_uuid)
     else:
         return None
 

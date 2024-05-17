@@ -15,7 +15,6 @@ from flask import (
     Flask,
     current_app,
     flash,
-    g,
     jsonify,
     make_response,
     redirect,
@@ -194,16 +193,16 @@ def init_app() -> Flask:
             else:
                 sesh = get_sesh()
                 try:
-                    user = svc.user_by_user_uuid(sesh, user_uuid)
+                    current_user = svc.user_by_user_uuid(sesh, user_uuid)
                 except exc.UserDoesNotExistException:
                     del flask_session["user_uuid"]
                     app_logger.warning(
                         "cleared a corrupt user_uuid cookie: %s", user_uuid
                     )
                 else:
-                    set_current_user(user)
+                    set_current_user(current_user)
                     app_logger.debug(
-                        "currently signed in as: %s", g.current_user.username
+                        "currently signed in as: %s", current_user.username
                     )
 
         elif auth is not None:
