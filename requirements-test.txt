@@ -11,5 +11,6 @@ pytest~=8.1.1
 ruff~=0.4.4
 sqlalchemy-stubs==0.4
 types-bleach==5.0.2
+types-cryptography
 types-setuptools==65.1.0
 types-toml==0.10.8.5
