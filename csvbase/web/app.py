@@ -33,6 +33,7 @@ import werkzeug.exceptions
 from .func import set_current_user, user_timezone_or_utc, format_timedelta
 from .. import exc, svc
 from .blog.bp import bp as blog_bp
+from .faq.bp import bp as faq_bp
 from ..config import get_config
 from ..db import db, get_db_url
 from ..logging import configure_logging
@@ -85,6 +86,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
         422,
     ),
     exc.ReadOnlyException: ("that table is read-only", 400),
+    exc.FAQEntryDoesNotExistException: ("that FAQ entry does not exist", 404),
 }
 
 
@@ -126,6 +128,7 @@ def init_app() -> Flask:
 
     if config.blog_ref is not None:
         app.register_blueprint(blog_bp)
+    app.register_blueprint(faq_bp)
 
     app.jinja_env.globals["is_url"] = is_url
     app.jinja_env.globals["blueprints"] = app.blueprints.keys()

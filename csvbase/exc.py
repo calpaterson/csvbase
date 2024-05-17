@@ -5,6 +5,9 @@ class CSVBaseException(Exception):
     """ABC for CSVBase exceptions to make it possible to catch them collectively"""
 
 
+# FIXME: the "not exists" exceptions should be unified somehow
+
+
 class TableDoesNotExistException(CSVBaseException):
     def __init__(self, username: str, table_name: str):
         self.table_name = table_name
@@ -32,6 +35,10 @@ class PageDoesNotExistException(CSVBaseException):
         self.username = username
         self.keyset = keyset
         super().__init__((username, table_name, keyset))
+
+
+class FAQEntryDoesNotExistException(CSVBaseException):
+    pass
 
 
 class NotAuthenticatedException(CSVBaseException):

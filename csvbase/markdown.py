@@ -14,6 +14,6 @@ def get_markdown():
 
 
 # FIXME: use pyappcache
-@functools.lru_cache(maxsize=1)
+@functools.lru_cache
 def render_markdown(md_str: str) -> str:
     return get_markdown().convert(md_str)

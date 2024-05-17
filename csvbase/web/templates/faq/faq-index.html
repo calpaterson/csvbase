@@ -1,0 +1,21 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "app_base.html" %}
+
+{% block main %}
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 offset-lg-2">
+        <h1 class="py-2">FAQ</h1>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-lg-8 offset-lg-2">
+        <ul>
+          {% for entry in entries %}
+            <li><a href="{{ url_for('faq.faq_entry', slug=entry.slug) }}">{{ entry.title }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+{% endblock %}
