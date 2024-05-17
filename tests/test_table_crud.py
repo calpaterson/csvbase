@@ -5,6 +5,7 @@ from unittest.mock import ANY
 import pandas as pd
 from pandas.testing import assert_frame_equal
 import pytest
+from werkzeug.wrappers.response import Response
 
 from csvbase import svc
 from csvbase.value_objs import ContentType, GithubSource
@@ -33,7 +34,13 @@ def content_type(request):
     yield request.param
 
 
-def test_create__happy(client, test_user):
+def get_table(client, username: str, table_name: str, content_type: ContentType) -> Response:
+    """Helper function to get a table in the appropriate way given the content type."""
+    url = f"/{username}/{table_name}"
+    return client.get(url, headers={"Accept": content_type.value})
+
+
+def test_create__happy(client, test_user, content_type):
     new_csv = """a,b,c,d,e
 hello,1,1.5,FALSE,2018-01-03
 """
@@ -46,16 +53,17 @@ hello,1,1.5,FALSE,2018-01-03
     )
     assert resp.status_code == 201
 
-    resp = client.get(
-        url, headers={"Authorization": test_user.basic_auth(), "Accept": "text/csv"}
-    )
-    expected_df = (
-        pd.read_csv(BytesIO(new_csv.encode("utf-8")))
-        .assign(csvbase_row_id=[1])
-        .set_index("csvbase_row_id")
-    )
-    actual_df = pd.read_csv(BytesIO(resp.data), index_col="csvbase_row_id")
-    assert_frame_equal(expected_df, actual_df)
+    # FIXME: set_current_user should be required
+    resp = get_table(client, test_user.username, table_name, content_type)
+    assert resp.status_code == 200
+    if content_type == ContentType.CSV:
+        expected_df = (
+            pd.read_csv(BytesIO(new_csv.encode("utf-8")))
+            .assign(csvbase_row_id=[1])
+            .set_index("csvbase_row_id")
+        )
+        actual_df = pd.read_csv(BytesIO(resp.data), index_col="csvbase_row_id")
+        assert_frame_equal(expected_df, actual_df)
 
 
 def test_create__public(client, test_user):
