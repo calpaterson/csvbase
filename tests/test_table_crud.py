@@ -87,8 +87,8 @@ hello,1,1.5,FALSE,2018-01-03
     )
     assert resp.status_code == 201
 
-    get_resp = client.get(f"/{test_user.username}/{table_name}.json")
-    assert get_resp.json["is_public"], "not public"
+    get_resp = get_table(client, test_user.username, table_name, ContentType.JSON)
+    assert get_resp.json["is_public"], "not public"  # type: ignore
 
 
 def test_create__invalid_name(client, test_user):
@@ -161,10 +161,7 @@ def test_create__just_header(client, test_user):
 
 
 def test_read__happy(client, ten_rows, test_user, content_type):
-    resp = client.get(
-        f"/{test_user.username}/{ten_rows.table_name}",
-        headers={"Accept": content_type.value},
-    )
+    resp = get_table(client, test_user.username, ten_rows.table_name, content_type)
     assert resp.status_code == 200, resp.data
     assert content_type.value in resp.headers["Content-Type"]
 
@@ -231,9 +228,8 @@ def test_read__happy(client, ten_rows, test_user, content_type):
 
 
 def test_read__etag_cache_hit(client, ten_rows, test_user, content_type):
-    first_resp = client.get(
-        f"/{test_user.username}/{ten_rows.table_name}",
-        headers={"Accept": content_type.value},
+    first_resp = get_table(
+        client, test_user.username, ten_rows.table_name, content_type
     )
     assert first_resp.status_code == 200, first_resp.data
     assert content_type.value in first_resp.headers["Content-Type"]
@@ -246,7 +242,7 @@ def test_read__etag_cache_hit(client, ten_rows, test_user, content_type):
         assert etag is None
         assert first_cc.private
     else:
-        assert_is_valid_etag(etag)
+        assert_is_valid_etag(etag)  # type: ignore
         assert not first_cc.private
 
     second_resp = client.get(
@@ -284,9 +280,8 @@ def test_read__last_changed_updates_the_etag(
 ):
     if content_type == ContentType.HTML:
         pytest.skip("not relevant for html")
-    first_resp = client.get(
-        f"/{test_user.username}/{ten_rows.table_name}",
-        headers={"Accept": content_type.value},
+    first_resp = get_table(
+        client, test_user.username, ten_rows.table_name, content_type
     )
     assert first_resp.status_code == 200, first_resp.data
     assert content_type.value in first_resp.headers["Content-Type"]
@@ -295,9 +290,8 @@ def test_read__last_changed_updates_the_etag(
     svc.mark_table_changed(sesh, ten_rows.table_uuid)
     sesh.commit()
 
-    second_resp = client.get(
-        f"/{test_user.username}/{ten_rows.table_name}",
-        headers={"Accept": content_type.value},
+    second_resp = get_table(
+        client, test_user.username, ten_rows.table_name, content_type
     )
     assert second_resp.status_code == 200, second_resp.data
     assert content_type.value in second_resp.headers["Content-Type"]
@@ -313,10 +307,7 @@ def test_read__metadata_headers(client, ten_rows, test_user, content_type, sesh)
     tables with file extensions are duplicates of the un-extensioned path.
 
     """
-    resp = client.get(
-        f"/{test_user.username}/{ten_rows.table_name}",
-        headers={"Accept": content_type.value},
-    )
+    resp = get_table(client, test_user.username, ten_rows.table_name, content_type)
     assert (
         resp.headers.get("Link")
         == f'<http://localhost/{test_user.username}/{ten_rows.table_name}>; rel="canonical"'
@@ -336,17 +327,12 @@ def test_read__metadata_headers(client, ten_rows, test_user, content_type, sesh)
 def test_read__with_no_rows(sesh, client, test_user, content_type):
     table = create_table(sesh, test_user, [])
     sesh.commit()
-    resp = client.get(
-        f"/{test_user.username}/{table.table_name}",
-        headers={"Accept": content_type.value},
-    )
+    resp = get_table(client, test_user.username, table.table_name, content_type)
     assert resp.status_code == 200
 
 
 def test_read__table_does_not_exist(client, test_user, content_type):
-    resp = client.get(
-        f"/{test_user.username}/something", headers={"Accept": content_type.value}
-    )
+    resp = get_table(client, test_user.username, "something", content_type)
     assert resp.status_code == 404, resp.data
     if content_type == ContentType.HTML:
         assert content_type.value in resp.headers["Content-Type"]
@@ -357,7 +343,7 @@ def test_read__table_does_not_exist(client, test_user, content_type):
 
 
 def test_read__user_does_not_exist(client, test_user, content_type):
-    resp = client.get("/someone/something", headers={"Accept": content_type.value})
+    resp = get_table(client, random_string(), random_string(), content_type)
     assert resp.status_code == 404, resp.data
     if content_type == ContentType.HTML:
         assert content_type.value in resp.headers["Content-Type"]
@@ -368,10 +354,7 @@ def test_read__user_does_not_exist(client, test_user, content_type):
 
 
 def test_read__is_private_not_authed(client, private_table, test_user, content_type):
-    resp = client.get(
-        f"/{test_user.username}/{private_table}",
-        headers={"Accept": content_type.value},
-    )
+    resp = get_table(client, test_user.username, private_table, content_type)
     assert resp.status_code == 404, resp.data
     if content_type == ContentType.HTML:
         assert content_type.value in resp.headers["Content-Type"]
@@ -399,16 +382,14 @@ def test_read__is_private_am_wrong_user(
     user = make_user(sesh, crypt_context)
     sesh.commit()
     with current_user(user):
-        resp = client.get(
-            f"/{test_user.username}/{private_table}",
-        )
+        resp = get_table(client, test_user.username, private_table, content_type)
     assert resp.status_code == 404, resp.data
 
 
 def test_read__empty_table(sesh, client, test_user, content_type):
     table = create_table(sesh, test_user, [])
     sesh.commit()
-    resp = client.get(f"/{test_user.username}/{table.table_name}")
+    resp = get_table(client, test_user.username, table.table_name, content_type)
     assert resp.status_code == 200, resp.data
 
 
