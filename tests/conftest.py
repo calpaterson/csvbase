@@ -28,6 +28,11 @@ def app(crypt_context):
     with patch.object(get_config(), "blog_ref", ""):
         a = init_app()
     a.config["TESTING"] = True
+
+    # Set explicitly here to avoid accidentally entering debug mode during
+    # tests due to environment variables.
+    a.config["DEBUG"] = False
+
     # Speeds things up considerably when testing
     a.config["CRYPT_CONTEXT"] = crypt_context
     return a
