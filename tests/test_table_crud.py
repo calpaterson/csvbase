@@ -1,6 +1,7 @@
 from io import BytesIO, SEEK_END
 from datetime import date, datetime, timezone
 from unittest.mock import ANY
+from typing import Mapping, Optional
 
 import pandas as pd
 from pandas.testing import assert_frame_equal
@@ -26,12 +27,9 @@ from .utils import (
         ContentType.CSV,
         ContentType.HTML,
         ContentType.JSON,
-        # FIXME: Need to have a way to test these as well, even though we can't
-        # (with the exception of XLSX?) put them in an Accept header.  Another
-        # layer of indirection is needed to test extensions
-        # ContentType.JSON_LINES,
-        # ContentType.PARQUET,
-        # ContentType.XLSX,
+        ContentType.JSON_LINES,
+        ContentType.PARQUET,
+        ContentType.XLSX,
     ],
 )
 def content_type(request):
@@ -40,11 +38,22 @@ def content_type(request):
 
 
 def get_table(
-    client, username: str, table_name: str, content_type: ContentType
+    client,
+    username: str,
+    table_name: str,
+    content_type: ContentType,
+    extra_headers: Optional[Mapping[str, str]] = None,
 ) -> Response:
     """Helper function to get a table in the appropriate way given the content type."""
+    headers = {}
     url = f"/{username}/{table_name}"
-    return client.get(url, headers={"Accept": content_type.value})
+    if content_type in {ContentType.JSON_LINES, ContentType.PARQUET, ContentType.XLSX}:
+        url += f".{content_type.file_extension()}"
+    else:
+        headers["Accept"] = content_type.value
+    if extra_headers is not None:
+        headers.update(extra_headers)
+    return client.get(url, headers=headers)
 
 
 def test_create__happy(client, test_user, content_type):
@@ -245,9 +254,12 @@ def test_read__etag_cache_hit(client, ten_rows, test_user, content_type):
         assert_is_valid_etag(etag)  # type: ignore
         assert not first_cc.private
 
-    second_resp = client.get(
-        f"/{test_user.username}/{ten_rows.table_name}",
-        headers={"Accept": content_type.value, "If-None-Match": etag},
+    second_resp = get_table(
+        client,
+        test_user.username,
+        ten_rows.table_name,
+        content_type,
+        extra_headers={"If-None-Match": etag},  # type: ignore
     )
     second_cc = second_resp.cache_control
     assert second_cc.no_cache
@@ -264,9 +276,12 @@ def test_read__etag_cache_hit(client, ten_rows, test_user, content_type):
 def test_read__etag_cache_miss(client, ten_rows, test_user, content_type):
     if content_type == ContentType.HTML:
         pytest.skip("not relevant for html")
-    first_resp = client.get(
-        f"/{test_user.username}/{ten_rows.table_name}",
-        headers={"Accept": content_type.value, "If-None-Match": "wrong etag"},
+    first_resp = get_table(
+        client,
+        test_user.username,
+        ten_rows.table_name,
+        content_type,
+        extra_headers={"If-None-Match": "wrong etag"},
     )
     assert first_resp.status_code == 200, first_resp.data
     assert content_type.value in first_resp.headers["Content-Type"]

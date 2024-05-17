@@ -422,11 +422,12 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
     rows = backend.table_as_rows(table.table_uuid)
     if content_type is ContentType.PARQUET:
         streaming_response = make_streaming_response(
-            table_io.rows_to_parquet(columns, rows)
+            table_io.rows_to_parquet(columns, rows),
+            ContentType.PARQUET,
         )
     elif content_type is ContentType.JSON_LINES:
         streaming_response = make_streaming_response(
-            table_io.rows_to_jsonlines(columns, rows)
+            table_io.rows_to_jsonlines(columns, rows), ContentType.JSON_LINES
         )
     elif content_type is ContentType.XLSX:
         excel_table = "excel-table" in request.args

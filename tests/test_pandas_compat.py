@@ -9,7 +9,7 @@ from .utils import get_df_as_csv
 
 def get_df_as_parquet(client, url) -> pd.DataFrame:
     get_resp = client.get(url + ".parquet")
-    assert get_resp.mimetype == "application/octet-stream"
+    assert get_resp.mimetype == "application/parquet"
     return pd.read_parquet(BytesIO(get_resp.data)).set_index("csvbase_row_id")
 
 
