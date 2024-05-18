@@ -475,7 +475,7 @@ def tables_for_user(
         sesh.query(models.Table, models.User.username, models.GithubUpstream)
         .join(models.User)
         .outerjoin(models.GithubUpstream)
-        .filter(models.Table.user_uuid == user_uuid)
+        .filter(models.User.user_uuid == user_uuid)
         .order_by(models.Table.created.desc())
     )
     if not include_private:
