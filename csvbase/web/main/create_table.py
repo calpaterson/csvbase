@@ -60,8 +60,7 @@ def upload_file() -> str:
 def canonicalise_git_url(input_url: str) -> str:
     """We allow various different forms for git urls to be passed by users.
 
-    However we canonicalise to "smart HTTP", even though that may not always be
-    the protocol that is used.
+    However we canonicalise to "smart HTTP" which is the protocol csvbase uses.
 
     """
     try:

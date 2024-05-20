@@ -160,20 +160,23 @@ class GithubSource:
     branch: str
     path: str
 
+    def _parsed_url(self):
+        return giturlparse.parse(self.repo_url)
+
     def version(self) -> "UpstreamVersion":
         return UpstreamVersion(self.last_modified, self.last_sha.hex())
 
     def link(self) -> str:
-        url = giturlparse.parse(self.repo_url).url2https[:-4]
+        url = self._parsed_url().url2https[:-4]
         url += f"/blob/{self.branch}/{self.path}"
         return url
 
     def pretty_ref(self) -> str:
-        as_git_url = giturlparse.parse(self.repo_url).url2git
+        as_git_url = self._parsed_url().url2git
         return as_git_url
 
     def commit_link(self) -> str:
-        base_url = giturlparse.parse(self.repo_url).url2https[:-4]
+        base_url = self._parsed_url().url2https[:-4]
         return f"{base_url}/commit/{self.last_sha.hex()}"
 
     def to_json_dict(self) -> Dict[str, Any]:
@@ -191,8 +194,7 @@ class GithubSource:
         return GithubSource(**{**json_dict, **parsed})
 
     def is_read_only(self) -> bool:
-        # for now:
-        return True
+        return self._parsed_url().username == ""
 
 
 @dataclass

@@ -1,16 +1,24 @@
 from io import BytesIO, SEEK_END, StringIO
 from datetime import date, datetime, timezone
 from unittest.mock import ANY
-from typing import Mapping, Optional, Generator
+from typing import Mapping, Optional
+from urllib.parse import quote_plus
 
 import pandas as pd
 from pandas.testing import assert_frame_equal
 import pytest
 from werkzeug.wrappers.response import Response
 
-from csvbase import svc, streams, table_io
-from csvbase.value_objs import ContentType, GithubSource, Table, Column, ColumnType
+from csvbase import svc, streams, table_io, models
+from csvbase.value_objs import (
+    ContentType,
+    Table,
+    Column,
+    ColumnType,
+    GithubSource,
+)
 from csvbase.userdata import PGUserdataAdapter
+from csvbase.follow.git import GitSource
 
 from .conftest import ROMAN_NUMERALS
 from .utils import (
@@ -39,13 +47,18 @@ def content_type(request):
     yield request.param
 
 
-@pytest.fixture
-def upstream() -> Generator[Optional[GithubSource], None, None]:
-    yield None
+@pytest.fixture(
+    params=[
+        pytest.param(None, id="no upstream"),
+        pytest.param("git", id="git upstream"),
+    ]
+)
+def upstream(request):
+    yield request.param
 
 
 @pytest.fixture
-def ten_rows(test_user, sesh, upstream) -> Table:
+def ten_rows(test_user, sesh, upstream, local_repos_path) -> Table:
     """Experimental version of the original fixture that varies upstream."""
     columns = [
         Column(name="roman_numeral", type_=ColumnType.TEXT),
@@ -54,10 +67,13 @@ def ten_rows(test_user, sesh, upstream) -> Table:
         Column(name="as_float", type_=ColumnType.FLOAT),
     ]
 
-    df = pd.DataFrame([
-        (numeral, (index % 2) == 0, date(2018, 1, index), index + 0.5)
-        for index, numeral in enumerate(ROMAN_NUMERALS, start=1)
-    ], columns=[c.name for c in columns])
+    df = pd.DataFrame(
+        [
+            (numeral, (index % 2) == 0, date(2018, 1, index), index + 0.5)
+            for index, numeral in enumerate(ROMAN_NUMERALS, start=1)
+        ],
+        columns=[c.name for c in columns],
+    )
 
     table = create_table(sesh, test_user, columns, caption="Roman numerals")
     buf = StringIO()
@@ -67,6 +83,33 @@ def ten_rows(test_user, sesh, upstream) -> Table:
     rows = table_io.csv_to_rows(buf, columns, dialect)
     backend = PGUserdataAdapter(sesh)
     backend.insert_table_data(table, columns, rows)
+
+    if upstream == "git":
+        repo_url = (
+            f"https://user:pass@example.com/{random_string()}/{random_string()}.git"
+        )
+        repo_path = local_repos_path / quote_plus(repo_url)
+        csv_filename = f"{random_string()}.csv"
+        csv_path = repo_path / csv_filename
+        gs = GitSource()
+        gs.init_repo(repo_path)
+        gs.initial_commit(repo_path)
+        df.to_csv(csv_path)
+        gs.run_git(["add", "."], cwd=repo_path)
+        gs.commit(repo_path)
+
+        last_version = gs.get_last_version(repo_path, csv_filename)
+
+        git_upstream = GithubSource(
+            last_version.last_changed,
+            bytes.fromhex(last_version.version_id),
+            repo_url=repo_url,
+            branch="main",
+            path=csv_filename,
+        )
+
+        svc.create_github_source(sesh, table.table_uuid, git_upstream)
+
     sesh.commit()
     return table
 
@@ -666,18 +709,17 @@ def test_overwrite__wrong_user(
         assert resp.status_code == 404
 
 
-def test_overwrite__read_only(sesh, client, test_user, ten_rows):
-    # (falsely) mark it read-only via git repo
-    svc.create_github_source(
-        sesh,
-        ten_rows.table_uuid,
-        GithubSource(
-            datetime.now(timezone.utc),
-            b"f" * 32,
-            f"https://example.com/{random_string()}.git",
-            "main",
-            "ten-rows.csv",
-        ),
+def test_overwrite__read_only(sesh, client, test_user, ten_rows, upstream):
+    if upstream is None:
+        pytest.skip("no upstream")
+    #  mark it read-only via git repo
+    git_upstream_obj = (
+        sesh.query(models.GithubUpstream)
+        .filter(models.GithubUpstream.table_uuid == ten_rows.table_uuid)
+        .one()
+    )
+    git_upstream_obj.https_repo_url = git_upstream_obj.https_repo_url.replace(
+        "user:pass", ""
     )
     sesh.commit()
 
@@ -733,20 +775,20 @@ def test_append__just_header(client, test_user, ten_rows):
     assert len(df) == 10
 
 
-def test_append__read_only(sesh, client, test_user, ten_rows):
-    # (falsely) mark it read-only via git repo
-    svc.create_github_source(
-        sesh,
-        ten_rows.table_uuid,
-        GithubSource(
-            datetime.now(timezone.utc),
-            b"f" * 32,
-            f"https://example.com/{random_string()}.git",
-            "main",
-            "ten-rows.csv",
-        ),
+def test_append__read_only(sesh, client, test_user, ten_rows, upstream):
+    if upstream is None:
+        pytest.skip("no upstream")
+    #  mark it read-only via git repo
+    git_upstream_obj = (
+        sesh.query(models.GithubUpstream)
+        .filter(models.GithubUpstream.table_uuid == ten_rows.table_uuid)
+        .one()
+    )
+    git_upstream_obj.https_repo_url = git_upstream_obj.https_repo_url.replace(
+        "user:pass", ""
     )
     sesh.commit()
+
     new_csv = "roman_numeral,is_even,as_date,as_float\n"
 
     with current_user(test_user):

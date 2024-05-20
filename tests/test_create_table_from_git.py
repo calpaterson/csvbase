@@ -1,7 +1,3 @@
-from pathlib import Path
-import contextlib
-from unittest import mock
-from typing import Generator
 from urllib.parse import quote_plus
 
 from csvbase.web.main.create_table import canonicalise_git_url, cookie_to_dict
@@ -10,7 +6,12 @@ from csvbase.follow.git import GitSource
 
 import pytest
 
-from .utils import parse_form, random_string, random_df, current_user
+from .utils import (
+    parse_form,
+    random_string,
+    random_df,
+    current_user,
+)
 
 
 @pytest.mark.parametrize(
@@ -57,30 +58,9 @@ def test_get_form_blank(client, test_user):
     assert resp.status_code == 200
 
 
-@contextlib.contextmanager
-def local_only_gitsource(local_repo_root: Path) -> Generator[None, None, None]:
-    """Monkey patches GitSource so that it tries to pull from local repos in
-    the given dir.
-
-    This is necessary to avoid uncontrolled IO to github during tests.
-
-    """
-    original_clone = GitSource.clone
-
-    def passthrough(self, url, branch, checkout_path):
-        local_path = local_repo_root / quote_plus(url)
-        original_clone(self, str(local_path), branch, checkout_path)
-
-    with mock.patch.object(GitSource, "clone", passthrough):
-        yield
-
-
-def test_create_table__happy(client, test_user, tmpdir):
-    local_repos = Path(tmpdir) / "local-repos"
-    local_repos.mkdir()
-
+def test_create_table__happy(client, test_user, local_repos_path):
     repo_url = f"https://github.com/calpaterson/{random_string()}"
-    repo_path = local_repos / quote_plus(repo_url + ".git")
+    repo_path = local_repos_path / quote_plus(repo_url + ".git")
     gs = GitSource()
     gs.init_repo(repo_path)
     gs.initial_commit(repo_path)
@@ -101,8 +81,7 @@ def test_create_table__happy(client, test_user, tmpdir):
         "data-licence": "0",
     }
     with current_user(test_user):
-        with local_only_gitsource(local_repos):
-            resp = client.post("/new-table/git", data=initial_form)
+        resp = client.post("/new-table/git", data=initial_form)
         assert resp.status_code == 302
         token = resp.headers["Location"].split("/")[-1]
         confirm_package = cookie_to_dict(

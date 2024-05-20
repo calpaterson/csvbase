@@ -8,6 +8,9 @@ from io import StringIO
 import re
 import contextlib
 from unittest import mock
+from pathlib import Path
+from urllib.parse import quote_plus
+from logging import getLogger
 
 from lxml import etree
 from lxml.cssselect import CSSSelector
@@ -29,10 +32,13 @@ from csvbase.value_objs import (
 )
 from csvbase.web.billing import svc as billing_svc
 from csvbase.web import func
+from csvbase.follow.git import GitSource
 
 from .value_objs import ExtendedUser
 
 test_data_path = path.join(path.dirname(__file__), "test-data")
+
+logger = getLogger(__name__)
 
 
 def random_string() -> str:
@@ -224,4 +230,23 @@ def current_user(user: User) -> Generator[None, None, None]:
     # context) which is ordinarily popped between requests but is not when
     # testing.
     with mock.patch.object(func, "_get_current_user_inner", return_value=user):
+        yield
+
+
+@contextlib.contextmanager
+def local_only_gitsource(local_repo_root: Path) -> Generator[None, None, None]:
+    """Monkey patches GitSource so that it tries to pull from local repos in
+    the given dir.
+
+    This is necessary to avoid uncontrolled IO to github during tests.
+
+    """
+    original_clone = GitSource.clone
+
+    def clone_passthrough(self, url, branch, checkout_path):
+        local_path = local_repo_root / quote_plus(url)
+        original_clone(self, str(local_path), branch, checkout_path)
+        logger.info("converted a clone from '%s' to '%s'", url, local_path)
+
+    with mock.patch.object(GitSource, "clone", clone_passthrough):
         yield

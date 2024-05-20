@@ -36,7 +36,7 @@ def raise_on_error(completed_process: subprocess.CompletedProcess) -> None:
 class GitSource:
     # In an ideal world, this would use some sort of library rather than
     # calling git as a subprocess.  However the most popular library, libgit2,
-    # it not able to do some of the things done below (eg "blobless" pulls) and
+    # doesn't support some of the things done below (eg "blobless" pulls) and
     # makes others very hard.
     def repos_dir(self) -> Path:
         """Returns the ~/.cache/csvbase/git-repos dir, creating it if

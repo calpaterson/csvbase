@@ -1,6 +1,7 @@
 from logging import DEBUG, basicConfig
 from datetime import date
 from unittest.mock import patch
+from pathlib import Path
 
 import pytest
 from passlib.context import CryptContext
@@ -14,7 +15,7 @@ from csvbase.db import get_db_url
 from csvbase.userdata import PGUserdataAdapter
 from csvbase.value_objs import Column, ColumnType, Table
 
-from .utils import make_user, create_table
+from .utils import make_user, create_table, local_only_gitsource
 
 
 @pytest.fixture(scope="session")
@@ -115,3 +116,11 @@ def private_table(test_user, module_sesh):
 def load_prohibited_usernames(module_sesh, app):
     svc.load_prohibited_usernames(module_sesh)
     module_sesh.commit()
+
+
+@pytest.fixture
+def local_repos_path(tmpdir):
+    local_repos = Path(tmpdir) / "local-repos"
+    local_repos.mkdir()
+    with local_only_gitsource(local_repos):
+        yield local_repos
