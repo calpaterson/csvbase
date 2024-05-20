@@ -699,6 +699,38 @@ def test_append__just_header(client, test_user, ten_rows):
     assert len(df) == 10
 
 
+def test_append__read_only(sesh, client, test_user, ten_rows):
+    # (falsely) mark it read-only via git repo
+    svc.create_github_source(
+        sesh,
+        ten_rows.table_uuid,
+        GithubSource(
+            datetime.now(timezone.utc),
+            b"f" * 32,
+            f"https://example.com/{random_string()}.git",
+            "main",
+            "ten-rows.csv",
+        ),
+    )
+    sesh.commit()
+    new_csv = "roman_numeral,is_even,as_date,as_float\n"
+
+    with current_user(test_user):
+        resp = client.post(
+            f"/{test_user.username}/{ten_rows.table_name}",
+            data=new_csv,
+        )
+        assert resp.status_code == 400
+        assert resp.json == {"error": "that table is read-only"}
+
+        get_resp = client.get(
+            f"/{test_user.username}/{ten_rows.table_name}",
+            headers={"Accept": "text/csv"},
+        )
+    df = pd.read_csv(BytesIO(get_resp.data))
+    assert len(df) == 10
+
+
 @pytest.fixture(
     scope="module",
     params=[
