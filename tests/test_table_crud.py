@@ -1,15 +1,16 @@
-from io import BytesIO, SEEK_END
+from io import BytesIO, SEEK_END, StringIO
 from datetime import date, datetime, timezone
 from unittest.mock import ANY
-from typing import Mapping, Optional
+from typing import Mapping, Optional, Generator
 
 import pandas as pd
 from pandas.testing import assert_frame_equal
 import pytest
 from werkzeug.wrappers.response import Response
 
-from csvbase import svc
-from csvbase.value_objs import ContentType, GithubSource
+from csvbase import svc, streams, table_io
+from csvbase.value_objs import ContentType, GithubSource, Table, Column, ColumnType
+from csvbase.userdata import PGUserdataAdapter
 
 from .conftest import ROMAN_NUMERALS
 from .utils import (
@@ -33,8 +34,41 @@ from .utils import (
     ],
 )
 def content_type(request):
+    """The content type to export in."""
     # FIXME: this should probably be called "Accept"
     yield request.param
+
+
+@pytest.fixture
+def upstream() -> Generator[Optional[GithubSource], None, None]:
+    yield None
+
+
+@pytest.fixture
+def ten_rows(test_user, sesh, upstream) -> Table:
+    """Experimental version of the original fixture that varies upstream."""
+    columns = [
+        Column(name="roman_numeral", type_=ColumnType.TEXT),
+        Column(name="is_even", type_=ColumnType.BOOLEAN),
+        Column(name="as_date", type_=ColumnType.DATE),
+        Column(name="as_float", type_=ColumnType.FLOAT),
+    ]
+
+    df = pd.DataFrame([
+        (numeral, (index % 2) == 0, date(2018, 1, index), index + 0.5)
+        for index, numeral in enumerate(ROMAN_NUMERALS, start=1)
+    ], columns=[c.name for c in columns])
+
+    table = create_table(sesh, test_user, columns, caption="Roman numerals")
+    buf = StringIO()
+    with streams.rewind(buf):
+        df.to_csv(buf, index=0)
+    dialect, columns = streams.peek_csv(buf)
+    rows = table_io.csv_to_rows(buf, columns, dialect)
+    backend = PGUserdataAdapter(sesh)
+    backend.insert_table_data(table, columns, rows)
+    sesh.commit()
+    return table
 
 
 def get_table(
