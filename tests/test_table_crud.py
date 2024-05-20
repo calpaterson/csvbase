@@ -95,7 +95,7 @@ def ten_rows(test_user, sesh, upstream, local_repos_path) -> Table:
         gs.init_repo(repo_path)
         gs.initial_commit(repo_path)
         df.to_csv(csv_path)
-        gs.run_git(["add", "."], cwd=repo_path)
+        gs._run_git(["add", "."], cwd=repo_path)
         gs.commit(repo_path)
 
         last_version = gs.get_last_version(repo_path, csv_filename)

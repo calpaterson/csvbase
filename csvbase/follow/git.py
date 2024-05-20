@@ -47,8 +47,8 @@ class GitSource:
         rv.mkdir(parents=True, exist_ok=True)
         return rv
 
-    def run_git(self, git_args: Sequence[str], **kwargs) -> subprocess.CompletedProcess:
-        """Run a subprocess, checking that it exited happily."""
+    def _run_git(self, git_args: Sequence[str], **kwargs) -> subprocess.CompletedProcess:
+        """Run git as a subprocess, checking that it exited happily."""
         kwargs["capture_output"] = True
         command = ["git"]
         command.extend(git_args)
@@ -68,7 +68,7 @@ class GitSource:
             "--filter=blob:none",
             str(checkout_path),
         ]
-        self.run_git(git_args, cwd=checkout_path.parent)
+        self._run_git(git_args, cwd=checkout_path.parent)
         self.set_identity(checkout_path)
 
     def init_repo(self, repo_path: Path) -> None:
@@ -77,7 +77,7 @@ class GitSource:
         For compatibility with Github, the initial branch is 'main'.
 
         """
-        self.run_git(
+        self._run_git(
             ["init", "--initial-branch=main", str(repo_path)], cwd=repo_path.parent
         )
         self.set_identity(repo_path)
@@ -88,7 +88,7 @@ class GitSource:
         Mainly useful for testing at this point.
 
         """
-        self.run_git(["commit", "--allow-empty", "-m", "Initial commit"], cwd=repo_path)
+        self._run_git(["commit", "--allow-empty", "-m", "Initial commit"], cwd=repo_path)
 
     def commit(self, repo_path: Path, message: str = "csvbase commit") -> None:
         """Commit the current state of the repo.
@@ -97,13 +97,13 @@ class GitSource:
         commit.
 
         """
-        self.run_git(["commit", "-a", "-m", message], cwd=repo_path)
+        self._run_git(["commit", "-a", "-m", message], cwd=repo_path)
 
     def set_identity(self, repo_path: Path) -> None:
         """Set the git author and author email."""
-        self.run_git(["config", "--local", "user.name", "csvbase"], cwd=repo_path)
+        self._run_git(["config", "--local", "user.name", "csvbase"], cwd=repo_path)
         # FIXME: this email address should be configurable
-        self.run_git(
+        self._run_git(
             ["config", "--local", "user.email", "git@csvbase.com"], cwd=repo_path
         )
 
@@ -112,17 +112,17 @@ class GitSource:
         # in order to handle rebased/changed history on the remote, this does
         # not pull but fetches and then resets to match the remote branch
         fetch_git_args = ["fetch", "origin", branch]
-        self.run_git(fetch_git_args, cwd=repo_path)
+        self._run_git(fetch_git_args, cwd=repo_path)
 
         reset_git_args = ["reset", "--hard", f"origin/{branch}"]
-        self.run_git(reset_git_args, cwd=repo_path)
+        self._run_git(reset_git_args, cwd=repo_path)
 
     def get_last_version(self, repo_path: Path, file_path: str) -> UpstreamVersion:
         """Gets the UpstreamVersion for a specific file (that must be inside a
         repo)."""
         # Get the last version.  Possible with pygit2 but quite difficult.
         git_args = ["log", "-n1", "--format=%H|%cI", file_path]
-        completed_process = self.run_git(git_args, cwd=repo_path)
+        completed_process = self._run_git(git_args, cwd=repo_path)
         raise_on_error(completed_process)
         sha, last_commit_str = (
             completed_process.stdout.decode("utf-8").strip().split("|")

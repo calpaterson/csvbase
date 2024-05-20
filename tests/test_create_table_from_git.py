@@ -68,7 +68,7 @@ def test_create_table__happy(client, test_user, local_repos_path):
     expected_df = random_df()
     with (repo_path / "test.csv").open("wb") as csv_file:
         expected_df.to_csv(csv_file, index=False)
-    gs.run_git(["add", "."], cwd=repo_path)
+    gs._run_git(["add", "."], cwd=repo_path)
     gs.commit(repo_path)
 
     # POST to create table form
