@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 import itertools
 
-from csvbase.value_objs import ColumnType, GithubSource
+from csvbase.value_objs import ColumnType, GitUpstream
 from csvbase.conv import from_string_to_python
 
 import pytest
@@ -31,7 +31,7 @@ def test_bool_parsing_from_string(bool_str, expected):
 
 
 def test_github_source__json_roundtrip():
-    source = GithubSource(
+    source = GitUpstream(
         last_modified=datetime(2018, 1, 3),
         last_sha=b"f" * 32,
         repo_url="https://github.com/calpaterson/csvbase.get",
@@ -40,6 +40,6 @@ def test_github_source__json_roundtrip():
     )
 
     assert (
-        GithubSource.from_json_dict(json.loads(json.dumps(source.to_json_dict())))
+        GitUpstream.from_json_dict(json.loads(json.dumps(source.to_json_dict())))
         == source
     )

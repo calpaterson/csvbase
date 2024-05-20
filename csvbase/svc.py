@@ -34,7 +34,7 @@ from .value_objs import (
     RowCount,
     Usage,
     Backend,
-    GithubSource,
+    GitUpstream,
     UpstreamVersion,
 )
 
@@ -196,9 +196,9 @@ def get_table(sesh: Session, username: str, table_name: str) -> Table:
     backend = PGUserdataAdapter(sesh)
     columns = backend.get_columns(table_model.table_uuid)
     row_count = backend.count(table_model.table_uuid)
-    source: Optional[models.GithubUpstream] = (
-        sesh.query(models.GithubUpstream)
-        .filter(models.GithubUpstream.table_uuid == table_model.table_uuid)
+    source: Optional[models.GitUpstream] = (
+        sesh.query(models.GitUpstream)
+        .filter(models.GitUpstream.table_uuid == table_model.table_uuid)
         .first()
     )
     unique_column_names = (
@@ -232,8 +232,8 @@ def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> 
             models.Copy.to_uuid == table_model.table_uuid,
         )
     ).delete()
-    sesh.query(models.GithubUpstream).filter(
-        models.GithubUpstream.table_uuid == table_model.table_uuid
+    sesh.query(models.GitUpstream).filter(
+        models.GitUpstream.table_uuid == table_model.table_uuid
     ).delete()
     sesh.delete(table_model)
     backend = PGUserdataAdapter(sesh)
@@ -280,22 +280,22 @@ def get_key(sesh: Session, table_uuid: UUID) -> Sequence[str]:
     return list(t[0] for t in rs)
 
 
-def create_github_source(sesh: Session, table_uuid: UUID, source: GithubSource) -> None:
+def create_git_upstream(sesh: Session, table_uuid: UUID, upstream: GitUpstream) -> None:
     sesh.add(
-        models.GithubUpstream(
+        models.GitUpstream(
             table_uuid=table_uuid,
-            last_sha=source.last_sha,
-            last_modified=source.last_modified,
-            https_repo_url=source.repo_url,
-            branch=source.branch,
-            path=source.path,
+            last_sha=upstream.last_sha,
+            last_modified=upstream.last_modified,
+            https_repo_url=upstream.repo_url,
+            branch=upstream.branch,
+            path=upstream.path,
         )
     )
 
 
 def set_version(sesh: Session, table_uuid: UUID, version: UpstreamVersion) -> None:
-    sesh.query(models.GithubUpstream).where(  # type: ignore
-        models.GithubUpstream.table_uuid == table_uuid
+    sesh.query(models.GitUpstream).where(  # type: ignore
+        models.GitUpstream.table_uuid == table_uuid
     ).update(
         {
             "last_sha": bytes.fromhex(version.version_id),
@@ -472,9 +472,9 @@ def tables_for_user(
     sesh: Session, user_uuid: UUID, include_private: bool = False
 ) -> Iterable[Table]:
     rp = (
-        sesh.query(models.Table, models.User.username, models.GithubUpstream)
+        sesh.query(models.Table, models.User.username, models.GitUpstream)
         .join(models.User)
-        .outerjoin(models.GithubUpstream)
+        .outerjoin(models.GitUpstream)
         .filter(models.Table.user_uuid == user_uuid)
         .order_by(models.Table.created.desc())
     )
@@ -499,7 +499,7 @@ def _make_table(
     table_model: models.Table,
     columns: Sequence[Column],
     row_count: RowCount,
-    source: Optional[models.GithubUpstream],
+    source: Optional[models.GitUpstream],
     unique_column_names: Optional[Sequence[str]],
 ) -> Table:
     if unique_column_names is not None:
@@ -517,18 +517,18 @@ def _make_table(
         created=table_model.created,
         row_count=row_count,
         last_changed=table_model.last_changed,
-        external_source=_make_source(source),
+        upstream=_make_source(source),
         key=key,
     )
 
 
 def _make_source(
-    source_model: Optional[models.GithubUpstream],
-) -> Optional[GithubSource]:
+    source_model: Optional[models.GitUpstream],
+) -> Optional[GitUpstream]:
     if source_model is None:
         return None
     else:
-        return GithubSource(
+        return GitUpstream(
             last_sha=source_model.last_sha,
             last_modified=source_model.last_modified,
             repo_url=source_model.https_repo_url,
@@ -766,16 +766,16 @@ def record_copy(sesh: Session, existing_uuid: UUID, new_uuid: UUID) -> None:
     sesh.add(models.Copy(from_uuid=existing_uuid, to_uuid=new_uuid))
 
 
-def git_tables(sesh: Session) -> Iterable[Tuple[Table, GithubSource]]:
+def git_tables(sesh: Session) -> Iterable[Tuple[Table, GitUpstream]]:
     """Return all external tables that come from git."""
     rows = (
-        sesh.query(models.Table, models.User.username, models.GithubUpstream)
+        sesh.query(models.Table, models.User.username, models.GitUpstream)
         .join(models.User, models.User.user_uuid == models.Table.user_uuid)
         .join(
-            models.GithubUpstream,
-            models.Table.table_uuid == models.GithubUpstream.table_uuid,
+            models.GitUpstream,
+            models.Table.table_uuid == models.GitUpstream.table_uuid,
         )
-        .where(~models.GithubUpstream.https_repo_url.like("https://example.com%"))
+        .where(~models.GitUpstream.https_repo_url.like("https://example.com%"))
     )
     backend = PGUserdataAdapter(sesh)
     for table_model, username, git_upstream_model in rows:
@@ -794,5 +794,5 @@ def git_tables(sesh: Session) -> Iterable[Tuple[Table, GithubSource]]:
             git_upstream_model,
             unique_column_names,
         )
-        ext_source = cast(GithubSource, table.external_source)
+        ext_source = cast(GitUpstream, table.upstream)
         yield (table, ext_source)

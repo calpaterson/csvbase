@@ -217,9 +217,9 @@ def ensure_not_read_only(table: Table) -> None:
     modifying metadata).
 
     """
-    source = table.external_source
-    if source is not None:
-        if source.is_read_only():
+    upstream = table.upstream
+    if upstream is not None:
+        if upstream.is_read_only():
             raise exc.ReadOnlyException()
 
 

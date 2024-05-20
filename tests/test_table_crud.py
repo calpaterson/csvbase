@@ -15,7 +15,7 @@ from csvbase.value_objs import (
     Table,
     Column,
     ColumnType,
-    GithubSource,
+    GitUpstream,
 )
 from csvbase.userdata import PGUserdataAdapter
 from csvbase.follow.git import GitSource
@@ -100,7 +100,7 @@ def ten_rows(test_user, sesh, upstream, local_repos_path) -> Table:
 
         last_version = gs.get_last_version(repo_path, csv_filename)
 
-        git_upstream = GithubSource(
+        git_upstream = GitUpstream(
             last_version.last_changed,
             bytes.fromhex(last_version.version_id),
             repo_url=repo_url,
@@ -108,7 +108,7 @@ def ten_rows(test_user, sesh, upstream, local_repos_path) -> Table:
             path=csv_filename,
         )
 
-        svc.create_github_source(sesh, table.table_uuid, git_upstream)
+        svc.create_git_upstream(sesh, table.table_uuid, git_upstream)
 
     sesh.commit()
     return table
@@ -714,8 +714,8 @@ def test_overwrite__read_only(sesh, client, test_user, ten_rows, upstream):
         pytest.skip("no upstream")
     #  mark it read-only via git repo
     git_upstream_obj = (
-        sesh.query(models.GithubUpstream)
-        .filter(models.GithubUpstream.table_uuid == ten_rows.table_uuid)
+        sesh.query(models.GitUpstream)
+        .filter(models.GitUpstream.table_uuid == ten_rows.table_uuid)
         .one()
     )
     git_upstream_obj.https_repo_url = git_upstream_obj.https_repo_url.replace(
@@ -780,8 +780,8 @@ def test_append__read_only(sesh, client, test_user, ten_rows, upstream):
         pytest.skip("no upstream")
     #  mark it read-only via git repo
     git_upstream_obj = (
-        sesh.query(models.GithubUpstream)
-        .filter(models.GithubUpstream.table_uuid == ten_rows.table_uuid)
+        sesh.query(models.GitUpstream)
+        .filter(models.GitUpstream.table_uuid == ten_rows.table_uuid)
         .one()
     )
     git_upstream_obj.https_repo_url = git_upstream_obj.https_repo_url.replace(

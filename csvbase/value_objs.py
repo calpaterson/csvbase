@@ -134,7 +134,7 @@ class Table:
     row_count: RowCount
     last_changed: datetime
     key: Optional[Sequence["Column"]]
-    external_source: Optional["GithubSource"] = None
+    upstream: Optional["GitUpstream"] = None
 
     def has_caption(self) -> bool:
         return len(self.caption.strip()) > 0
@@ -153,7 +153,7 @@ class Table:
 
 
 @dataclass
-class GithubSource:
+class GitUpstream:
     last_modified: datetime
     last_sha: bytes
     repo_url: str
@@ -186,12 +186,12 @@ class GithubSource:
         return json_dict
 
     @staticmethod
-    def from_json_dict(json_dict: Dict[str, Any]) -> "GithubSource":
+    def from_json_dict(json_dict: Dict[str, Any]) -> "GitUpstream":
         # no mutations
         parsed: Dict[str, Any] = {}
         parsed["last_sha"] = bytes.fromhex(json_dict["last_sha"])
         parsed["last_modified"] = datetime.fromisoformat(json_dict["last_modified"])
-        return GithubSource(**{**json_dict, **parsed})
+        return GitUpstream(**{**json_dict, **parsed})
 
     def is_read_only(self) -> bool:
         return self._parsed_url().username == ""

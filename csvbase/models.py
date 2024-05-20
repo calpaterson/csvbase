@@ -150,8 +150,8 @@ class Table(Base):
     backend_obj: "RelationshipProperty[TableBackend]" = relationship(
         "TableBackend", uselist=False, backref="table_objs"
     )
-    github_upstream_obj: "RelationshipProperty[GithubUpstream]" = relationship(
-        "GithubUpstream", uselist=False, backref="table_objs"
+    git_upstream_obj: "RelationshipProperty[GitUpstream]" = relationship(
+        "GitUpstream", uselist=False, backref="table_objs"
     )
 
 
@@ -165,9 +165,8 @@ class UniqueColumn(Base):
     column_name = Column(satypes.String, nullable=False, primary_key=True)
 
 
-# FIXME: should be called "git upstream"
-class GithubUpstream(Base):
-    # FIXME: should be called "git_upstreams"
+class GitUpstream(Base):
+    # FIXME: table should be called "git_upstreams"
     __tablename__ = "github_follows"
     __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
 

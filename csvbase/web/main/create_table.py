@@ -24,7 +24,7 @@ from ...value_objs import (
     Encoding,
     DataLicence,
     Backend,
-    GithubSource,
+    GitUpstream,
 )
 from ...streams import UserSubmittedCSVData
 from ..billing import svc as billing_svc
@@ -99,7 +99,7 @@ class CreateTableFromGit(MethodView):
                 file_id = temp.store_temp_file(git_file.filelike)
 
                 data_licence = DataLicence(request.form.get("data-licence", type=int))
-        github_source = GithubSource(
+        github_source = GitUpstream(
             last_modified=git_file.version.last_changed,
             last_sha=bytes.fromhex(git_file.version.version_id),
             repo_url=repo,
@@ -179,7 +179,7 @@ class CreateTableConfirm(MethodView):
         ]
         if len(unique_columns) > 0:
             svc.set_key(sesh, table_uuid, unique_columns)
-        source = GithubSource.from_json_dict(confirm_package["follow"])
+        source = GitUpstream.from_json_dict(confirm_package["follow"])
         gh = GitSource()
         with gh.retrieve(source.repo_url, source.branch, source.path) as gh_f:
 
@@ -187,7 +187,7 @@ class CreateTableConfirm(MethodView):
             source.last_sha = bytes.fromhex(gh_f.version.version_id)
             source.last_modified = gh_f.version.last_changed
 
-            svc.create_github_source(sesh, table_uuid, source)
+            svc.create_git_upstream(sesh, table_uuid, source)
 
             backend = PGUserdataAdapter(sesh)
             backend.create_table(table_uuid, columns)
