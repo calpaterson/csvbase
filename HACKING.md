@@ -11,7 +11,7 @@ You can always [write to me for help](mailto:cal@calpaterson.com).
 
 ## Getting started, with Docker
 
-Running `docker-compose up` should bring up a working instance of the system.
+Running `docker compose up` should bring up a working instance of the system.
 
 ## Getting started, with virtual environments
 
