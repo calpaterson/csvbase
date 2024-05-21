@@ -56,8 +56,8 @@ app_base. #}
                   </li>
 
                   <li class="nav-item">
-                    <a class="nav-link {% if request.endpoint == 'csvbase.convert' %}active{% endif %}"
-                       href="{{ url_for('csvbase.convert') }}">Convert</a>
+                    <a class="nav-link {% if request.endpoint == 'faq.faq_index' %}active{% endif %}"
+                       href="{{ url_for('faq.faq_index') }}">FAQ</a>
                   </li>
 
                   {% if "billing" in blueprints %}
