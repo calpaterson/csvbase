@@ -88,17 +88,22 @@ def ten_rows(test_user, sesh, upstream, local_repos_path) -> Table:
         repo_url = (
             f"https://user:pass@example.com/{random_string()}/{random_string()}.git"
         )
-        repo_path = local_repos_path / quote_plus(repo_url)
+        local_repo_path = local_repos_path / quote_plus(repo_url)
         csv_filename = f"{random_string()}.csv"
-        csv_path = repo_path / csv_filename
+        csv_path = local_repo_path / csv_filename
         gs = GitSource()
-        gs.init_repo(repo_path)
-        gs.initial_commit(repo_path)
+        gs.init_repo(local_repo_path)
+        gs.initial_commit(local_repo_path)
         df.to_csv(csv_path)
-        gs._run_git(["add", "."], cwd=repo_path)
-        gs.commit(repo_path)
+        gs._run_git(["add", "."], cwd=local_repo_path)
+        gs._run_git(
+            ["config", "--local", "receive.denyCurrentBranch", "warn"],
+            cwd=local_repo_path,
+        )
 
-        last_version = gs.get_last_version(repo_path, csv_filename)
+        gs.commit(local_repo_path)
+
+        last_version = gs.get_last_version(local_repo_path, csv_filename)
 
         git_upstream = GitUpstream(
             last_version.last_changed,

@@ -258,6 +258,7 @@ class TableView(MethodView):
             backend.insert_table_data(table, csv_columns, rows)
             status = 201
             message = f"created {username}/{table_name}"
+        svc.update_upstream(sesh, table)
         svc.mark_table_changed(sesh, table.table_uuid)
         sesh.commit()
         response = jsonify({"message": message})
@@ -897,6 +898,7 @@ def create_row(username: str, table_name: str) -> Response:
     backend = PGUserdataAdapter(sesh)
     row_id = backend.insert_row(table.table_uuid, row)
     svc.mark_table_changed(sesh, table.table_uuid)
+    svc.update_upstream(sesh, table)
     sesh.commit()
 
     row[ROW_ID_COLUMN] = row_id
@@ -977,6 +979,7 @@ class RowView(MethodView):
         backend = PGUserdataAdapter(sesh)
         if not backend.update_row(table.table_uuid, row_id, row):
             raise exc.RowDoesNotExistException(username, table_name, row_id)
+        svc.update_upstream(sesh, table)
         svc.mark_table_changed(sesh, table.table_uuid)
         sesh.commit()
         return jsonify(body)
@@ -1025,6 +1028,7 @@ class RowView(MethodView):
         row = form_to_row(table.columns, request.form)
         backend = PGUserdataAdapter(sesh)
         backend.update_row(table.table_uuid, row_id, row)
+        svc.update_upstream(sesh, table)
         svc.mark_table_changed(sesh, table.table_uuid)
         sesh.commit()
         flash(f"Updated row {row_id}")
@@ -1037,6 +1041,7 @@ class RowView(MethodView):
         backend = PGUserdataAdapter(sesh)
         if not backend.delete_row(table.table_uuid, row_id):
             raise exc.RowDoesNotExistException(username, table_name, row_id)
+        svc.update_upstream(sesh, table)
         svc.mark_table_changed(sesh, table.table_uuid)
         sesh.commit()
         response = make_response()
@@ -1086,6 +1091,7 @@ def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Resp
     backend = PGUserdataAdapter(sesh)
     if not backend.delete_row(table.table_uuid, row_id):
         raise exc.RowDoesNotExistException(username, table_name, row_id)
+    svc.update_upstream(sesh, table)
     svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()
     flash(f"Deleted row {row_id}")

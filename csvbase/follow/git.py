@@ -5,6 +5,8 @@ import subprocess
 from pathlib import Path
 import hashlib
 import re
+import shutil
+from urllib.parse import urlparse
 
 from platformdirs import user_cache_dir
 from dateutil.parser import isoparse
@@ -13,6 +15,10 @@ from dateutil.parser import isoparse
 from csvbase.value_objs import UpstreamVersion, UpstreamFile
 
 logger = getLogger(__name__)
+
+# Linux supports up to 200 for a filename but paths must be >4096, hopefully
+# this keeps us well inside that
+SANE_MAX_FILENAME_LENGTH = 200
 
 
 def raise_on_error(completed_process: subprocess.CompletedProcess) -> None:
@@ -33,21 +39,38 @@ def raise_on_error(completed_process: subprocess.CompletedProcess) -> None:
     return None
 
 
+def get_repos_dir() -> Path:
+    """Returns the ~/.cache/csvbase/git-repos dir, creating it if
+    necessary.
+
+    """
+    rv = Path(user_cache_dir("csvbase")) / "git-repos"
+    rv.mkdir(parents=True, exist_ok=True)
+    return rv
+
+
+def get_repo_path(url: str, branch: str) -> Path:
+    """Returns the path that the repo should be stored in."""
+
+    combined = "|".join([url, branch])
+    hexdigest = hashlib.blake2b(combined.encode("utf-8")).hexdigest()
+    parsed_url = urlparse(url)
+    prefix = f"{parsed_url.netloc}{parsed_url.path}_{branch}"[
+        : SANE_MAX_FILENAME_LENGTH - len(hexdigest) - 1
+    ]
+    dirname = re.sub("[^A-Za-z0-9]", "_", f"{prefix}-{hexdigest}")
+    return get_repos_dir() / dirname
+
+
+# FIXME: this should be called "GitUpstreamAdapter" and take the repo url as an argument
 class GitSource:
     # In an ideal world, this would use some sort of library rather than
     # calling git as a subprocess.  However the most popular library, libgit2,
     # doesn't support some of the things done below (eg "blobless" pulls) and
     # makes others very hard.
-    def repos_dir(self) -> Path:
-        """Returns the ~/.cache/csvbase/git-repos dir, creating it if
-        necessary.
-
-        """
-        rv = Path(user_cache_dir("csvbase")) / "git-repos"
-        rv.mkdir(parents=True, exist_ok=True)
-        return rv
-
-    def _run_git(self, git_args: Sequence[str], **kwargs) -> subprocess.CompletedProcess:
+    def _run_git(
+        self, git_args: Sequence[str], **kwargs
+    ) -> subprocess.CompletedProcess:
         """Run git as a subprocess, checking that it exited happily."""
         kwargs["capture_output"] = True
         command = ["git"]
@@ -82,13 +105,18 @@ class GitSource:
         )
         self.set_identity(repo_path)
 
+    def push(self, repo_path: Path) -> None:
+        self._run_git(["push"], cwd=repo_path)
+
     def initial_commit(self, repo_path: Path) -> None:
         """Create the standard 'Initial commit'.
 
         Mainly useful for testing at this point.
 
         """
-        self._run_git(["commit", "--allow-empty", "-m", "Initial commit"], cwd=repo_path)
+        self._run_git(
+            ["commit", "--allow-empty", "-m", "Initial commit"], cwd=repo_path
+        )
 
     def commit(self, repo_path: Path, message: str = "csvbase commit") -> None:
         """Commit the current state of the repo.
@@ -130,22 +158,20 @@ class GitSource:
         last_commit_dt = isoparse(last_commit_str)
         return UpstreamVersion(last_changed=last_commit_dt, version_id=sha)
 
-    def get_repo_path(self, url: str, branch: str) -> Path:
-        """Returns the path that the repo should be stored in."""
-        combined = "|".join([url, branch])
-        hexdigest = hashlib.blake2b(combined.encode("utf-8")).hexdigest()
-        dirname = re.sub("[^A-Za-z0-9]", "_", f"{combined}_{hexdigest}")
-        return self.repos_dir() / dirname
+    def _ensure_local_repo_up_to_date(
+        self, repo_url: str, branch: str, repo_path: Path
+    ) -> None:
+        if not repo_path.exists():
+            self.clone(repo_url, branch, repo_path)
+        else:
+            self.pull(repo_path, branch)
 
     @contextlib.contextmanager
     def retrieve(
         self, repo_url: str, branch: str, path: str
     ) -> Generator[UpstreamFile, None, None]:
-        repo_path = self.get_repo_path(repo_url, branch)
-        if not repo_path.exists():
-            self.clone(repo_url, branch, repo_path)
-        else:
-            self.pull(repo_path, branch)
+        repo_path = get_repo_path(repo_url, branch)
+        self._ensure_local_repo_up_to_date(repo_url, branch, repo_path)
         upstream_version = self.get_last_version(repo_path, path)
 
         # full_path: the path from cwd
@@ -155,3 +181,12 @@ class GitSource:
                 upstream_version,
                 retrieved_file,
             )
+
+    def update(self, repo_url: str, branch: str, path: str, filelike) -> None:
+        repo_path = get_repo_path(repo_url, branch)
+        self._ensure_local_repo_up_to_date(repo_url, branch, repo_path)
+        full_path = repo_path / path
+        with open(full_path, "wb") as output_file:
+            shutil.copyfileobj(filelike, output_file)
+        self.commit(repo_path)
+        self.push(repo_path)

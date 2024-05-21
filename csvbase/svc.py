@@ -23,7 +23,7 @@ from sqlalchemy.sql.expression import table as satable
 from sqlalchemy.dialects.postgresql import insert as pginsert
 import importlib_resources
 
-from . import exc, models
+from . import exc, models, table_io
 from .userdata import PGUserdataAdapter
 from .value_objs import (
     Column,
@@ -37,6 +37,7 @@ from .value_objs import (
     GitUpstream,
     UpstreamVersion,
 )
+from .follow.git import GitSource
 
 logger = getLogger(__name__)
 
@@ -291,6 +292,19 @@ def create_git_upstream(sesh: Session, table_uuid: UUID, upstream: GitUpstream) 
             path=upstream.path,
         )
     )
+
+
+def update_upstream(sesh: Session, table: Table) -> None:
+    """Send the userdata to the upstream (if there is one)."""
+    upstream = table.upstream
+    if upstream is not None:
+        gua = GitSource()
+        backend = PGUserdataAdapter(sesh)
+        columns = backend.get_columns(table.table_uuid)
+        rows = backend.table_as_rows(table.table_uuid)
+        buf = table_io.rows_to_csv(columns, rows)
+        gua.update(upstream.repo_url, upstream.branch, upstream.path, buf)
+        logger.info("updated '%s'", upstream.repo_url)
 
 
 def set_version(sesh: Session, table_uuid: UUID, version: UpstreamVersion) -> None:
