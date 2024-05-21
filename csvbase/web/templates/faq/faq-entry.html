@@ -5,11 +5,16 @@
   <div class="container">
     <div class="row">
       <div class="col-lg-8 offset-lg-2">
-        <h1 class="py-2">{{ entry.title }}</h1>
+        <h1 class="text-center py-2">{{ entry.title }}</h1>
       </div>
     </div>
     <div class="row">
       <div class="col-lg-8 offset-lg-2">
+        <p class="fst-italic text-center">{{ entry.description }}</p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-lg-8 offset-lg-2 faq-entry-md">
         {{ rendered|safe }}
       </div>
     </div>

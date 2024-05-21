@@ -112,3 +112,7 @@ input.table-pastable {
     font-family: monospace;
     font-size: smaller;
 }
+
+.faq-entry-md img {
+    max-width: 100%;
+}
