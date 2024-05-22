@@ -236,6 +236,9 @@ def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> 
     sesh.query(models.GitUpstream).filter(
         models.GitUpstream.table_uuid == table_model.table_uuid
     ).delete()
+    sesh.query(models.UniqueColumn).filter(
+        models.UniqueColumn.table_uuid == table_model.table_uuid
+    ).delete()
     sesh.delete(table_model)
     backend = PGUserdataAdapter(sesh)
     backend.drop_table(table_model.table_uuid)
