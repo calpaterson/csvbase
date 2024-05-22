@@ -7,6 +7,7 @@ import io
 from logging import getLogger
 from typing import List, Tuple, Dict, Mapping
 import secrets
+from urllib.parse import urlparse, ParseResult
 
 import giturlparse
 from flask.views import MethodView
@@ -67,9 +68,23 @@ def canonicalise_git_url(input_url: str) -> str:
         git_url = giturlparse.parse(input_url)
         if git_url.platform != "github":
             raise exc.InvalidRequest()
+
+        parsed_url = urlparse(git_url.url2https)
+        # this is necessary because giturlparse strips access tokens and we
+        # need to put them back
         if hasattr(git_url, "access_token") and git_url.access_token != "":
-            raise exc.InvalidRequest()
-        return git_url.url2https
+            netloc_with_auth = (
+                f"{git_url.username}:{git_url.access_token}@{parsed_url.netloc}"
+            )
+            parsed_url = ParseResult(
+                scheme=parsed_url.scheme,
+                netloc=netloc_with_auth,
+                path=parsed_url.path,
+                query=parsed_url.query,
+                params=parsed_url.params,
+                fragment=parsed_url.fragment,
+            )
+        return parsed_url.geturl()
     except AttributeError:
         logger.warning("unable to parse git url: '%s'", input_url)
         raise exc.InvalidRequest()

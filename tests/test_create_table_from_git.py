@@ -29,6 +29,11 @@ from .utils import (
             "https://github.com/calpaterson/csvbase.git",
             "https://github.com/calpaterson/csvbase.git",
         ),
+        pytest.param(
+            "https://user:1234@github.com/some-user/a-repo.git",
+            "https://user:1234@github.com/some-user/a-repo.git",
+            id="auth token",
+        ),
     ],
 )
 def test_canonicalise_git_url(inp, expected_output):
@@ -41,9 +46,6 @@ def test_canonicalise_git_url(inp, expected_output):
         pytest.param("gasdasdasd", id="garbage"),
         pytest.param(
             "https://my-internal-git-server/some-user/a-repo.git", id="internal server"
-        ),
-        pytest.param(
-            "https://user:1234@github.com/some-user/a-repo.git", id="auth token"
         ),
     ],
 )
