@@ -1,5 +1,6 @@
 graft csvbase/web/templates
 graft csvbase/web/static
+graft csvbase/web/faq/entries
 include requirements.txt
 include requirements-test.txt
 include csvbase/VERSION
