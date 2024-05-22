@@ -43,3 +43,68 @@ def test_github_source__json_roundtrip():
         GitUpstream.from_json_dict(json.loads(json.dumps(source.to_json_dict())))
         == source
     )
+
+
+@pytest.mark.parametrize(
+    "repo_url, branch, expected",
+    [
+        (
+            "https://github.com/calpaterson/csvbase.git",
+            "main",
+            "git+https://github.com/calpaterson/csvbase.git@main",
+        ),
+        pytest.param(
+            "https://user:pass@github.com/calpaterson/csvbase.git",
+            "main",
+            "git+https://github.com/calpaterson/csvbase.git@main",
+            id="auth in url",
+        ),
+    ],
+)
+def test_git_upstream__pretty_ref(repo_url, branch, expected):
+    gu = GitUpstream(datetime(2018, 1, 3), b"f" * 32, repo_url, branch, "test.csv")
+    assert gu.pretty_ref() == expected
+
+
+@pytest.mark.parametrize(
+    "repo_url, last_sha, expected",
+    [
+        (
+            "https://github.com/calpaterson/csvbase.git",
+            b"f" * 32,
+            "https://github.com/calpaterson/csvbase/commit/" + (b"f" * 32).hex(),
+        ),
+        pytest.param(
+            "https://user:pass@github.com/calpaterson/csvbase.git",
+            b"f" * 32,
+            "https://github.com/calpaterson/csvbase/commit/" + (b"f" * 32).hex(),
+            id="auth in url",
+        ),
+    ],
+)
+def test_git_upstream__gh_commit_link(repo_url, last_sha, expected):
+    gu = GitUpstream(datetime(2018, 1, 3), last_sha, repo_url, "main", "test.csv")
+    assert gu.github_commit_link() == expected
+
+
+@pytest.mark.parametrize(
+    "repo_url, branch, path, expected",
+    [
+        (
+            "https://github.com/calpaterson/csvbase.git",
+            "wip",
+            "examples/moocows.csv",
+            "https://github.com/calpaterson/csvbase/blob/wip/examples/moocows.csv",
+        ),
+        pytest.param(
+            "https://user:pass@github.com/calpaterson/csvbase.git",
+            "main",
+            "examples/moocows.csv",
+            "https://github.com/calpaterson/csvbase/blob/main/examples/moocows.csv",
+            id="auth in url",
+        ),
+    ],
+)
+def test_git_upstream__gh_link(repo_url, branch, path, expected):
+    gu = GitUpstream(datetime(2018, 1, 3), b"f" * 32, repo_url, branch, path)
+    assert gu.github_file_link() == expected

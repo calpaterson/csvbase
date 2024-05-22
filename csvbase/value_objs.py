@@ -166,16 +166,18 @@ class GitUpstream:
     def version(self) -> "UpstreamVersion":
         return UpstreamVersion(self.last_modified, self.last_sha.hex())
 
-    def link(self) -> str:
+    def pretty_ref(self) -> str:
+        as_https_url = self._parsed_url().url2https
+        return f"git+{as_https_url}@{self.branch}"
+
+    def github_file_link(self) -> str:
+        """Return a url to the upstream file on github.com."""
         url = self._parsed_url().url2https[:-4]
         url += f"/blob/{self.branch}/{self.path}"
         return url
 
-    def pretty_ref(self) -> str:
-        as_git_url = self._parsed_url().url2git
-        return as_git_url
-
-    def commit_link(self) -> str:
+    def github_commit_link(self) -> str:
+        """Return a url to the last commit we know of on github.com."""
         base_url = self._parsed_url().url2https[:-4]
         return f"{base_url}/commit/{self.last_sha.hex()}"
 

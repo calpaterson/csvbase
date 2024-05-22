@@ -66,10 +66,10 @@
       </div>
     </div>
 
-    {% if table.external_source %}
+    {% if table.upstream %}
       <div class="row">
         <div class="alert alert-secondary">
-          Tracking <a href="{{table.external_source.link()}}">{{table.external_source.pretty_ref()}}</a>, last changed <a href="{{ table.external_source.commit_link() }}">{{ value_macros.render_human_datetime(table.external_source.last_modified) }} ago</a>
+          Tracking <a href="{{table.upstream.github_file_link()}}">{{table.upstream.pretty_ref()}}</a>, last changed <a href="{{ table.upstream.github_commit_link() }}">{{ value_macros.render_human_datetime(table.upstream.last_modified) }} ago</a>
         </div>
       </div>
     {% endif %}

@@ -37,7 +37,7 @@ from .value_objs import (
     GitUpstream,
     UpstreamVersion,
 )
-from .follow.git import GitSource
+from .follow.git import GitSource, get_repo_path
 
 logger = getLogger(__name__)
 
@@ -305,6 +305,10 @@ def update_upstream(sesh: Session, table: Table) -> None:
         buf = table_io.rows_to_csv(columns, rows)
         gua.update(upstream.repo_url, upstream.branch, upstream.path, buf)
         logger.info("updated '%s'", upstream.repo_url)
+
+        repo_path = get_repo_path(upstream.repo_url, upstream.branch)
+        version = gua.get_last_version(repo_path, upstream.path)
+        set_version(sesh, table.table_uuid, version)
 
 
 def set_version(sesh: Session, table_uuid: UUID, version: UpstreamVersion) -> None:
