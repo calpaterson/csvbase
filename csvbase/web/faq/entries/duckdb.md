@@ -1,6 +1,6 @@
 <!--
 title = "How do I use csvbase with DuckDB?"
-description = "Using the plain old HTTPS, or the csvbase-client, to get data into and out of DuckDB"
+description = "Using plain old HTTPS, or the csvbase-client, to read and write csvbase tables from duckdb"
 draft = true
 created = 2024-05-23
 updated = 2024-05-23
@@ -26,10 +26,16 @@ select * from read_csv_auto("https://csvbase.com/meripaterson/stock-exchanges.cs
 If you're using the Python driver for duckdb you can also use `csvbase-client`
 to write back to csvbase.
 
+First, install both duckdb ([the Python
+library](https://pypi.org/project/duckdb/)) and
+[csvbase-client](https://pypi.org/project/csvbase-client/).
+
 ```bash
 # install duckdb and the csvbase-client
 pip install duckdb csvbase-client
 ```
+
+Then, in Python:
 
 ```python
 import duckdb, fsspec
@@ -38,10 +44,16 @@ import duckdb, fsspec
 duckdb.register_filesystem('csvbase')
 
 # create a duckdb table called "stock_exchanges"
-duckdb.sql("create table stock_exchanges as from read_csv_auto('csvbase://meripaterson/stock-exchanges')")
+duckdb.sql("""
+    CREATE TABLE stock_exchanges
+    AS FROM read_csv_auto('csvbase://meripaterson/stock-exchanges')
+""")
 
 # write that local duckdb table back to my own csvbase account as a public table
-duckdb.sql("copy stock_exchanges to 'csvbase://calpaterson/duckdb-example?public=true' (HEADER, DELIMITER ',')")
+duckdb.sql("""
+    COPY stock_exchanges TO
+    'csvbase://calpaterson/duckdb-example?public=true' (HEADER, DELIMITER ',')
+""")
 ```
 
 Note the following:
