@@ -38,10 +38,10 @@ pip install duckdb csvbase-client
 Then, in Python:
 
 ```python
-import duckdb, fsspec
+import duckdb
 
 # teach DuckDB the csvbase:// url scheme
-duckdb.register_filesystem('csvbase')
+duckdb.register_filesystem(filesystem('csvbase'))
 
 # create a duckdb table called "stock_exchanges"
 duckdb.sql("""
