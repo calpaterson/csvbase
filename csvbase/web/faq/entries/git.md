@@ -11,13 +11,14 @@ csvbase can provide read (and write) access to csv files stored in a git repo.
 ![screenshot of a csvbase table tracking a github
 file](/static/faq/csvbase-tracking-table.png)
 
-When you edit a git-linked csvbase table (via the API, via the website,
-however) that change will be commited and pushed to your git repo.
-
 To create a table with a git upstream, visit the [new table (from
 git)](/new-table/git) page and fill out the form.
 
+When you edit table with a git upstream (via the API, via the website, however)
+that change will be commited and pushed to your git repo.
+
 If your github repo is public and read-only access is all you need, that's it.
+
 However if your repo is private or you want to be able to edit your data on
 csvbase you will need to provide authentication in your repository url, for
 example as:

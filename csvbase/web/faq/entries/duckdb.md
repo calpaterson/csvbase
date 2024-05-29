@@ -1,21 +1,23 @@
 <!--
 title = "How do I use csvbase with DuckDB?"
-description = "Using plain old HTTPS, or the csvbase-client, to read and write csvbase tables from duckdb"
-draft = true
+description = "Using HTTPS, or the csvbase-client, to import/export csvbase tables with DuckDB"
+draft = false
 created = 2024-05-23
 updated = 2024-05-23
 -->
 
-## Read-only access inside the `duckdb` shell
+## Reading csvbase tables into the `duckdb` shell
 
-When using the DuckDB shell, you can read any table from csvbase with a line like the following:
+When using the DuckDB shell (ie: you've run `duckdb`), you can read any table
+from csvbase with a line like the following:
 
 ```sql
 select * from read_parquet("https://csvbase.com/meripaterson/stock-exchanges.parquet");
 ```
 
-The above uses csvbase's Parquet output format, which works will with DuckDB,
-but you can also use csv:
+The above uses DuckDB's [httpfs](https://duckdb.org/docs/extensions/httpfs/overview.html) extension.  It also uses csvbase's Parquet output format, which works well with DuckDB.
+
+You can also use plain csv:
 
 ```sql
 select * from read_csv_auto("https://csvbase.com/meripaterson/stock-exchanges.csv");
@@ -38,10 +40,10 @@ pip install duckdb csvbase-client
 Then, in Python:
 
 ```python
-import duckdb
+import duckdb, fsspec
 
 # teach DuckDB the csvbase:// url scheme
-duckdb.register_filesystem(filesystem('csvbase'))
+duckdb.register_filesystem(fsspec.filesystem('csvbase'))
 
 # create a duckdb table called "stock_exchanges"
 duckdb.sql("""
@@ -58,7 +60,7 @@ duckdb.sql("""
 
 Note the following:
 
-1. To avoid accidents, tables are private by default, so add `?public=true`
-   when first posting to create a public table
+1. To avoid accidents, tables are created as private by default, so add
+   `?public=true` when first posting to create a public table
 2. Currently the csvbase-client [works only with csv, not
    parquet](https://github.com/calpaterson/csvbase-client/issues/1)
