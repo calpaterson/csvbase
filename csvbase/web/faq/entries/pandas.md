@@ -4,6 +4,7 @@ description = "Using HTTPS, or the csvbase-client, to import/export csvbase tabl
 draft = false
 created = 2024-05-29
 updated = 2024-05-29
+category = "tools"
 -->
 
 ## Reading csvbase tables into Pandas

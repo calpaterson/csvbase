@@ -8,14 +8,17 @@
         <h1 class="py-2">FAQ</h1>
       </div>
     </div>
-    <div class="row">
-      <div class="col-lg-8 offset-lg-2">
-        <ul>
-          {% for entry in entries %}
-            <li><a href="{{ url_for('faq.faq_entry', slug=entry.slug) }}">{{ entry.title }}</a></li>
-          {% endfor %}
-        </ul>
+    {% for category, entries in entries_by_category.items() %}
+      <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+          <h2>{{ category }}</h2>
+          <ul>
+            {% for entry in entries %}
+              <li><a href="{{ url_for('faq.faq_entry', slug=entry.slug) }}">{{ entry.title }}</a></li>
+            {% endfor %}
+          </ul>
+        </div>
       </div>
-    </div>
+    {% endfor %}
   </div>
 {% endblock %}

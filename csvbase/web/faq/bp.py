@@ -2,7 +2,7 @@ import re
 import importlib_resources
 from datetime import datetime, timedelta
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, Dict, List, Optional
 
 import toml
 from flask import Blueprint, make_response, render_template, current_app
@@ -15,12 +15,18 @@ bp = Blueprint("faq", __name__)
 
 CACHE_TTL = int(timedelta(days=1).total_seconds())
 
+CATEGORIES: Dict[Optional[str], str] = {
+    "tools": "Tools",
+    None: "Misc",
+}
+
 
 @dataclass
 class FAQEntry:
     slug: str
     title: str
     description: str
+    category: Optional[str]
     draft: bool
     markdown: str
     created: datetime
@@ -54,6 +60,7 @@ def get_entry(slug: str) -> FAQEntry:
         markdown=markdown,
         created=metadata["created"],
         updated=metadata["updated"],
+        category=metadata.get("category", None),
     )
 
     return faq_entry
@@ -64,6 +71,13 @@ def get_entries() -> Iterable[FAQEntry]:
         if trav.is_file() and trav.name.endswith(".md"):
             slug = trav.name[:-3]
             yield get_entry(slug)
+
+
+def get_entries_by_category() -> Dict[str, List[FAQEntry]]:
+    rv: Dict[str, List[FAQEntry]] = {v: [] for v in CATEGORIES.values()}
+    for entry in get_entries():
+        rv[CATEGORIES[entry.category]].append(entry)
+    return rv
 
 
 def set_cache_control(response: Response) -> None:
@@ -80,7 +94,11 @@ def set_cache_control(response: Response) -> None:
 @bp.get("/faq")
 def faq_index() -> Response:
     resp = make_response(
-        render_template("faq/faq-index.html", entries=get_entries(), page_title="FAQ")
+        render_template(
+            "faq/faq-index.html",
+            entries_by_category=get_entries_by_category(),
+            page_title="FAQ",
+        )
     )
     set_cache_control(resp)
     return resp
