@@ -1,10 +1,16 @@
 {# -*- mode: jinja2 -*- #}
 
-{% macro render_cell(type, value) %}
+{% macro render_cell(type, value, truncate=true) %}
   {% if value == None %}
     <span class="text-muted"><abbr title="No data/blank" class="initialism">&lt;NA&gt;</abbr></span>
-  {% elif type.name == "TEXT" and is_url(value) %}
-    {{ value|urlize(nofollow=True) }}
+  {% elif type.name == "TEXT" %}
+    {% if value|length > 200 and truncate %}
+      {{ value[:200] }}<span data-bs-toggle="tooltip" data-bs-placement="top" title="truncated">[...]</span>
+    {% elif is_url(value) %}
+      {{ value|urlize(nofollow=True) }}
+    {% else %}
+      {{ value }}
+    {% endif %}
   {% else %}
     {{ value }}
   {% endif %}
@@ -29,7 +35,7 @@
                 <td>{{ col.name }}</td>
               {% endif %}
               <td>{{ col.type_.pretty_type() }}</td>
-              <td>{{ render_cell(col.type_, v) }}</td>
+              <td>{{ render_cell(col.type_, v, truncate=false) }}</td>
             </tr>
           {% endfor %}
         </tbody>
