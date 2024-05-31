@@ -417,45 +417,53 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
             )
             response = add_table_metadata_headers(table, response)
             return response
-
-    # If the representation is whole-table:
-    columns = backend.get_columns(table.table_uuid)
-    rows = backend.table_as_rows(table.table_uuid)
-    if content_type is ContentType.PARQUET:
-        streaming_response = make_streaming_response(
-            table_io.rows_to_parquet(columns, rows),
-            ContentType.PARQUET,
-        )
-    elif content_type is ContentType.JSON_LINES:
-        streaming_response = make_streaming_response(
-            table_io.rows_to_jsonlines(columns, rows), ContentType.JSON_LINES
-        )
-    elif content_type is ContentType.XLSX:
-        excel_table = "excel-table" in request.args
-        xlsx_buf = table_io.rows_to_xlsx(columns, rows, excel_table=excel_table)
-        streaming_response = make_streaming_response(
-            xlsx_buf,
-            ContentType.XLSX,
-            make_download_filename(table.username, table.table_name, "xlsx"),
-        )
     else:
-        # text/csv by default
-        separator = request.args.get("separator", "comma")
+        # If the representation is whole-table:
+        excel_table = content_type is ContentType.XLSX and "excel-table" in request.args
         try:
-            delimiter = CSV_SEPARATOR_MAP[separator]
+            separator_request_arg = request.args.get("separator", "comma")
+            csv_delimiter = CSV_SEPARATOR_MAP[separator_request_arg]
         except KeyError:
-            raise exc.InvalidRequest(f"invalid separator: {separator}")
+            raise exc.InvalidRequest(f"invalid separator: {separator_request_arg}")
 
-        extension = "tsv" if separator == "tab" else "csv"
+        if content_type is ContentType.XLSX:
+            download_filename = make_download_filename(
+                table.username, table.table_name, "xlsx"
+            )
+        elif content_type is ContentType.CSV:
+            extension = "tsv" if separator_request_arg == "tab" else "csv"
+            download_filename = make_download_filename(
+                table.username, table.table_name, extension
+            )
+        else:
+            download_filename = None
+
+        response_buf: Optional[IO[bytes]] = None
+
+        if response_buf is None:
+            columns = backend.get_columns(table.table_uuid)
+            rows = backend.table_as_rows(table.table_uuid)
+            if content_type is ContentType.PARQUET:
+                response_buf = table_io.rows_to_parquet(columns, rows)
+            elif content_type is ContentType.JSON_LINES:
+                response_buf = table_io.rows_to_jsonlines(columns, rows)
+            elif content_type is ContentType.XLSX:
+                response_buf = table_io.rows_to_xlsx(
+                    columns, rows, excel_table=excel_table
+                )
+            else:
+                response_buf = table_io.rows_to_csv(
+                    columns, rows, delimiter=csv_delimiter
+                )
+
         streaming_response = make_streaming_response(
-            table_io.rows_to_csv(columns, rows, delimiter=delimiter),
-            ContentType.CSV,
-            make_download_filename(table.username, table.table_name, extension),
+            response_buf, content_type, download_filename
         )
-
-    with_cache_headers = add_table_view_cache_headers(table, streaming_response, etag)
-    with_metadata_headers = add_table_metadata_headers(table, with_cache_headers)
-    return with_metadata_headers
+        with_cache_headers = add_table_view_cache_headers(
+            table, streaming_response, etag
+        )
+        with_metadata_headers = add_table_metadata_headers(table, with_cache_headers)
+        return with_metadata_headers
 
 
 def keyset_to_dict(keyset: KeySet) -> Dict:
@@ -1265,7 +1273,7 @@ def make_download_filename(username: str, table_name: str, extension: str) -> st
 
 
 def make_streaming_response(
-    response_buf: io.BytesIO,
+    response_buf: IO[bytes],
     content_type: Optional[ContentType] = None,
     download_filename: Optional[str] = None,
 ) -> Response:
