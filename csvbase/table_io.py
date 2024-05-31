@@ -1,6 +1,17 @@
 import json
 import csv
-from typing import List, Iterable, Mapping, Set, Tuple, Sequence, IO, Dict, Any
+from typing import (
+    List,
+    Iterable,
+    Mapping,
+    Set,
+    Tuple,
+    Sequence,
+    IO,
+    Dict,
+    Any,
+    Optional,
+)
 from logging import getLogger
 import io
 from dataclasses import dataclass
@@ -36,8 +47,10 @@ UnmappedRow = Sequence[PythonType]
 
 
 def rows_to_parquet(
-    columns: Sequence[Column], rows: Iterable[UnmappedRow]
+    columns: Sequence[Column], rows: Iterable[UnmappedRow], buf: Optional[IO[bytes]]= None
 ) -> io.BytesIO:
+    buf = buf or io.BytesIO()
+
     # necessary to supply a schema in our case because pyarrow does not infer a
     # type for dates
     schema = pa.schema([pa.field(c.name, PARQUET_TYPE_MAP[c.type_]) for c in columns])
@@ -46,11 +59,10 @@ def rows_to_parquet(
     mapping = [dict(zip(column_names, row)) for row in rows]
 
     pa_table = pa.Table.from_pylist(mapping, schema=schema)
-    parquet_buf = io.BytesIO()
-    with rewind(parquet_buf):
-        pq.write_table(pa_table, parquet_buf)
+    with rewind(buf):
+        pq.write_table(pa_table, buf)
 
-    return parquet_buf
+    return buf
 
 
 @dataclass
@@ -118,15 +130,18 @@ def parquet_file_to_rows(pf: pq.ParquetFile) -> Iterable[UnmappedRow]:
 
 
 def rows_to_csv(
-    columns: Sequence[Column], rows: Iterable[UnmappedRow], delimiter: str = ","
+    columns: Sequence[Column],
+    rows: Iterable[UnmappedRow],
+    delimiter: str = ",",
+    buf: Optional[IO[bytes]] = None,
 ) -> io.BytesIO:
     # StringIOs are frustrating to return over http because you can't tell how
     # long they are (for the Content-Type header), so this follows the
     # pattern of the others in outputting to bytes
-    csv_byte_buf = io.BytesIO()
-    with rewind(csv_byte_buf):
-        csv_buf = io.TextIOWrapper(csv_byte_buf)
-        writer = csv.writer(csv_buf, delimiter=delimiter)
+    buf = buf or io.BytesIO()
+    with rewind(buf):
+        text_buf = io.TextIOWrapper(buf)
+        writer = csv.writer(text_buf, delimiter=delimiter)
         writer.writerow([col.name for col in columns])
 
         # This little section is to prevent scientific notation making it into the
@@ -145,13 +160,16 @@ def rows_to_csv(
         )
 
         writer.writerows(rows_without_sci)
-        csv_buf.detach()
+        text_buf.detach()
 
-    return csv_byte_buf
+    return buf
 
 
 def rows_to_xlsx(
-    columns: Sequence[Column], rows: Iterable[UnmappedRow], excel_table: bool = False
+    columns: Sequence[Column],
+    rows: Iterable[UnmappedRow],
+    excel_table: bool = False,
+    buf: Optional[IO[bytes]] = None,
 ) -> io.BytesIO:
     column_names = [c.name for c in columns]
 
@@ -160,9 +178,9 @@ def rows_to_xlsx(
     if not excel_table:
         workbook_args["constant_memory"] = True
 
-    xlsx_buf = io.BytesIO()
-    with rewind(xlsx_buf):
-        with xlsxwriter.Workbook(xlsx_buf, workbook_args) as workbook:
+    buf = buf or io.BytesIO()
+    with rewind(buf):
+        with xlsxwriter.Workbook(buf, workbook_args) as workbook:
             worksheet = workbook.add_worksheet()
 
             if excel_table:
@@ -187,19 +205,23 @@ def rows_to_xlsx(
                 for index, row in enumerate(rows, start=1):
                     worksheet.write_row(index, 0, row)
 
-    return xlsx_buf
+    return buf
 
 
 def rows_to_jsonlines(
-    columns: Sequence[Column], rows: Iterable[UnmappedRow]
+    columns: Sequence[Column],
+    rows: Iterable[UnmappedRow],
+    buf: Optional[IO[bytes]] = None,
 ) -> io.BytesIO:
-    jl_byte_buf = io.BytesIO()
+    buf = buf or io.BytesIO()
 
     column_names = [c.name for c in columns]
-    with rewind(jl_byte_buf):
-        jl_buf = io.TextIOWrapper(jl_byte_buf)
+    with rewind(buf):
+        text_buf = io.TextIOWrapper(buf)
         for row in rows:
-            json.dump(dict(zip(column_names, (value_to_json(v) for v in row))), jl_buf)
-            jl_buf.write("\n")
-        jl_buf.detach()
-    return jl_byte_buf
+            json.dump(
+                dict(zip(column_names, (value_to_json(v) for v in row))), text_buf
+            )
+            text_buf.write("\n")
+        text_buf.detach()
+    return buf
