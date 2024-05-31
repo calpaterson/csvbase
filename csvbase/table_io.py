@@ -15,6 +15,8 @@ from typing import (
 from logging import getLogger
 import io
 from dataclasses import dataclass
+import contextlib
+import itertools
 
 import xlsxwriter
 import pyarrow as pa
@@ -46,11 +48,23 @@ PARQUET_READ_TYPE_MAP: Mapping[Tuple[str, str], ColumnType] = {
 UnmappedRow = Sequence[PythonType]
 
 
+# Vendored from stdlib - use itertools.batched when on 3.12
+def batched(iterable, n):
+    # batched('ABCDEFG', 3) → ABC DEF G
+    if n < 1:
+        raise ValueError("n must be at least one")
+    iterator = iter(iterable)
+    while batch := tuple(itertools.islice(iterator, n)):
+        yield batch
+
+
 def rows_to_parquet(
     columns: Sequence[Column],
     rows: Iterable[UnmappedRow],
     buf: Optional[IO[bytes]] = None,
 ) -> IO[bytes]:
+    # some quick testing has shown that 1k is about optimal at the moment
+    batch_size = 1_000
     buf = buf or io.BytesIO()
 
     # necessary to supply a schema in our case because pyarrow does not infer a
@@ -58,12 +72,12 @@ def rows_to_parquet(
     schema = pa.schema([pa.field(c.name, PARQUET_TYPE_MAP[c.type_]) for c in columns])
 
     column_names = [c.name for c in columns]
-    mapping = [dict(zip(column_names, row)) for row in rows]
-
-    pa_table = pa.Table.from_pylist(mapping, schema=schema)
     with rewind(buf):
-        pq.write_table(pa_table, buf)
-
+        with contextlib.closing(pq.ParquetWriter(buf, schema)) as writer:
+            for batch in batched(rows, batch_size):
+                pydict = {e[0]: pa.array(e[1]) for e in zip(column_names, zip(*batch))}
+                record_batch = pa.RecordBatch.from_pydict(pydict, schema=schema)
+                writer.write_batch(record_batch)
     return buf
 
 
