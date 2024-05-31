@@ -1,4 +1,5 @@
 import io
+import os
 from uuid import UUID
 from pathlib import Path
 import shutil
@@ -20,6 +21,7 @@ from typing import (
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import hashlib
 import json
+import tempfile
 
 import pydantic
 from sqlalchemy.orm import Session
@@ -438,23 +440,45 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
         else:
             download_filename = None
 
-        response_buf: Optional[IO[bytes]] = None
+        safe_etag = etag.replace("/", "_")
 
-        if response_buf is None:
+        # FIXME: the fact that there are other things in this key beyond the
+        # etag and file extension suggest that our etags are not complete
+        stage_filename = (
+            f"{safe_etag}-{excel_table}-{csv_delimiter}.{content_type.file_extension()}"
+        )
+
+        # We output to a file (saving it for next time) and then return the
+        # bytes from that file.  It is up to 100 times faster to reuse an
+        # existing file so this is quite meaningful.
+        # FIXME: we need some kind of lru element
+        stage_dir = get_stage_dir()
+        stage_filepath = stage_dir / stage_filename
+        logger.info("stage_filepath = '%s'", stage_filepath)
+        if stage_filepath.exists():
+            logger.info("stage exists")
+            response_buf = open(stage_filepath, "rb")
+        else:
+            logger.info("stage did not exist")
+            response_buf = tempfile.NamedTemporaryFile(dir=stage_dir)
             columns = backend.get_columns(table.table_uuid)
             rows = backend.table_as_rows(table.table_uuid)
             if content_type is ContentType.PARQUET:
-                response_buf = table_io.rows_to_parquet(columns, rows)
+                response_buf = table_io.rows_to_parquet(columns, rows, response_buf)
             elif content_type is ContentType.JSON_LINES:
-                response_buf = table_io.rows_to_jsonlines(columns, rows)
+                response_buf = table_io.rows_to_jsonlines(columns, rows, response_buf)
             elif content_type is ContentType.XLSX:
                 response_buf = table_io.rows_to_xlsx(
-                    columns, rows, excel_table=excel_table
+                    columns, rows, excel_table=excel_table, buf=response_buf
                 )
             else:
                 response_buf = table_io.rows_to_csv(
-                    columns, rows, delimiter=csv_delimiter
+                    columns, rows, delimiter=csv_delimiter, buf=response_buf
                 )
+
+            # to avoid corrupting the cache with failures, we write to a
+            # tempfile and link it into the final position
+            os.link(response_buf.name, stage_filepath)
 
         streaming_response = make_streaming_response(
             response_buf, content_type, download_filename
@@ -1495,3 +1519,16 @@ def get_user_str_buf() -> codecs.StreamReader:
         shutil.copyfileobj(request.stream, byte_buf)
     str_buf = streams.byte_buf_to_str_buf(byte_buf)
     return str_buf
+
+
+_STAGE_DIR_EXISTS = False
+
+
+def get_stage_dir() -> Path:
+    """Returns the "stage dir" which is used for keeping generated files."""
+    global _STAGE_DIR_EXISTS
+    stage_dir = Path(tempfile.gettempdir()) / "csvbase"
+    if not _STAGE_DIR_EXISTS:
+        stage_dir.mkdir(exist_ok=True)
+        _STAGE_DIR_EXISTS = True
+    return stage_dir

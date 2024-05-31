@@ -291,12 +291,16 @@ class PGUserdataAdapter:
         self,
         table_uuid: UUID,
     ) -> Iterable[Sequence[PythonType]]:
+        # To a first approximation this is about 10 times slower than COPY
+
         batchsize = 10_000
         table_clause = self._get_userdata_tableclause(table_uuid)
         columns = self.get_columns(table_uuid)
-        q = select(*[getattr(table_clause.c, c.name) for c in columns]).order_by(
-            table_clause.c.csvbase_row_id
-        ).execution_options(yield_per=batchsize)
+        q = (
+            select(*[getattr(table_clause.c, c.name) for c in columns])
+            .order_by(table_clause.c.csvbase_row_id)
+            .execution_options(yield_per=batchsize)
+        )
         yield from self.sesh.execute(q)
 
     def insert_table_data(

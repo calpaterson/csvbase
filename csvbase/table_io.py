@@ -47,7 +47,9 @@ UnmappedRow = Sequence[PythonType]
 
 
 def rows_to_parquet(
-    columns: Sequence[Column], rows: Iterable[UnmappedRow], buf: Optional[IO[bytes]]= None
+    columns: Sequence[Column],
+    rows: Iterable[UnmappedRow],
+    buf: Optional[IO[bytes]] = None,
 ) -> io.BytesIO:
     buf = buf or io.BytesIO()
 
