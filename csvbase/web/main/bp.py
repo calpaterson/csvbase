@@ -455,12 +455,14 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
         stage_dir = get_stage_dir()
         stage_filepath = stage_dir / stage_filename
         logger.info("stage_filepath = '%s'", stage_filepath)
+
+        response_buf: IO[bytes]
         if stage_filepath.exists():
             logger.info("stage exists")
             response_buf = open(stage_filepath, "rb")
         else:
             logger.info("stage did not exist")
-            response_buf = tempfile.NamedTemporaryFile(dir=stage_dir)
+            response_buf = tempfile.NamedTemporaryFile(dir=stage_dir, mode="w+b")
             columns = backend.get_columns(table.table_uuid)
             rows = backend.table_as_rows(table.table_uuid)
             if content_type is ContentType.PARQUET:
@@ -1527,7 +1529,7 @@ _STAGE_DIR_EXISTS = False
 def get_stage_dir() -> Path:
     """Returns the "stage dir" which is used for keeping generated files."""
     global _STAGE_DIR_EXISTS
-    stage_dir = Path(tempfile.gettempdir()) / "csvbase"
+    stage_dir = streams.cache_dir() / "stage"
     if not _STAGE_DIR_EXISTS:
         stage_dir.mkdir(exist_ok=True)
         _STAGE_DIR_EXISTS = True

@@ -16,7 +16,7 @@ def test_scientific_notation_not_put_into_csv():
     rows = [[9.999999974e-07]]
 
     buf = table_io.rows_to_csv(columns, rows)
-    csv_str = buf.getvalue()
+    csv_str = buf.read()
 
     assert csv_str == b"a_float\r\n0.000001\r\n"
 

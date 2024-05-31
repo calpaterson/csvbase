@@ -50,7 +50,7 @@ def rows_to_parquet(
     columns: Sequence[Column],
     rows: Iterable[UnmappedRow],
     buf: Optional[IO[bytes]] = None,
-) -> io.BytesIO:
+) -> IO[bytes]:
     buf = buf or io.BytesIO()
 
     # necessary to supply a schema in our case because pyarrow does not infer a
@@ -136,7 +136,7 @@ def rows_to_csv(
     rows: Iterable[UnmappedRow],
     delimiter: str = ",",
     buf: Optional[IO[bytes]] = None,
-) -> io.BytesIO:
+) -> IO[bytes]:
     # StringIOs are frustrating to return over http because you can't tell how
     # long they are (for the Content-Type header), so this follows the
     # pattern of the others in outputting to bytes
@@ -172,7 +172,7 @@ def rows_to_xlsx(
     rows: Iterable[UnmappedRow],
     excel_table: bool = False,
     buf: Optional[IO[bytes]] = None,
-) -> io.BytesIO:
+) -> IO[bytes]:
     column_names = [c.name for c in columns]
 
     # FIXME: Perhaps this should change based on the user's locale
@@ -214,7 +214,7 @@ def rows_to_jsonlines(
     columns: Sequence[Column],
     rows: Iterable[UnmappedRow],
     buf: Optional[IO[bytes]] = None,
-) -> io.BytesIO:
+) -> IO[bytes]:
     buf = buf or io.BytesIO()
 
     column_names = [c.name for c in columns]

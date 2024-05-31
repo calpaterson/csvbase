@@ -15,27 +15,18 @@ from contextlib import contextmanager
 import shutil
 import gzip
 
-from platformdirs import user_cache_dir
-
 from . import exc
-from .streams import rewind
+from .streams import rewind, cache_dir
 
 logger = getLogger(__name__)
 
 DEFAULT_RETENTION = timedelta(hours=1)
 
-_logged = False
-
 
 def get_temp_dir() -> Path:
-    global _logged
     # using /tmp would mean we lose the cache between restarts
-    temp_dir = Path(user_cache_dir("csvbase"))
-    if not _logged:
-        logger.info("temp dir: %s", temp_dir)
-        _logged = True
+    temp_dir = cache_dir() / "tmp"
     if not temp_dir.exists():
-        logger.info("creating temp dir")
         temp_dir.mkdir()
     return temp_dir
 

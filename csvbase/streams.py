@@ -3,17 +3,42 @@
 import os
 from logging import getLogger
 from typing import Union, Tuple, Type, List, Dict, Set, IO, Optional, Sequence
+from pathlib import Path
 import codecs
 import csv
 import io
 
 from typing_extensions import Protocol
 import charset_normalizer
+from platformdirs import user_cache_dir
 import werkzeug
 
 from .constants import COPY_BUFFER_SIZE
 from . import conv, exc
 from .value_objs import ColumnType, Column, Encoding
+
+
+_cache_dir_creation_logged = False
+
+
+def cache_dir() -> Path:
+    """Returns the cache dir (usually ~/.cache/csvbase).
+
+    This is used for all sorts, including storing files between uploads.
+
+    """
+    global _cache_dir_creation_logged
+
+    cache_dir = Path(user_cache_dir("csvbase"))
+
+    if not _cache_dir_creation_logged:
+        logger.info("cache dir: %s", cache_dir)
+        _cache_dir_creation_logged = True
+    if not cache_dir.exists():
+        logger.info("creating cache dir")
+        cache_dir.mkdir()
+    return cache_dir
+
 
 # FIXME: This module needs a lot of work.  It should probably contain:
 #
