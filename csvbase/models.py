@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Mapping
 from uuid import UUID
 
 from sqlalchemy import Column, ForeignKey, UniqueConstraint, func
@@ -33,7 +33,7 @@ else:
     PGUUID = _PGUUID(as_uuid=True)
 
 
-METADATA_SCHEMA_TABLE_ARG = {"schema": "metadata"}
+METADATA_SCHEMA_TABLE_ARG: Mapping[str, str] = {"schema": "metadata"}
 
 
 class User(Base):
@@ -332,3 +332,86 @@ class Copy(Base):
         uselist=False,
         foreign_keys=[to_uuid],
     )
+
+
+class Thread(Base):
+    __tablename__ = "threads"
+    __table_args__ = (
+        CheckConstraint("char_length(thread_title) <= 500", "threads_title_length"),
+        METADATA_SCHEMA_TABLE_ARG,
+    )
+
+    thread_id = Column(satypes.BigInteger, Identity(), primary_key=True)
+    thread_created = Column(
+        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    )
+    thread_updated = Column(
+        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    )
+    user_uuid = Column(PGUUID, ForeignKey("metadata.users.user_uuid"), nullable=False)
+    thread_title = Column(satypes.String, nullable=False)
+
+
+class Comment(Base):
+    __tablename__ = "comments"
+    __table_args__ = (
+        CheckConstraint("char_length(comment_markdown) <= 4000", "comments_markdown_length"),
+        METADATA_SCHEMA_TABLE_ARG,
+    )
+
+    comment_id = Column(satypes.BigInteger, Identity(), primary_key=True)
+    user_uuid = Column(
+        PGUUID, ForeignKey("metadata.users.user_uuid"), nullable=False, index=True
+    )
+    thread_id = Column(
+        satypes.BigInteger,
+        ForeignKey("metadata.threads.thread_id"),
+        nullable=False,
+        index=True,
+    )
+    comment_created = Column(
+        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    )
+    comment_updated = Column(
+        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    )
+    comment_markdown = Column(satypes.String, nullable=False)
+
+
+# class CommentReference(Base):
+#     __tablename__ = "comment_references"
+#     __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+
+#     reference_id = Column(satypes.BigInteger, Identity(), primary_key=True)
+#     comment_id = Column(
+#         satypes.BigInteger, ForeignKey("metadata.comments.comment_id"), nullable=False
+#     )
+#     updated = Column(
+#         satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+#     )
+#     reference = Column(satypes.JSON, nullable=False)
+
+
+# class TableLogEntryEvents(Base):
+#     __tablename__ = "table_log_events"
+#     __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+
+#     event_type_id = Column(satypes.SmallInteger, primary_key=True, autoincrement=False)
+#     event_type_code = Column(satypes.String, nullable=False)
+
+
+# class TableLogEntry(Base):
+#     __tablename__ = "table_log"
+#     __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+
+#     table_log_id = Column(satypes.BigInteger, Identity(), primary_key=True)
+#     timestamp = Column(
+#         satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+#     )
+#     event_type_id = Column(
+#         satypes.SmallInteger,
+#         ForeignKey("metadata.table_log_events.event_type_id"),
+#         nullable=False,
+#         index=True,
+#     )
+#     event_body = Column(satypes.JSON, nullable=False)
