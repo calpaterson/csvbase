@@ -63,8 +63,11 @@ def rows_to_parquet(
     rows: Iterable[UnmappedRow],
     buf: Optional[IO[bytes]] = None,
 ) -> IO[bytes]:
-    # some quick testing has shown that 1k is about optimal at the moment
-    batch_size = 1_000
+    # smaller is considerably better for csvbase as it keeps peak memory usage
+    # down.  however there is evidence that very small numbers disportionately
+    # slow down clients.  5k seems to be a just-about-workable midpoint.
+    # https://duckdb.org/docs/guides/performance/file_formats#handling-parquet-files
+    batch_size = 5_000
     buf = buf or io.BytesIO()
 
     # necessary to supply a schema in our case because pyarrow does not infer a
