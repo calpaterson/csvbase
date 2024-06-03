@@ -3,7 +3,7 @@ import os
 from uuid import UUID
 from pathlib import Path
 import shutil
-from datetime import date, timedelta, timezone
+from datetime import timedelta, timezone
 import codecs
 from logging import getLogger
 from typing import (
