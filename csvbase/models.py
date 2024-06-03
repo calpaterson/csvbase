@@ -355,7 +355,9 @@ class Thread(Base):
 class Comment(Base):
     __tablename__ = "comments"
     __table_args__ = (
-        CheckConstraint("char_length(comment_markdown) <= 4000", "comments_markdown_length"),
+        CheckConstraint(
+            "char_length(comment_markdown) <= 4000", "comments_markdown_length"
+        ),
         METADATA_SCHEMA_TABLE_ARG,
     )
 
