@@ -71,7 +71,7 @@
 
             <li class="page-item active">
               {% if page.rows %}
-                <a class="page-link" href="#">Rows {{ page.rows[0][ROW_ID_COLUMN] }} to {{ page.rows[-1][ROW_ID_COLUMN] }}</a>
+                <a class="page-link" href="#">Rows {{ page.rows[0][ROW_ID_COLUMN] }}-{{ page.rows[-1][ROW_ID_COLUMN] }}</a>
               {% else %}
                 {# FIXME: this is hardcoded to handle the case where keysets only handle csvbase_row_id #}
                 <a class="page-link" href="#">Row {{keyset.values[0] + 1}} onwards</a>

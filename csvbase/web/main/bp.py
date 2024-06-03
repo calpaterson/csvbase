@@ -327,8 +327,8 @@ def delete_table_form_post(username: str, table_name: str) -> Response:
 CSV_SEPARATOR_MAP: Mapping[str, str] = {"comma": ",", "tab": "\t", "vertical-bar": "|"}
 
 
-@bp.get("/<username>/<table_name:table_name>.<extension>")
 @bp.get("/<username>/<table_name:table_name>/export/<extension>")
+@bp.get("/<username>/<table_name:table_name>.<extension>")
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
 def table_view_with_extension(
     username: str, table_name: str, extension: str
@@ -428,17 +428,15 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
         except KeyError:
             raise exc.InvalidRequest(f"invalid separator: {separator_request_arg}")
 
-        if content_type is ContentType.XLSX:
-            download_filename = make_download_filename(
-                table.username, table.table_name, "xlsx"
-            )
-        elif content_type is ContentType.CSV:
+        if content_type is ContentType.CSV:
             extension = "tsv" if separator_request_arg == "tab" else "csv"
             download_filename = make_download_filename(
                 table.username, table.table_name, extension
             )
         else:
-            download_filename = None
+            download_filename = make_download_filename(
+                table.username, table.table_name, content_type.file_extension()
+            )
 
         safe_etag = etag.replace("/", "_")
 
@@ -1294,8 +1292,7 @@ def sign_out():
 
 
 def make_download_filename(username: str, table_name: str, extension: str) -> str:
-    timestamp = date.today().isoformat()
-    return f"{table_name}-{timestamp}.{extension}"
+    return f"{table_name}.{extension}"
 
 
 def make_streaming_response(

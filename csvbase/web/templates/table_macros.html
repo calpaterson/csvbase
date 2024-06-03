@@ -16,6 +16,22 @@
   </form>
 {% endmacro %}
 
+{% macro download_button(table, multiformat_dropdown=False) %}
+  {% set supported_extensions = ["csv", "parquet", "jsonl", "xlsx"] %}
+  {% if multiformat_dropdown %}
+    <button class="btn btn-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        Download as
+    </button>
+    <ul class="dropdown-menu">
+      {% for extension in supported_extensions %}
+        <li><a class="dropdown-item" href="{{ url_for('csvbase.table_view_with_extension', username=table.username, table_name=table.table_name, extension=extension) }}">.{{extension}}</a></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <a class="btn btn-success btn-sm" href="{{ url_for('csvbase.table_view_with_extension', username=table.username, table_name=table.table_name, extension='csv') }}">Download as csv</a>
+  {% endif %}
+{% endmacro %}
+
 {% macro praise_button(praise_id) %}
   {% if praise_id %}
     <button

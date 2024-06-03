@@ -43,7 +43,7 @@
 }
 
 #praise-button:hover:after {
-    content: "Praise!";
+    content: "Praise";
 }
 
 /* reducing bottom margin off the explain alert */
@@ -115,4 +115,9 @@ input.table-pastable {
 
 .faq-entry-md img {
     max-width: 100%;
+}
+
+#praise-button > img {
+    max-height: 1.2em;
+    max-width: 1.2em;
 }
