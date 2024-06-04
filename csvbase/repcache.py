@@ -4,7 +4,7 @@ from logging import getLogger
 import tempfile
 import os
 from pathlib import Path
-from typing import IO, Generator
+from typing import IO, Generator, Dict
 from uuid import UUID
 from datetime import datetime
 import contextlib
@@ -63,15 +63,24 @@ class RepCache:
         else:
             # it's a bit weird that we leave this open, but that is necessary
             # to stream responses at the web level
-            yield _rep_path(table_uuid, content_type, last_changed).open(
-                mode=mode
-            )
+            yield _rep_path(table_uuid, content_type, last_changed).open(mode=mode)
 
     def exists(
         self, table_uuid: UUID, content_type: ContentType, last_changed: datetime
     ) -> bool:
         rep_path = _rep_path(table_uuid, content_type, last_changed)
         return rep_path.exists()
+
+    def sizes(self, table_uuid: UUID, last_changed: datetime) -> Dict[ContentType, int]:
+        rv = {}
+        expected_dtstr = _safe_dtstr(last_changed)
+        for rep_path in _rep_dir(table_uuid).iterdir():
+            if rep_path.stem == expected_dtstr:
+                content_type = ContentType.from_file_extension(rep_path.suffix[1:])
+                if content_type is not None:
+                    size = rep_path.stat().st_size
+                    rv[content_type] = size
+        return rv
 
 
 def _safe_dtstr(dt: datetime) -> str:

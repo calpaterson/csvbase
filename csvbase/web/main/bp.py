@@ -424,7 +424,9 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
 
         repcache = RepCache()
         if not repcache.exists(table.table_uuid, content_type, table.last_changed):
-            with repcache.open(table.table_uuid, content_type, table.last_changed, mode="wb") as rep_file:
+            with repcache.open(
+                table.table_uuid, content_type, table.last_changed, mode="wb"
+            ) as rep_file:
                 columns = backend.get_columns(table.table_uuid)
                 rows = backend.table_as_rows(table.table_uuid)
                 if content_type is ContentType.PARQUET:
@@ -436,9 +438,7 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                         columns, rows, excel_table=False, buf=rep_file
                     )
                 else:
-                    table_io.rows_to_csv(
-                        columns, rows, buf=rep_file
-                    )
+                    table_io.rows_to_csv(columns, rows, buf=rep_file)
 
         with repcache.open(
             table.table_uuid, content_type, table.last_changed, mode="rb"
@@ -449,7 +449,9 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
             with_cache_headers = add_table_view_cache_headers(
                 table, streaming_response, etag
             )
-            with_metadata_headers = add_table_metadata_headers(table, with_cache_headers)
+            with_metadata_headers = add_table_metadata_headers(
+                table, with_cache_headers
+            )
             return with_metadata_headers
 
 

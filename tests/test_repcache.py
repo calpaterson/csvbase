@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from csvbase.value_objs import ContentType
 from csvbase.repcache import RepCache
 
-from .utils import random_uuid
+from .utils import random_uuid, random_df
 
 
 def test_repcache__miss():
@@ -54,3 +54,21 @@ def test_repcache__update_wipes_out_old_reps():
 
     assert not repcache.exists(table_uuid, content_type, initial_dt)
     assert repcache.exists(table_uuid, content_type, update_dt)
+
+
+def test_repcache__sizes():
+    repcache = RepCache()
+
+    table_uuid = random_uuid()
+    last_changed = datetime.now(timezone.utc)
+    df = random_df()
+
+    with repcache.open(table_uuid, ContentType.CSV, last_changed, "wb") as rep_file:
+        df.to_csv(rep_file)
+
+    with repcache.open(table_uuid, ContentType.PARQUET, last_changed, "wb") as rep_file:
+        df.to_parquet(rep_file)
+
+    sizes = repcache.sizes(table_uuid, last_changed)
+    assert {ContentType.CSV, ContentType.PARQUET} == set(sizes.keys())
+    assert {int} == set(type(v) for v in sizes.values())
