@@ -11,6 +11,7 @@ from unittest import mock
 from pathlib import Path
 from urllib.parse import quote_plus
 from logging import getLogger
+from uuid import UUID, uuid4
 
 from lxml import etree
 from lxml.cssselect import CSSSelector
@@ -58,6 +59,10 @@ def random_df() -> pd.DataFrame:
             integer=[random_integer() for _ in range(26)],
         )
     )
+
+
+def random_uuid() -> UUID:
+    return uuid4()
 
 
 def make_user(sesh: Session, crypt_context) -> ExtendedUser:
