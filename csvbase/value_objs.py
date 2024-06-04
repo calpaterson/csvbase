@@ -120,6 +120,9 @@ class RowCount:
     def best(self):
         return self.exact or self.approx
 
+    def is_big(self):
+        return self.best() > 1_000_000
+
 
 @dataclass
 class Table:

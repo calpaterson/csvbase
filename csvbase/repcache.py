@@ -34,11 +34,10 @@ class RepCache:
         last_changed: datetime,
         mode: str = "rb",
     ) -> Generator[IO[bytes], None, None]:
-        rep_dir = _rep_dir(table_uuid)
         if "w" in mode:
             with tempfile.NamedTemporaryFile(
                 dir=_repcache_dir(),
-                suffix=f"{content_type.file_extension()}.tmp",
+                suffix=f".{content_type.file_extension()}.tmp",
                 mode=mode,
             ) as temp_file:
                 yield temp_file
@@ -49,7 +48,7 @@ class RepCache:
                     temp_file.name, _rep_path(table_uuid, content_type, last_changed)
                 )
 
-            logger.info("wrote new representation of %s", table_uuid)
+            logger.info("wrote new representation of %s (%s)", table_uuid, content_type)
             expected_dtstr = _safe_dtstr(last_changed)
             for rep_path in _rep_dir(table_uuid).iterdir():
                 if rep_path.stem != expected_dtstr:
