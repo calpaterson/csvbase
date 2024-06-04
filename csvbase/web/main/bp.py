@@ -80,6 +80,7 @@ from ...value_objs import (
 )
 from ...constants import COPY_BUFFER_SIZE
 from ..billing import svc as billing_svc
+from ...repcache import RepCache
 
 logger = getLogger(__name__)
 
@@ -324,9 +325,6 @@ def delete_table_form_post(username: str, table_name: str) -> Response:
     return redirect(url_for("csvbase.user", username=username))
 
 
-CSV_SEPARATOR_MAP: Mapping[str, str] = {"comma": ",", "tab": "\t", "vertical-bar": "|"}
-
-
 @bp.get("/<username>/<table_name:table_name>/export/<extension>")
 @bp.get("/<username>/<table_name:table_name>.<extension>")
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
@@ -420,74 +418,39 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
             response = add_table_metadata_headers(table, response)
             return response
     else:
-        # If the representation is whole-table:
-        excel_table = content_type is ContentType.XLSX and "excel-table" in request.args
-        try:
-            separator_request_arg = request.args.get("separator", "comma")
-            csv_delimiter = CSV_SEPARATOR_MAP[separator_request_arg]
-        except KeyError:
-            raise exc.InvalidRequest(f"invalid separator: {separator_request_arg}")
+        download_filename = make_download_filename(
+            table.username, table.table_name, content_type.file_extension()
+        )
 
-        if content_type is ContentType.CSV:
-            extension = "tsv" if separator_request_arg == "tab" else "csv"
-            download_filename = make_download_filename(
-                table.username, table.table_name, extension
+        repcache = RepCache()
+        if not repcache.exists(table.table_uuid, content_type, table.last_changed):
+            with repcache.open(table.table_uuid, content_type, table.last_changed, mode="wb") as rep_file:
+                columns = backend.get_columns(table.table_uuid)
+                rows = backend.table_as_rows(table.table_uuid)
+                if content_type is ContentType.PARQUET:
+                    table_io.rows_to_parquet(columns, rows, rep_file)
+                elif content_type is ContentType.JSON_LINES:
+                    table_io.rows_to_jsonlines(columns, rows, rep_file)
+                elif content_type is ContentType.XLSX:
+                    table_io.rows_to_xlsx(
+                        columns, rows, excel_table=False, buf=rep_file
+                    )
+                else:
+                    table_io.rows_to_csv(
+                        columns, rows, buf=rep_file
+                    )
+
+        with repcache.open(
+            table.table_uuid, content_type, table.last_changed, mode="rb"
+        ) as response_buf:
+            streaming_response = make_streaming_response(
+                response_buf, content_type, download_filename
             )
-        else:
-            download_filename = make_download_filename(
-                table.username, table.table_name, content_type.file_extension()
+            with_cache_headers = add_table_view_cache_headers(
+                table, streaming_response, etag
             )
-
-        safe_etag = etag.replace("/", "_")
-
-        # FIXME: the fact that there are other things in this key beyond the
-        # etag and file extension suggest that our etags are not complete
-        stage_filename = (
-            f"{safe_etag}-{excel_table}-{csv_delimiter}.{content_type.file_extension()}"
-        )
-
-        # We output to a file (saving it for next time) and then return the
-        # bytes from that file.  It is up to 100 times faster to reuse an
-        # existing file so this is quite meaningful.
-        # FIXME: we need some kind of lru element
-        stage_dir = get_stage_dir()
-        stage_filepath = stage_dir / stage_filename
-        logger.info("stage_filepath = '%s'", stage_filepath)
-
-        response_buf: IO[bytes]
-        if stage_filepath.exists():
-            logger.info("stage exists")
-            response_buf = open(stage_filepath, "rb")
-        else:
-            logger.info("stage did not exist")
-            response_buf = tempfile.NamedTemporaryFile(dir=stage_dir, mode="w+b")
-            columns = backend.get_columns(table.table_uuid)
-            rows = backend.table_as_rows(table.table_uuid)
-            if content_type is ContentType.PARQUET:
-                response_buf = table_io.rows_to_parquet(columns, rows, response_buf)
-            elif content_type is ContentType.JSON_LINES:
-                response_buf = table_io.rows_to_jsonlines(columns, rows, response_buf)
-            elif content_type is ContentType.XLSX:
-                response_buf = table_io.rows_to_xlsx(
-                    columns, rows, excel_table=excel_table, buf=response_buf
-                )
-            else:
-                response_buf = table_io.rows_to_csv(
-                    columns, rows, delimiter=csv_delimiter, buf=response_buf
-                )
-
-            # to avoid corrupting the cache with failures, we write to a
-            # tempfile and link it into the final position
-            os.link(response_buf.name, stage_filepath)
-
-        streaming_response = make_streaming_response(
-            response_buf, content_type, download_filename
-        )
-        with_cache_headers = add_table_view_cache_headers(
-            table, streaming_response, etag
-        )
-        with_metadata_headers = add_table_metadata_headers(table, with_cache_headers)
-        return with_metadata_headers
+            with_metadata_headers = add_table_metadata_headers(table, with_cache_headers)
+            return with_metadata_headers
 
 
 def keyset_to_dict(keyset: KeySet) -> Dict:
@@ -669,39 +632,6 @@ def get_table_apidocs(username: str, table_name: str) -> str:
         row_to_json_dict=row_to_json_dict,
         table_to_json_dict=table_to_json_dict,
         url_for_with_auth=url_for_with_auth,
-        praise_id=get_praise_id_if_exists(sesh, table),
-    )
-
-
-@bp.get("/<username>/<table_name:table_name>/export")
-def table_export(username: str, table_name: str) -> str:
-    sesh = get_sesh()
-    table = svc.get_table(sesh, username, table_name)
-    ensure_table_access(sesh, table, "read")
-    user = svc.user_by_name(sesh, username)
-
-    table_url = url_for(
-        "csvbase.table_view", username=username, table_name=table_name, _external=True
-    )
-    scheme, public_netloc, path, _, _ = urlsplit(table_url)
-    if am_user(username):
-        url_username = user.username
-        url_hex_key = user.hex_api_key()
-    else:
-        url_username = "your_username"
-        url_hex_key = "your_api_key"
-    private_table_url = f"{scheme}://{url_username}:{url_hex_key}@{public_netloc}{path}"
-
-    # if the table is not public the user will need basic auth to get it
-    if not table.is_public:
-        table_url = private_table_url
-
-    return render_template(
-        "table_export.html",
-        page_title=f"Export: {username}/{table_name}",
-        table=table,
-        table_url=table_url,
-        private_table_url=private_table_url,
         praise_id=get_praise_id_if_exists(sesh, table),
     )
 
@@ -1518,16 +1448,3 @@ def get_user_str_buf() -> codecs.StreamReader:
         shutil.copyfileobj(request.stream, byte_buf)
     str_buf = streams.byte_buf_to_str_buf(byte_buf)
     return str_buf
-
-
-_STAGE_DIR_EXISTS = False
-
-
-def get_stage_dir() -> Path:
-    """Returns the "stage dir" which is used for keeping generated files."""
-    global _STAGE_DIR_EXISTS
-    stage_dir = streams.cache_dir() / "stage"
-    if not _STAGE_DIR_EXISTS:
-        stage_dir.mkdir(exist_ok=True)
-        _STAGE_DIR_EXISTS = True
-    return stage_dir

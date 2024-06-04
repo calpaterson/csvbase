@@ -1,5 +1,8 @@
 """A cache for generated representations of tables."""
 
+from logging import getLogger
+import tempfile
+import os
 from pathlib import Path
 from typing import IO, Generator
 from uuid import UUID
@@ -9,14 +12,20 @@ import contextlib
 from csvbase.value_objs import ContentType
 from csvbase import streams
 
+logger = getLogger(__name__)
+
 
 class RepCache:
     """A cache for representations of tables.
+
+    Reusing a previously generated representation is around 100 times faster
+    than to regenerate so the speed impact of this is quite meaningful.
 
     This is currently implemented with files, but that is completely
     encapsulated so it should be easier to port to S3 later on.
 
     """
+
     @contextlib.contextmanager
     def open(
         self,
@@ -25,17 +34,38 @@ class RepCache:
         last_changed: datetime,
         mode: str = "rb",
     ) -> Generator[IO[bytes], None, None]:
-        with _rep_path(table_uuid, content_type, last_changed).open(
-            mode=mode
-        ) as file_obj:
-            yield file_obj
-
-        # cleanup old reps if we wrote
+        rep_dir = _rep_dir(table_uuid)
         if "w" in mode:
+            with tempfile.NamedTemporaryFile(
+                dir=_repcache_dir(),
+                suffix=f"{content_type.file_extension()}.tmp",
+                mode=mode,
+            ) as temp_file:
+                yield temp_file
+                # to avoid corrupting the cache with partway failures, the
+                # tempfile is written first and hardlinked into the final
+                # position
+                os.link(
+                    temp_file.name, _rep_path(table_uuid, content_type, last_changed)
+                )
+
+            logger.info("wrote new representation of %s", table_uuid)
             expected_dtstr = _safe_dtstr(last_changed)
             for rep_path in _rep_dir(table_uuid).iterdir():
                 if rep_path.stem != expected_dtstr:
                     rep_path.unlink()
+                    logger.info(
+                        "deleted old representation of %s: %s",
+                        table_uuid,
+                        rep_path.name,
+                    )
+
+        else:
+            # it's a bit weird that we leave this open, but that is necessary
+            # to stream responses at the web level
+            yield _rep_path(table_uuid, content_type, last_changed).open(
+                mode=mode
+            )
 
     def exists(
         self, table_uuid: UUID, content_type: ContentType, last_changed: datetime
