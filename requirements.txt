@@ -13,7 +13,9 @@ flask-cors==4.0.1
 flask-sqlalchemy==3.0.5
 flask==3.0.3
 gunicorn==22.0.0
+humanize==4.9.0
 inflect==7.2.0
+jinja2-humanize-extension==0.4.0
 marko[codehilite]==1.3.0
 passlib==1.7.4
 pgcopy==1.6.0

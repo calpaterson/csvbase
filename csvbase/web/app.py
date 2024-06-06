@@ -42,6 +42,7 @@ from .func import is_browser, is_url, get_current_user
 from .billing import bp as billing_bp
 from .main.bp import bp as main_bp
 from .main.create_table import bp as create_table_bp
+from ..value_objs import ContentType
 
 logger = getLogger(__name__)
 
@@ -131,6 +132,7 @@ def init_app() -> Flask:
 
     app.jinja_env.globals["is_url"] = is_url
     app.jinja_env.globals["blueprints"] = app.blueprints.keys()
+    app.jinja_env.globals["ContentType"] = ContentType
     app.jinja_env.filters["snake_case"] = snake_case
     app.jinja_env.filters["ppjson"] = ppjson
     app.jinja_env.filters["timedeltaformat"] = format_timedelta
@@ -146,6 +148,8 @@ def init_app() -> Flask:
             if current_user is not None
             else {}
         )
+
+    app.jinja_env.add_extension("jinja2_humanize_extension.HumanizeExtension")
 
     app.config["SQLALCHEMY_DATABASE_URI"] = get_db_url()
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False

@@ -16,15 +16,14 @@
   </form>
 {% endmacro %}
 
-{% macro download_button(table, multiformat_dropdown=False) %}
-  {% set supported_extensions = ["csv", "parquet", "jsonl", "xlsx"] %}
+{% macro download_button(table, reps, multiformat_dropdown=False) %}
   {% if multiformat_dropdown %}
     <button class="btn btn-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         Download as
     </button>
     <ul class="dropdown-menu">
-      {% for extension in supported_extensions %}
-        <li><a class="dropdown-item" href="{{ url_for('csvbase.table_view_with_extension', username=table.username, table_name=table.table_name, extension=extension) }}">.{{extension}}</a></li>
+      {% for rep in reps %}
+        <li><a class="dropdown-item {% if not rep.offered %}disabled{% endif %}" href="{{ url_for('csvbase.table_view_with_extension', username=table.username, table_name=table.table_name, extension=rep.content_type.file_extension()) }}" {% if not rep.offered %}aria-disabled="true"{% endif %}>.{{rep.content_type.file_extension()}} {% if not rep.offered %}(table is too big for excel){% endif %} {% if not rep.size_is_estimate %}({{ rep.size|humanize_naturalsize() }}){% endif %}</a></li>
       {% endfor %}
     </ul>
   {% else %}

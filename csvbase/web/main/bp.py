@@ -16,10 +16,12 @@ from typing import (
     Iterator,
     IO,
     TypeVar,
+    List,
 )
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import hashlib
 import json
+import dataclasses
 
 import pydantic
 from sqlalchemy.orm import Session
@@ -383,6 +385,8 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
             is_first_page = min_row_id is None or (min_row_id in row_ids)
             is_last_page = max_row_id is None or (max_row_id in row_ids)
 
+            reps = get_table_reps(sesh, table)
+
             template_kwargs = dict(
                 page_title=f"{table.username}/{table.table_name}",
                 table=table,
@@ -394,6 +398,7 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                 is_last_page=is_last_page,
                 max_row_id=max_row_id,
                 highlight=request.args.get("highlight", None, type=int),
+                reps=reps,
             )
 
             if is_first_page:
@@ -597,6 +602,8 @@ def table_readme(username: str, table_name: str) -> Response:
     else:
         readme_html = "(no readme set)"
 
+    reps = get_table_reps(sesh, table)
+
     return make_response(
         render_template(
             "table_readme.html",
@@ -604,6 +611,7 @@ def table_readme(username: str, table_name: str) -> Response:
             table=table,
             table_readme=readme_html,
             praise_id=get_praise_id_if_exists(sesh, table),
+            reps=reps,
         )
     )
 
@@ -620,6 +628,8 @@ def get_table_apidocs(username: str, table_name: str) -> str:
     sample_row = backend.get_a_sample_row(table.table_uuid)
     sample_page = Page(has_less=False, has_more=True, rows=[sample_row])
 
+    reps = get_table_reps(sesh, table)
+
     return render_template(
         "table_api.html",
         page_title=f"REST docs: {username}/{table_name}",
@@ -633,6 +643,7 @@ def get_table_apidocs(username: str, table_name: str) -> str:
         table_to_json_dict=table_to_json_dict,
         url_for_with_auth=url_for_with_auth,
         praise_id=get_praise_id_if_exists(sesh, table),
+        reps=reps,
     )
 
 
@@ -710,6 +721,7 @@ def table_details(username: str, table_name: str) -> str:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
     ensure_table_access(sesh, table, "read")
+    reps = get_table_reps(sesh, table)
 
     return render_template(
         "table_details.html",
@@ -718,6 +730,7 @@ def table_details(username: str, table_name: str) -> str:
         DataLicence=DataLicence,
         table=table,
         praise_id=get_praise_id_if_exists(sesh, table),
+        reps=reps,
     )
 
 
@@ -729,6 +742,8 @@ def table_settings(username: str, table_name: str) -> str:
 
     table_readme_markdown = svc.get_readme_markdown(sesh, table.table_uuid)
 
+    reps = get_table_reps(sesh, table)
+
     return render_template(
         "table_settings.html",
         username=username,
@@ -737,6 +752,7 @@ def table_settings(username: str, table_name: str) -> str:
         DataLicence=DataLicence,
         table=table,
         praise_id=get_praise_id_if_exists(sesh, table),
+        reps=reps,
     )
 
 
@@ -1448,3 +1464,50 @@ def get_user_str_buf() -> codecs.StreamReader:
         shutil.copyfileobj(request.stream, byte_buf)
     str_buf = streams.byte_buf_to_str_buf(byte_buf)
     return str_buf
+
+
+@dataclasses.dataclass
+class TableRepresentation:
+    """Convenience object holding metadata on a specific representation (eg:
+    csv) of a table."""
+
+    content_type: ContentType
+    offered: bool
+    size: int
+    size_is_estimate: bool
+
+
+def get_table_reps(sesh: Session, table: Table) -> List[TableRepresentation]:
+    supported_content_types = [
+        ContentType.CSV,
+        ContentType.PARQUET,
+        ContentType.XLSX,
+        ContentType.JSON_LINES,
+    ]
+
+    rep_sizes = RepCache().sizes(table.table_uuid, table.last_changed)
+    backend = PGUserdataAdapter(sesh)
+    is_big = backend.count(table.table_uuid).is_big()
+
+    rv = []
+
+    for content_type in supported_content_types:
+        if is_big and content_type is ContentType.XLSX:
+            offered = False
+        else:
+            offered = True
+        if content_type in rep_sizes:
+            size = rep_sizes[content_type]
+            size_is_estimate = False
+        else:
+            size = 0
+            size_is_estimate = True
+        rv.append(
+            TableRepresentation(
+                content_type=content_type,
+                offered=offered,
+                size=size,
+                size_is_estimate=size_is_estimate,
+            )
+        )
+    return rv

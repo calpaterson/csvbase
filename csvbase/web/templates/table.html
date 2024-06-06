@@ -46,12 +46,12 @@
       </div>
       <div class="col-5 text-end d-md-none">
         <div class="btn-group-vertical">
-        {{ table_macros.download_button(table) }}
+        {{ table_macros.download_button(table, reps) }}
         {{ table_macros.praise_button(praise_id) }}
         </div>
       </div>
       <div class="col-6 text-end d-none d-md-block">
-        {{ table_macros.download_button(table, multiformat_dropdown=True) }}
+        {{ table_macros.download_button(table, reps, multiformat_dropdown=True) }}
         {{ table_macros.copy_button(table) }}
         {{ table_macros.praise_button(praise_id) }}
       </div>

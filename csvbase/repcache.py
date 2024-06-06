@@ -71,6 +71,8 @@ class RepCache:
         return rep_path.exists()
 
     def sizes(self, table_uuid: UUID, last_changed: datetime) -> Dict[ContentType, int]:
+        """Return the sizes of the various representations held."""
+
         rv = {}
         expected_dtstr = _safe_dtstr(last_changed)
         for rep_path in _rep_dir(table_uuid).iterdir():
