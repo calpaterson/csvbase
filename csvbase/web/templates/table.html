@@ -29,7 +29,7 @@
         <h1><a
           href="{{ url_for('csvbase.user', username=table.username) }}">{{ table.username }}</a> / <a
           href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}"
-          >{{ table.table_name }}</a> {{ data_licence_badge(table.data_licence) }} {{ privacy_badge(table) }}</h1>
+          >{{ table.table_name }}</a> {# {{ data_licence_badge(table.data_licence) }} {{ privacy_badge(table) }} #}</h1>
       </div>
     </div>
 
