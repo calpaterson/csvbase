@@ -3,6 +3,7 @@ from datetime import date, datetime, timezone
 from unittest.mock import ANY
 from typing import Mapping, Optional
 from urllib.parse import quote_plus
+from unittest.mock import patch
 
 import pandas as pd
 from pandas.testing import assert_frame_equal
@@ -19,6 +20,7 @@ from csvbase.value_objs import (
 )
 from csvbase.userdata import PGUserdataAdapter
 from csvbase.follow.git import GitSource
+from csvbase.config import get_config
 
 from .conftest import ROMAN_NUMERALS
 from .utils import (
@@ -395,6 +397,15 @@ def test_read__last_changed_updates_the_etag(
     second_etag = second_resp.headers["ETag"]
 
     assert first_etag != second_etag
+
+
+def test_read__x_accel_redirect(client, ten_rows, test_user, content_type, sesh):
+    if content_type in [ContentType.HTML, ContentType.JSON]:
+        pytest.skip("not relevant for html")
+    with patch.object(get_config(), "x_accel_redirect", True):
+        resp = get_table(client, test_user.username, ten_rows.table_name, content_type)
+    assert resp.status_code == 200
+    assert resp.headers.get("X-Accel-Redirect").startswith("/repcache/")
 
 
 def test_read__metadata_headers(client, ten_rows, test_user, content_type, sesh):

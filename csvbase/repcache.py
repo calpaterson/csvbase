@@ -83,6 +83,18 @@ class RepCache:
                     rv[content_type] = size
         return rv
 
+    def path(
+        self, table_uuid: UUID, content_type: ContentType, last_changed: datetime
+    ) -> Path:
+        """Returns the path of a specific representation's file on disk,
+        relative to the repcache root directory.
+
+        This is used for X-Accel-Redirect.
+
+        """
+        rep_path = _rep_path(table_uuid, content_type, last_changed)
+        return str(rep_path.relative_to(_repcache_dir()))
+
 
 def _safe_dtstr(dt: datetime) -> str:
     # cut out colons, which cause problems on ntfs

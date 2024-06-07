@@ -25,6 +25,7 @@ class Config:
     stripe_api_key: Optional[str]
     stripe_price_id: Optional[str]
     enable_datadog: bool
+    x_accel_redirect: bool
 
 
 __config__: Optional[Config] = None
@@ -52,6 +53,7 @@ def load_config(config_file: Path) -> Config:
         stripe_price_id=as_dict.get("stripe_price_id"),
         stripe_api_key=as_dict.get("stripe_api_key"),
         enable_datadog=as_dict.get("enable_datadog", False),
+        x_accel_redirect=as_dict.get("x_accel_redirect", False),
     )
 
 

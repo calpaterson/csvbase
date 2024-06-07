@@ -81,6 +81,7 @@ from ...value_objs import (
 from ...constants import COPY_BUFFER_SIZE
 from ..billing import svc as billing_svc
 from ...repcache import RepCache
+from ...config import get_config
 
 logger = getLogger(__name__)
 
@@ -443,19 +444,22 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                 else:
                     table_io.rows_to_csv(columns, rows, buf=rep_file)
 
-        with repcache.open(
-            table.table_uuid, content_type, table.last_changed, mode="rb"
-        ) as response_buf:
-            streaming_response = make_streaming_response(
-                response_buf, content_type, download_filename
+        if get_config().x_accel_redirect:
+            response = make_response()
+            repcache_path = repcache.path(
+                table.table_uuid, content_type, table.last_changed
             )
-            with_cache_headers = add_table_view_cache_headers(
-                table, streaming_response, etag
-            )
-            with_metadata_headers = add_table_metadata_headers(
-                table, with_cache_headers
-            )
-            return with_metadata_headers
+            response.headers["X-Accel-Redirect"] = f"/repcache/{repcache_path}"
+        else:
+            with repcache.open(
+                table.table_uuid, content_type, table.last_changed, mode="rb"
+            ) as response_buf:
+                response = make_streaming_response(
+                    response_buf, content_type, download_filename
+                )
+        with_cache_headers = add_table_view_cache_headers(table, response, etag)
+        with_metadata_headers = add_table_metadata_headers(table, with_cache_headers)
+        return with_metadata_headers
 
 
 def keyset_to_dict(keyset: KeySet) -> Dict:

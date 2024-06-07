@@ -72,3 +72,18 @@ def test_repcache__sizes():
     sizes = repcache.sizes(table_uuid, last_changed)
     assert {ContentType.CSV, ContentType.PARQUET} == set(sizes.keys())
     assert {int} == set(type(v) for v in sizes.values())
+
+
+def test_repcache__path():
+    repcache = RepCache()
+
+    table_uuid = random_uuid()
+    last_changed = datetime(2018, 1, 3, tzinfo=timezone.utc)
+    df = random_df()
+
+    with repcache.open(table_uuid, ContentType.CSV, last_changed, "wb") as rep_file:
+        df.to_csv(rep_file)
+
+    expected = f"{table_uuid}/2018-01-03T00_00_00+00_00.csv"
+    actual = repcache.path(table_uuid, ContentType.CSV, last_changed)
+    assert expected == actual
