@@ -206,7 +206,14 @@ class TableView(MethodView):
         table = svc.get_table(sesh, username, table_name)
         ensure_table_access(sesh, table, "read")
         content_type = negotiate_content_type(
-            [ContentType.HTML, ContentType.JSON], default=ContentType.CSV
+            [
+                ContentType.CSV,
+                ContentType.HTML,
+                ContentType.JSON,
+                ContentType.PARQUET,
+                ContentType.XLSX,
+                ContentType.JSON_LINES,
+            ]
         )
         return make_table_view_response(sesh, content_type, table)
 
@@ -214,7 +221,7 @@ class TableView(MethodView):
         """Create or overwrite a table."""
         sesh = get_sesh()
         user = svc.user_by_name(sesh, username)
-        negotiate_content_type([ContentType.JSON], default=ContentType.JSON)
+        negotiate_content_type([ContentType.JSON])
 
         backend = PGUserdataAdapter(sesh)
 
@@ -309,7 +316,7 @@ class TableView(MethodView):
         ensure_table_access(sesh, table, "write")
         ensure_not_read_only(table)
 
-        negotiate_content_type([ContentType.JSON], default=ContentType.JSON)
+        negotiate_content_type([ContentType.JSON])
 
         str_buf = get_user_str_buf()
         dialect, columns = streams.peek_csv(str_buf, table.columns)
@@ -906,7 +913,7 @@ def create_row(username: str, table_name: str) -> Response:
     row[ROW_ID_COLUMN] = row_id
 
     content_type = negotiate_content_type(
-        [ContentType.HTML, ContentType.JSON], ContentType.JSON
+        [ContentType.JSON, ContentType.HTML],
     )
     if content_type is ContentType.JSON:
         json_body = row_to_json_dict(table, row)
@@ -941,9 +948,7 @@ class RowView(MethodView):
         if row is None:
             raise exc.RowDoesNotExistException(username, table_name, row_id)
 
-        content_type = negotiate_content_type(
-            [ContentType.HTML, ContentType.JSON], default=ContentType.JSON
-        )
+        content_type = negotiate_content_type([ContentType.JSON, ContentType.HTML])
         etag = make_row_etag(table, row, content_type)
         response: Response  # necessary to avoid inference as flask.wrappers.Response
         if content_type is ContentType.HTML:
@@ -1293,15 +1298,16 @@ def make_streaming_response(
     return response
 
 
-def negotiate_content_type(
-    supported_mediatypes: Sequence[ContentType], default: Optional[ContentType] = None
-) -> ContentType:
-    accepts = werkzeug.http.parse_accept_header(request.headers.get("Accept"))
+def negotiate_content_type(supported_mediatypes: Sequence[ContentType]) -> ContentType:
+    """Negotiate the format to send back to the client."""
+    accepts = werkzeug.http.parse_accept_header(request.headers.get("Accept", "*/*"))
     best = accepts.best_match(
         [ct.value for ct in supported_mediatypes],
-        default=default.value if default is not None else None,
     )
     if best is None:
+        # werkzeug doesn't handle */*
+        if "*/*" in accepts:
+            return supported_mediatypes[0]
         raise exc.CantNegotiateContentType(supported_mediatypes)
     else:
         return ContentType(best)

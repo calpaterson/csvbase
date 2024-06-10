@@ -368,6 +368,31 @@ def test_read__happy(client, ten_rows, test_user, content_type):
         assert datetime.fromisoformat(actual_json["created"]) is not None
 
 
+def test_read__by_accept_header(client, ten_rows, test_user, content_type):
+    resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        headers={"Accept": content_type.value},
+    )
+    assert resp.status_code == 200
+    assert resp.mimetype == content_type.value
+
+
+def test_read__by_accept_header_curl(client, ten_rows, test_user):
+    resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}", headers={"Accept": "*/*"}
+    )
+    assert resp.status_code == 200
+    assert resp.mimetype == ContentType.CSV.value
+
+
+def test_read__by_accept_header_nonsense(client, ten_rows, test_user):
+    resp = client.get(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        headers={"Accept": "application/x-shockwave-flash"},
+    )
+    assert resp.status_code == 406
+
+
 def test_read__etag_cache_hit(client, ten_rows, test_user, content_type):
     first_resp = get_table(
         client, test_user.username, ten_rows.table_name, content_type
@@ -453,7 +478,7 @@ def test_read__x_accel_redirect(client, ten_rows, test_user, content_type, sesh)
     with patch.object(get_config(), "x_accel_redirect", True):
         resp = get_table(client, test_user.username, ten_rows.table_name, content_type)
     assert resp.status_code == 200
-    assert resp.headers.get("X-Accel-Redirect").startswith("/repcache/")
+    assert resp.headers.get("X-Accel-Redirect", "").startswith("/repcache/")
 
 
 def test_read__metadata_headers(client, ten_rows, test_user, content_type, sesh):
