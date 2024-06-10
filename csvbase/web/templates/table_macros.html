@@ -76,11 +76,12 @@
 {% endmacro %}
 
 {%- macro render_row_count(table) -%}
+
   {%- if table.row_count.exact == None -%}
-    ~{{ table.row_count.approx|decimalformat('@@@') }}
+    <span title="~ {{table.row_count.approx}} rows" data-tooltip="top">approximately {{ table.row_count.approx|humanize_intword("%0.0f") }}</span>
   {%- elif table.row_count.exact == 0 -%}
     0
   {%- else -%}
-    {{ table.row_count.exact }}
+    <span title="{{table.row_count.exact}} rows" data-tooltip="top">{{ table.row_count.exact|humanize_intword("%0.0f") }}</span>
   {%- endif -%}
 {%- endmacro -%}
