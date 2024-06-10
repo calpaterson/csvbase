@@ -87,7 +87,16 @@ app_base. #}
         </nav>
 
         {% block explainer %}
-          {{ other_macros.about_and_try() }}
+          {% if not current_user %}
+            <div class="container">
+              <div class="row">
+                <div class="text-center">
+                  <p>csvbase is a <mark>simple web database</mark>(?)
+                    Please <a href="https://discord.gg/uqu4BkNP5G">join the committee to keep csv evil</a>.</p>
+                </div>
+              </div>
+            </div>
+          {% endif %}
         {% endblock %}
 
         {% with messages = get_flashed_messages() %}
