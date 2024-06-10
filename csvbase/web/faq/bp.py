@@ -16,6 +16,7 @@ bp = Blueprint("faq", __name__)
 CACHE_TTL = int(timedelta(days=1).total_seconds())
 
 CATEGORIES: Dict[Optional[str], str] = {
+    "basics": "The basics",
     "tools": "Tools",
     None: "Misc",
 }
