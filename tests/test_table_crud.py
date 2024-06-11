@@ -140,6 +140,54 @@ def get_table(
     return client.get(url, headers=headers)
 
 
+def test_head__happy(client, test_user, ten_rows):
+    url = f"/{test_user.username}/{ten_rows.table_name}"
+    resp = client.head(url)
+    assert resp.status_code == 200
+    assert "ETag" not in resp.headers
+
+
+def test_head__table_does_not_exist(client, test_user):
+    url = f"/{test_user.username}/{random_string()}"
+    resp = client.head(url)
+    assert resp.status_code == 404
+
+
+def test_head__user_does_not_exist(client):
+    url = f"/{random_string()}/{random_string()}"
+    resp = client.head(url)
+    assert resp.status_code == 404
+
+
+def test_head__is_private_not_authed(client, private_table, test_user):
+    url = f"/{test_user.username}/{private_table}"
+    resp = client.head(url)
+    assert resp.status_code == 404, resp.data
+
+
+def test_head__is_private_am_authed(client, private_table, test_user):
+    resp = client.get(
+        f"/{test_user.username}/{private_table}",
+        headers={"Authorization": test_user.basic_auth()},
+    )
+    assert resp.status_code == 200, resp.data
+
+    cc_obj = resp.cache_control
+    assert cc_obj.private, "Cache-Control does not include 'private'"
+    assert cc_obj.no_cache
+
+
+def test_head__is_private_am_wrong_user(
+    client, private_table, content_type, test_user, sesh, crypt_context
+):
+    user = make_user(sesh, crypt_context)
+    sesh.commit()
+    with current_user(user):
+        url = f"/{test_user.username}/{private_table}"
+        resp = client.head(url)
+    assert resp.status_code == 404, resp.data
+
+
 def test_create__happy(client, test_user, content_type):
     new_csv = """a,b,c,d,e
 hello,1,1.5,FALSE,2018-01-03

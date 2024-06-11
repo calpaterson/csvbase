@@ -180,6 +180,26 @@ bp.add_url_rule("/convert", "convert", view_func=ConvertForm.as_view("convert-fo
 class TableView(MethodView):
     """This covers the "table API" plus the HTML "View" page."""
 
+    def head(self, username: str, table_name: str) -> Response:
+        """Get (HTTP-level) metadata about a table.
+
+        Flask auto-implements this by doing a GET and stripping the body, but
+        this implementation avoids that work.
+        """
+        sesh = get_sesh()
+        table = svc.get_table(sesh, username, table_name)
+        ensure_table_access(sesh, table, "read")
+
+        response = Response(status=200)
+
+        # No ETag is set because a HEAD request is not about a specific
+        # representation and we don't know what ETag to set.  We're simply
+        # saying that the table exists.
+        response = add_table_view_cache_headers(table, response, etag=None)
+        response = add_table_metadata_headers(table, response)
+
+        return response
+
     def get(self, username: str, table_name: str) -> Response:
         """Get a table"""
         sesh = get_sesh()
