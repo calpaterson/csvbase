@@ -15,11 +15,11 @@ class BootstrapRendererMixin(renderer.GFMRendererMixin):
     @render_dispatch(HTMLRenderer)
     def render_table(self, element):
         head, *body = element.children
-        theader = "<thead>\n{}</thead>".format(self.render(head))
+        theader = "<thead>\n{}</thead>".format(self.render(head))  # type: ignore
         tbody = ""
         if body:
             tbody = "\n<tbody>\n{}</tbody>".format(
-                "".join(self.render(row) for row in body)
+                "".join(self.render(row) for row in body)  # type: ignore
             )
         return f'<table class="table">\n{theader}{tbody}</table>'
 

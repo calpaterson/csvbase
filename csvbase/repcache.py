@@ -85,7 +85,7 @@ class RepCache:
 
     def path(
         self, table_uuid: UUID, content_type: ContentType, last_changed: datetime
-    ) -> Path:
+    ) -> str:
         """Returns the path of a specific representation's file on disk,
         relative to the repcache root directory.
 
