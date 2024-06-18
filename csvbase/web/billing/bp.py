@@ -145,8 +145,8 @@ def manage() -> Response:
     sesh = get_sesh()
     customer_id = svc.get_stripe_customer_id(sesh, current_user.user_uuid)
     if customer_id is None:
-        # FIXME: error case
-        ...
+        logger.error("stripe didn't find customer id: %s", customer_id)
+        raise RuntimeError("stripe didn't find a customer id")
     portal_session = stripe.billing_portal.Session.create(
         customer=customer_id,
         return_url=url_for(
@@ -168,6 +168,6 @@ def pricing() -> Response:
         has_subscription = svc.has_subscription(sesh, current_user.user_uuid)
     return make_response(
         render_template(
-            "pricing.html", page_title="Pricing", has_subscription=has_subscription
+            "billing/pricing.html", page_title="Support csvbase", has_subscription=has_subscription
         )
     )

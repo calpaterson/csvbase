@@ -5,19 +5,19 @@
 <div class="container">
   <div class="row">
     <div class="col-lg-8 offset-lg-2">
-      <h1 class="py-2">Pricing</h1>
+      <h1 class="py-2">Support csvbase</h1>
       <p>
-        csvbase is <mark>free for open data</mark> - all users can upload
-        and share unlimited public tables completely free of charge.
+        csvbase is an <a href="https://github.com/calpaterson/csvbase">open
+        source project</a> and is <a href="/faq/usage">free for open data</a>.
       </p>
       <p>
-        Each user also gets their <mark>first private table for free</mark>.
-        If you need more private tables you can subscribe for £2/month for
-        unlimited private tables.
+        If you find csvbase useful - or simply think it is cool - you can
+        support it by subscribing.
       </p>
       <p>
-        Subscribing not only unlocks unlimited private tables but also supports
-        the development of this <a href="https://github.com/calpaterson/csvbase">completely open source project</a>.
+        Subscriptions operate under a pay-what-you-want model, with a 1 euro
+        minimum.  Subscribing supports further development of csvbase, and
+        <mark>allows your account to create private tables</mark>.
       </p>
       <div class="d-grid justify-content-center">
         {% if has_subscription %}
@@ -26,7 +26,7 @@
           <a href="{{ url_for('billing.subscribe') }}"
              class="btn btn-success btn-lg active text-center"
              role="button"
-             >Get unlimited private tables for £2/month</a>
+             >Become a supporter</a>
         {% endif %}
         <div class="text-center">
           <p>Have a question?  Feel free to <a href="mailto:cal@calpaterson.com">get in contact</a><p>
