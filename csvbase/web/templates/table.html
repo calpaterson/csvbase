@@ -34,7 +34,7 @@
     </div>
 
     <div class="row mb-2">
-      <div class="col-6">
+      <div class="col-8">
         <span class="table-topline">
           {%- if table.has_caption() -%}
             <span class="table-caption">{{table.caption}}</span> &mdash; {{ table_macros.render_row_count(table) }} rows
@@ -44,13 +44,13 @@
           , last changed {{ value_macros.render_human_datetime(table.last_changed) }} ago
         </span>
       </div>
-      <div class="col-5 text-end d-md-none">
+      <div class="col-4 text-end d-md-none">
         <div class="btn-group-vertical">
         {{ table_macros.download_button(table, reps) }}
         {{ table_macros.praise_button(praise_id) }}
         </div>
       </div>
-      <div class="col-6 text-end d-none d-md-block">
+      <div class="col-4 text-end d-none d-md-block">
         {{ table_macros.download_button(table, reps, multiformat_dropdown=True) }}
         {{ table_macros.copy_button(table) }}
         {{ table_macros.praise_button(praise_id) }}
