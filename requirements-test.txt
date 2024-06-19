@@ -14,4 +14,4 @@ types-bleach==5.0.2
 types-cryptography
 types-setuptools==65.1.0
 types-toml==0.10.8.5
-celery-types~=0.22.0
+celery-types
