@@ -168,6 +168,8 @@ def pricing() -> Response:
         has_subscription = svc.has_subscription(sesh, current_user.user_uuid)
     return make_response(
         render_template(
-            "billing/pricing.html", page_title="Support csvbase", has_subscription=has_subscription
+            "billing/pricing.html",
+            page_title="Support csvbase",
+            has_subscription=has_subscription,
         )
     )

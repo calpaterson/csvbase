@@ -90,9 +90,7 @@ def test_create_table__happy(client, test_user, local_repos_path):
         token = resp.headers["Location"].split("/")[-1]
         confirm_cookie = client.get_cookie(f"confirm-token-{token}")
         assert confirm_cookie.max_age == timedelta(hours=1).total_seconds()
-        confirm_package = cookie_to_dict(
-            confirm_cookie.value
-        )
+        confirm_package = cookie_to_dict(confirm_cookie.value)
         assert confirm_package is not None
 
         confirm_get_resp = client.get(resp.headers["Location"])
