@@ -1182,6 +1182,7 @@ def change_password(username: str) -> Response:
         if not svc.is_correct_password(
             sesh, crypt_context, user.username, existing_password
         ):
+            logger.warning("user '%s' tried to change password but got password wrong", user.username)
             flash("Existing password not correct")
             return make_response(
                 render_template(
@@ -1191,6 +1192,7 @@ def change_password(username: str) -> Response:
                 400,
             )
         if new_password != new_password_again:
+            logger.warning("user '%s' tried to change password but mistyped confirmation", username)
             flash("Passwords don't match")
             return make_response(
                 render_template(
