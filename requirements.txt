@@ -2,6 +2,7 @@ alembic[tz]==1.13.1
 argon2-cffi==23.1.0
 bleach==6.0.0
 charset-normalizer==3.2.0
+celery[redis]==5.4.0
 click==8.1.7
 ddtrace==2.8.1
 giturlparse==0.12.0

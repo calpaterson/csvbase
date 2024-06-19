@@ -26,6 +26,7 @@ class Config:
     stripe_price_id: Optional[str]
     enable_datadog: bool
     x_accel_redirect: bool
+    celery_broker_url: Optional[str] = "redis://localhost/3"
 
 
 __config__: Optional[Config] = None
