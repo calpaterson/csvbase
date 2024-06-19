@@ -135,6 +135,7 @@ class CreateTableFromGit(MethodView):
         response.set_cookie(
             f"confirm-token-{token}",
             dict_to_cookie(confirm_package),
+            max_age=temp.DEFAULT_RETENTION,
             secure=True,
             httponly=True,
         )
