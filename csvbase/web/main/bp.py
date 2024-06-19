@@ -1162,6 +1162,49 @@ def user_settings(username: str) -> Response:
         return redirect(url_for("csvbase.user_settings", username=username))
 
 
+@bp.route("/<username>/settings/change-password", methods=["GET", "POST"])
+def change_password(username: str) -> Response:
+    am_user_or_400(username)
+    sesh = get_sesh()
+    user = svc.user_by_name(sesh, username)
+    if request.method == "GET":
+        return make_response(
+            render_template(
+                "change-password.html",
+                page_title="Change password",
+            )
+        )
+    else:
+        crypt_context = current_app.config["CRYPT_CONTEXT"]
+        existing_password = request.form["existing-password"]
+        new_password = request.form["new-password"]
+        new_password_again = request.form["new-password-again"]
+        if not svc.is_correct_password(
+            sesh, crypt_context, user.username, existing_password
+        ):
+            flash("Existing password not correct")
+            return make_response(
+                render_template(
+                    "change-password.html",
+                    page_title="Change password",
+                ),
+                400,
+            )
+        if new_password != new_password_again:
+            flash("Passwords don't match")
+            return make_response(
+                render_template(
+                    "change-password.html",
+                    page_title="Change password",
+                ),
+                400,
+            )
+        svc.set_password(sesh, crypt_context, user.user_uuid, new_password)
+        sesh.commit()
+        flash("Password changed")
+        return redirect(url_for("csvbase.user", username=username))
+
+
 @bp.get("/robots.txt")
 def robots() -> Response:
     sitemap_url = url_for("csvbase.sitemap", _external=True)

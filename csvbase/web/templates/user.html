@@ -11,6 +11,7 @@
 
     {% if current_username == user.username %}
       <p><a href="{{ url_for('csvbase.user_settings', username=user.username) }}">Edit your settings</a></p>
+      <p><a href="{{ url_for('csvbase.change_password', username=user.username) }}">Change your password</a></p>
     {% endif %}
 
     {% if show_manage_subscription %}

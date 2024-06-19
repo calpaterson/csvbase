@@ -436,6 +436,13 @@ def create_user(
     )
 
 
+def set_password(sesh, crypt_context, user_uuid: UUID, password_plain: str) -> None:
+    password_hashed = crypt_context.hash(password_plain)
+    sesh.query(models.User).filter(models.User.user_uuid == user_uuid).update(
+        {"password_hash": password_hashed}
+    )
+
+
 def check_table_name_is_allowed(table_name: str) -> None:
     too_long = len(table_name) >= 200
     invalid = not ID_REGEX.match(table_name)

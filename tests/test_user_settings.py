@@ -91,3 +91,61 @@ def test_user_settings__wrong_user(sesh, client, test_user, app):
         settings_url = f"/{user2.username}/settings"
         get_resp = client.post(settings_url, data={"timezone": "Europe/Berlin"})
     assert get_resp.status_code == 401
+
+
+def test_change_password__happy(sesh, client, test_user):
+    url = f"/{test_user.username}/settings/change-password"
+    with current_user(test_user):
+        get_resp = client.get(url)
+        assert get_resp.status_code == 200
+        form = dict(parse_form(get_resp.data))
+        assert form == {
+            "existing-password": "",
+            "new-password": "",
+            "new-password-again": "",
+        }
+
+        form["existing-password"] = "password"
+        form["new-password"] = "password1"
+        form["new-password-again"] = "password1"
+        post_resp = client.post(url, data=form)
+        assert post_resp.status_code == 302
+        assert post_resp.headers["Location"] == f"/{test_user.username}"
+
+
+def test_change_password__existing_password_is_wrong(sesh, client, test_user):
+    url = f"/{test_user.username}/settings/change-password"
+    with current_user(test_user):
+        get_resp = client.get(url)
+        assert get_resp.status_code == 200
+        form = dict(parse_form(get_resp.data))
+        assert form == {
+            "existing-password": "",
+            "new-password": "",
+            "new-password-again": "",
+        }
+
+        form["existing-password"] = "pass word"
+        form["new-password"] = "password1"
+        form["new-password-again"] = "password1"
+        post_resp = client.post(url, data=form)
+        assert post_resp.status_code == 400
+
+
+def test_change_password__new_passwords_dont_match(sesh, client, test_user):
+    url = f"/{test_user.username}/settings/change-password"
+    with current_user(test_user):
+        get_resp = client.get(url)
+        assert get_resp.status_code == 200
+        form = dict(parse_form(get_resp.data))
+        assert form == {
+            "existing-password": "",
+            "new-password": "",
+            "new-password-again": "",
+        }
+
+        form["existing-password"] = "password"
+        form["new-password"] = "password1"
+        form["new-password-again"] = "password2"
+        post_resp = client.post(url, data=form)
+        assert post_resp.status_code == 400
