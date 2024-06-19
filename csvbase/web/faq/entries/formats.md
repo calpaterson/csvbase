@@ -19,7 +19,7 @@ csvbase supports the following formats:
 | [Microsoft Excel](https://en.wikipedia.org/wiki/Office_Open_XML)                        | `.xlsx`        | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | No    |
 
 To download a table in a given format, you have three options:
-1. Select that format in the UI
+1. Use the dropdown in the web UI
 2. Append the file extension to the url
    - eg [csvbase.com/meripaterson/stock-exchanges.**xlsx**](https://csvbase.com/meripaterson/stock-exchanges.xlsx)
 3. Set the HTTP Accept header (in your HTTP client)

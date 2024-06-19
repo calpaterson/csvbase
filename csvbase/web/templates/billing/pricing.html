@@ -1,25 +1,43 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "app_base.html" %}
 
+{% block explainer %}{% endblock %}
+
 {% block main %}
 <div class="container">
   <div class="row">
     <div class="col-lg-8 offset-lg-2">
-      <h1 class="py-2">Support csvbase</h1>
+      <div class="px-4 my-2 text-center">
+        <img alt="logo" src="{{ url_for('static', filename='logo/192x192.png') }}" width="192" height="192">
+        <h1 class="display-5 fw-bold">Become a supporter</h1>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12 text-center">
+      <div class="my-3">
+        If you find csvbase useful - or simply think it is cool - please support it with a subscription.
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8 offset-lg-2">
       <p>
-        csvbase is an <a href="https://github.com/calpaterson/csvbase">open
-        source project</a> and is <a href="/faq/usage">free for open data</a>.
+        csvbase is <a href="https://github.com/calpaterson/csvbase">open source software</a>, available under the terms of the AGPLv3 or later.  It is also <a href="/faq/usage">free to use for all open data</a>.
       </p>
       <p>
-        If you find csvbase useful - or simply think it is cool - you can
-        support it by subscribing.
+        Subscribing allows you to <mark>create private tables</mark> and support further development of csvbase.
       </p>
       <p>
-        Subscriptions operate under a pay-what-you-want model, with a 1 euro
-        minimum.  Subscribing supports further development of csvbase, and
-        <mark>allows your account to create private tables</mark>.
-      </p>
-      <div class="d-grid justify-content-center">
+        Subscriptions are £2/month.
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-4 offset-lg-4">
+      <div class="d-grid text-center">
         {% if has_subscription %}
           <p>You are already subscribed. <a href="{{ url_for('billing.manage') }}">Manage your subscription</a>.
         {% else %}
