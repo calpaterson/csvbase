@@ -121,6 +121,7 @@ class RowCount:
         return self.exact or self.approx
 
     def is_big(self):
+        # Big Data == "too big for excel"
         return self.best() > 1_000_000
 
 
