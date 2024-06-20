@@ -53,6 +53,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
     exc.RowDoesNotExistException: ("that row does not exist", 404),
     exc.PageDoesNotExistException: ("that page does not exist", 404),
     exc.TableDoesNotExistException: ("that table does not exist", 404),
+    exc.TableUUIDDoesNotExistException: ("that table does not exist", 404),
     exc.NotAuthenticatedException: ("you need to sign in to do that", 401),
     exc.NotAllowedException: ("that's not allowed", 403),
     exc.WrongAuthException: ("that's the wrong password or api key", 400),

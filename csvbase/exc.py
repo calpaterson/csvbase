@@ -1,3 +1,4 @@
+from uuid import UUID
 from .value_objs import ColumnType, KeySet
 
 
@@ -13,6 +14,12 @@ class TableDoesNotExistException(CSVBaseException):
         self.table_name = table_name
         self.username = username
         super().__init__((username, table_name))
+
+
+class TableUUIDDoesNotExistException(CSVBaseException):
+    def __init__(self, table_uuid: UUID):
+        self.table_uuid = table_uuid
+        super().__init__()
 
 
 class UserDoesNotExistException(CSVBaseException):

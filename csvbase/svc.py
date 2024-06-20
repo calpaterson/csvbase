@@ -178,6 +178,19 @@ def table_exists(sesh: Session, user_uuid: UUID, table_name: str) -> bool:
     ).scalar()
 
 
+def get_table_by_uuid(sesh: Session, table_uuid: UUID) -> Table:
+    pair = (
+        sesh.query(models.User.username, models.Table.table_name)
+        .join(models.Table)
+        .filter(models.Table.table_uuid == table_uuid)
+        .first()
+    )
+    if pair is None:
+        raise exc.TableUUIDDoesNotExistException(table_uuid)
+    else:
+        return get_table(sesh, pair[0], pair[1])
+
+
 def get_table(sesh: Session, username: str, table_name: str) -> Table:
     # FIXME: this is very hot
     # - should be cached
