@@ -16,6 +16,7 @@ from csvbase.follow.git import GitSource
 
 logger = getLogger(__name__)
 
+
 def is_test_url(url: str) -> bool:
     """The tests will put git url in the database as "example.com" - this helps
     exclude them when running locally.

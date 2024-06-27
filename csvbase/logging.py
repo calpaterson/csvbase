@@ -14,6 +14,8 @@ LOG_LEVELS = [
 
 CONFIGURED = False
 
+logger = logging.getLogger(__name__)
+
 
 def configure_logging(level: str = "INFO"):
     """Configure our logging - stderr by default but logging nicely to the
@@ -32,3 +34,4 @@ def configure_logging(level: str = "INFO"):
             kwargs["stream"] = stderr
         logging.basicConfig(**kwargs)
     CONFIGURED = True
+    logger.info("logging was configured (level = %s)", level)
