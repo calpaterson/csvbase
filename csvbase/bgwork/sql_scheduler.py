@@ -3,7 +3,6 @@
 # Still to do:
 # 1. Avoid timezone issues by using tz-awake SQL type for last_run_at
 # 2. Make engine/table/schema configurable
-# 3. Include created/updated columns
 
 from typing import Dict, Any
 import pickle
@@ -20,6 +19,7 @@ from sqlalchemy import (
     insert,
     delete,
     create_engine,
+    func,
 )
 from sqlalchemy.orm import Session
 
@@ -87,8 +87,8 @@ class SQLScheduler(Scheduler):
             self._sql_table_name,
             sacolumn("celery_app_name", type_=satypes.String),
             sacolumn("name", type_=satypes.String),
-            # sacolumn("created", type=satypes.Datetime),
-            # sacolumn("updated", type=satypes.DateTime),
+            sacolumn("created", type_=satypes.DateTime(timezone=True)),
+            sacolumn("updated", type_=satypes.DateTime(timezone=True)),
             sacolumn("pickled_schedule_entry", type_=satypes.LargeBinary()),
             schema=self._sql_schema,
         )
@@ -142,6 +142,8 @@ class SQLScheduler(Scheduler):
                                 "celery_app_name": self.app.main,
                                 "name": new_name,
                                 "pickled_schedule_entry": pickled_schedule[new_name],
+                                "updated": func.now(),
+                                "created": func.now(),
                             }
                             for new_name in new_names
                         ]
@@ -160,7 +162,7 @@ class SQLScheduler(Scheduler):
                         table.c.celery_app_name == self.app.main,
                         table.c.pickled_schedule_entry != pickled_schedule_entry,
                     )
-                    .values({"pickled_schedule_entry": pickled_schedule_entry})
+                    .values({"pickled_schedule_entry": pickled_schedule_entry, "updated": func.now()})
                 )
                 rv = session.execute(stmt)
                 if rv.rowcount != 0:
