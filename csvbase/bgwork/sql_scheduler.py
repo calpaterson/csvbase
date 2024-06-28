@@ -2,9 +2,8 @@
 
 # Still to do:
 # 1. Avoid timezone issues by using tz-awake SQL type for last_run_at
-# 2. Serialise to JSON for debuggability
-# 3. Make engine/table/schema configurable
-# 4. Include created/updated columns
+# 2. Make engine/table/schema configurable
+# 3. Include created/updated columns
 
 from typing import Dict, Any
 import pickle
