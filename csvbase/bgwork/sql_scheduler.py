@@ -5,7 +5,6 @@
 # 2. Serialise to JSON for debuggability
 # 3. Make engine/table/schema configurable
 # 4. Include created/updated columns
-# 5. Don't update entries that have not changed (compare md5sums if necessary)
 
 from typing import Dict, Any
 import pickle
@@ -21,7 +20,6 @@ from sqlalchemy import (
     update,
     insert,
     delete,
-    bindparam,
     create_engine,
 )
 from sqlalchemy.orm import Session
@@ -107,7 +105,7 @@ class SQLScheduler(Scheduler):
             ).where(table.c.celery_app_name == self.app.main)
             for name, pickled_schedule_entry in entry_rows:
                 schedule_entry = pickle.loads(pickled_schedule_entry)
-                logger.info("found in db: %s", schedule_entry)
+                logger.info("found: %s", schedule_entry)
                 entries[name] = schedule_entry
         self._store["entries"] = entries
 
@@ -128,17 +126,16 @@ class SQLScheduler(Scheduler):
 
             removed_names = names_in_db.difference(names)
             if len(removed_names) > 0:
-                logger.info("removing: %s", removed_names)
                 session.execute(
                     delete(table).where(
                         table.c.name.in_(removed_names),
                         table.c.celery_app_name == self.app.main,
                     )
                 )
+                logger.info("removed: %s", removed_names)
 
             new_names = names.difference(names_in_db)
             if len(new_names) > 0:
-                logger.info("adding: %s", new_names)
                 session.execute(
                     insert(table).values(
                         [
@@ -151,38 +148,26 @@ class SQLScheduler(Scheduler):
                         ]
                     )
                 )
+                logger.info("added: %s", new_names)
 
             possibly_changed_names = names.intersection(names_in_db)
-            if len(possibly_changed_names) > 0:
-                logger.info(
-                    "updating (may not have changed): %s", possibly_changed_names
-                )
-
+            changed_names = []
+            for possibly_changed_name in possibly_changed_names:
+                pickled_schedule_entry = pickled_schedule[possibly_changed_name]
                 stmt = (
                     update(table)
-                    .where(table.c.name == bindparam("name"))
-                    .values(
-                        {
-                            "name": bindparam("name"),
-                            "pickled_schedule_entry": bindparam(
-                                "pickled_schedule_entry"
-                            ),
-                            "celery_app_name": bindparam("celery_app_name"),
-                        }
+                    .where(
+                        table.c.name == possibly_changed_name,
+                        table.c.celery_app_name == self.app.main,
+                        table.c.pickled_schedule_entry != pickled_schedule_entry,
                     )
+                    .values({"pickled_schedule_entry": pickled_schedule_entry})
                 )
-                vs = [
-                    {
-                        "name": possibly_changed_name,
-                        "pickled_schedule_entry": pickled_schedule[
-                            possibly_changed_name
-                        ],
-                        "celery_app_name": self.app.main,
-                    }
-                    for possibly_changed_name in possibly_changed_names
-                ]
-
-                session.execute(stmt, vs)
+                rv = session.execute(stmt)
+                if rv.rowcount != 0:
+                    changed_names.append(possibly_changed_name)
+            if len(changed_names) > 0:
+                logger.info("updated: %s", changed_names)
             session.commit()
 
     def close(self) -> None:
