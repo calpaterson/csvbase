@@ -1,11 +1,21 @@
-"""Experimental scheduler that persists in sqlalchemy instead of a shelve file."""
+"""Celery beat scheduler that persists in sqlalchemy instead of a shelve file.
+
+Experimental.
+
+This doesn't make it any easier to edit the schedules in the database (unlike
+django-celery-beat) but it does save having a file stored on disk somewhere.
+
+Unlike the rest of csvbase, this is designed to be extracted into a separate
+library at some point, so it uses only standard sqlachemy types instead of
+pg-specific code.
+
+"""
 
 # Still to do:
 # 1. Avoid timezone issues by using tz-awake SQL type for last_run_at
 # 2. Make engine/table/schema configurable
 
 from typing import Dict, Any
-import pickle
 from logging import getLogger
 import contextlib
 
@@ -25,7 +35,7 @@ from sqlalchemy.orm import Session
 
 logger = getLogger(__name__)
 
-__version__ = 1
+# __version__ = 1
 
 
 class SQLScheduler(Scheduler):
@@ -38,7 +48,7 @@ class SQLScheduler(Scheduler):
     def __init__(self, *args, **kwargs):
         self._store: Dict[str, Any] = {}
 
-        # FIXME: make this configuratable
+        # FIXME: make this configurable
         self._sql_schema = "celery"
         self._sql_table_name = "schedule_entries"
         self._engine = create_engine(get_db_url())
@@ -89,7 +99,7 @@ class SQLScheduler(Scheduler):
             sacolumn("name", type_=satypes.String),
             sacolumn("created", type_=satypes.DateTime(timezone=True)),
             sacolumn("updated", type_=satypes.DateTime(timezone=True)),
-            sacolumn("pickled_schedule_entry", type_=satypes.LargeBinary()),
+            sacolumn("pickled_schedule_entry", type_=satypes.PickleType()),
             schema=self._sql_schema,
         )
 
@@ -102,23 +112,20 @@ class SQLScheduler(Scheduler):
             entry_rows = session.query(  # type: ignore
                 table.c.name, table.c.pickled_schedule_entry
             ).where(table.c.celery_app_name == self.app.main)
-            for name, pickled_schedule_entry in entry_rows:
-                schedule_entry = pickle.loads(pickled_schedule_entry)
+            for name, schedule_entry in entry_rows:
                 logger.info("found: %s", schedule_entry)
                 entries[name] = schedule_entry
         self._store["entries"] = entries
 
     def sync(self) -> None:
         table = self._get_tableclause()
-        pickled_schedule = {
-            n: pickle.dumps(se) for n, se in self._store["entries"].items()
-        }
+        schedule = self._store["entries"]
         names = set(self._store["entries"].keys())
 
         with contextlib.closing(Session(self._engine)) as session:
             names_in_db = set(
                 t[0]
-                for t in session.query(table.c.name).where(
+                for t in session.query(table.c.name).where(  # type: ignore
                     table.c.celery_app_name == self.app.main
                 )
             )
@@ -126,7 +133,7 @@ class SQLScheduler(Scheduler):
             removed_names = names_in_db.difference(names)
             if len(removed_names) > 0:
                 session.execute(
-                    delete(table).where(
+                    delete(table).where(  # type: ignore
                         table.c.name.in_(removed_names),
                         table.c.celery_app_name == self.app.main,
                     )
@@ -141,7 +148,7 @@ class SQLScheduler(Scheduler):
                             {
                                 "celery_app_name": self.app.main,
                                 "name": new_name,
-                                "pickled_schedule_entry": pickled_schedule[new_name],
+                                "pickled_schedule_entry": schedule[new_name],
                                 "updated": func.now(),
                                 "created": func.now(),
                             }
@@ -154,15 +161,20 @@ class SQLScheduler(Scheduler):
             possibly_changed_names = names.intersection(names_in_db)
             changed_names = []
             for possibly_changed_name in possibly_changed_names:
-                pickled_schedule_entry = pickled_schedule[possibly_changed_name]
+                schedule_entry = schedule[possibly_changed_name]
                 stmt = (
-                    update(table)
+                    update(table)  # type: ignore
                     .where(
                         table.c.name == possibly_changed_name,
                         table.c.celery_app_name == self.app.main,
-                        table.c.pickled_schedule_entry != pickled_schedule_entry,
+                        table.c.pickled_schedule_entry != schedule_entry,
                     )
-                    .values({"pickled_schedule_entry": pickled_schedule_entry, "updated": func.now()})
+                    .values(
+                        {
+                            "pickled_schedule_entry": schedule_entry,
+                            "updated": func.now(),
+                        }
+                    )
                 )
                 rv = session.execute(stmt)
                 if rv.rowcount != 0:
