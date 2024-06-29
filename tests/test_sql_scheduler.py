@@ -50,13 +50,6 @@ def test_sql_schedule__test_persistence_works(celery_app):
     celery_app.add_periodic_task(
         timedelta(minutes=30).total_seconds(), example_task.s()
     )
-    # scheduler_a = SQLScheduler(celery_app)
-    # schedule_a = scheduler_a.get_schedule()
-
-    # schedule_entry = make_schedule_entry()
-    # schedule_a[schedule_entry.name] = schedule_entry
-    # scheduler_a.set_schedule(schedule_a)
-    # scheduler_a.sync()
 
     scheduler = SQLScheduler(celery_app)
     schedule = scheduler.get_schedule()
