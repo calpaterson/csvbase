@@ -4,6 +4,7 @@ import pytest
 from celery import Celery
 from celery.beat import ScheduleEntry
 
+from csvbase.db import get_db_url
 from csvbase.bgwork.sql_scheduler import SQLScheduler
 
 from .utils import random_string
@@ -12,6 +13,8 @@ from .utils import random_string
 @pytest.fixture(scope="function")
 def celery_app():
     celery = Celery(random_string())
+    celery.conf["beat_sqlalchemy_scheduler_db_url"] = get_db_url()
+    celery.conf["beat_scheduler"] = "csvbase.bgwork.sql_scheduler:SQLScheduler"
     return celery
 
 

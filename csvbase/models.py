@@ -417,3 +417,14 @@ class Comment(Base):
 #         index=True,
 #     )
 #     event_body = Column(satypes.JSON, nullable=False)
+
+
+class CeleryScheduleEntry(Base):
+    __tablename__ = "schedule_entries"
+    __table_args__ = {"schema": "celery"}
+
+    celery_app_name = Column(satypes.String, primary_key=True, nullable=False)
+    name = Column(satypes.String, primary_key=True, nullable=False)
+    created = Column(satypes.DateTime(timezone=True), nullable=False)
+    updated = Column(satypes.DateTime(timezone=True), nullable=False)
+    pickled_schedule_entry = Column(satypes.PickleType(), nullable=False)
