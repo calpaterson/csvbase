@@ -5,21 +5,16 @@ Experimental.
 This doesn't make it any easier to edit the schedules in the database (unlike
 django-celery-beat) but it does save having a file stored on disk somewhere.
 
-Unlike the rest of csvbase, this is designed to be extracted into a separate
-library at some point, so it uses only standard sqlachemy types instead of
-pg-specific code.
+Unlike the rest of csvbase, this uses only standard sqlalchemy types as it is
+designed to be extracted into a separate library at some point.
 
 """
-
-# Still to do:
-# 1. Avoid timezone issues by using tz-awake SQL type for last_run_at
-# 2. Make engine/table/schema configurable
 
 from typing import Dict, Any
 from logging import getLogger
 import contextlib
 
-from csvbase.db import get_db_url
+from celery import Celery
 from celery.beat import Scheduler, ScheduleEntry
 from sqlalchemy import (
     types as satypes,
@@ -35,8 +30,6 @@ from sqlalchemy.orm import Session
 
 logger = getLogger(__name__)
 
-# __version__ = 1
-
 
 class SQLScheduler(Scheduler):
     """Scheduler that persists schedules in SQL rather than the filesystem.
@@ -45,43 +38,39 @@ class SQLScheduler(Scheduler):
     it just avoids saving the schedule in a file on disk.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, app: Celery, *args, **kwargs):
         self._store: Dict[str, Any] = {}
 
-        # FIXME: make this configurable
-        self._sql_schema = "celery"
-        self._sql_table_name = "schedule_entries"
-        self._engine = create_engine(get_db_url())
+        db_url = app.conf.get("beat_sqlalchemy_scheduler_db_url")
+        if db_url is None:
+            raise RuntimeError(
+                "you must set the celery conf variable 'beat_sqlalchemy_scheduler_db_url'"
+            )
+        self._engine = create_engine(db_url)
+        self._sql_schema: str = app.conf.get(
+            "beat_sqlalchemy_scheduler_schema", default="celery"
+        )
+        self._sql_table_name: str = app.conf.get(
+            "beat_sqlalchemy_scheduler_table_name", default="schedule_entries"
+        )
 
-        super().__init__(*args, **kwargs)
+        super().__init__(app, *args, **kwargs)
 
     def setup_schedule(self) -> None:
-        # FIXME: We need something similar to this code (pasted from upstream) to
-        # handle cases where the tz has changed under use
-        # tz = self.app.conf.timezone
-        # stored_tz = self._store.get("tz")
-        # if stored_tz is not None and stored_tz != tz:
-        #     logger.warning("Reset: Timezone changed from %r to %r", stored_tz, tz)
-        #     self._store.clear()  # Timezone changed, reset db!
-        # utc = self.app.conf.enable_utc
-        # stored_utc = self._store.get("utc_enabled")
-        # if stored_utc is not None and stored_utc != utc:
-        #     choices = {True: "enabled", False: "disabled"}
-        #     logger.warning(
-        #         "Reset: UTC changed from %s to %s", choices[stored_utc], choices[utc]
-        #     )
-        #     self._store.clear()  # UTC setting changed, reset db!
-
+        # There seem to be numerous long standing bugs in this area.
+        # https://github.com/celery/celery/issues/4842
+        # https://github.com/celery/celery/issues/2649
+        # https://github.com/celery/celery/issues/4006
+        # Because the ScheduleEntry objects are pickled (as in the official
+        # PersistentScheduler class) we don't have the ability to correct them
+        # for changes to timezone configuration
+        if self.app.conf.timezone not in [None, "UTC"] or not self.app.conf.enable_utc:
+            logger.warning(
+                "You have changed 'timezone' or 'enable_utc' from the default.  Beware issues with periodic tasks firing at the wrong times."
+            )
         self._load_schedule()
         self.merge_inplace(self.app.conf.beat_schedule)
         self.install_default_entries(self.schedule)
-        # self._store.update(
-        #     {
-        #         "__version__": __version__,
-        #         "tz": tz,
-        #         "utc_enabled": utc,
-        #     }
-        # )
         self.sync()
 
     def get_schedule(self) -> Dict[str, ScheduleEntry]:
@@ -108,14 +97,14 @@ class SQLScheduler(Scheduler):
         table = self._get_tableclause()
         entries: Dict[str, ScheduleEntry] = {}
         with contextlib.closing(Session(self._engine)) as session:
-            logger.info("loading schedule from SQL database")
             entry_rows = session.query(  # type: ignore
                 table.c.name, table.c.pickled_schedule_entry
             ).where(table.c.celery_app_name == self.app.main)
             for name, schedule_entry in entry_rows:
-                logger.info("found: %s", schedule_entry)
+                logger.info("found schedule entry: %s", schedule_entry)
                 entries[name] = schedule_entry
         self._store["entries"] = entries
+        logger.info("loaded schedule from SQL database")
 
     def sync(self) -> None:
         table = self._get_tableclause()
@@ -138,7 +127,7 @@ class SQLScheduler(Scheduler):
                         table.c.celery_app_name == self.app.main,
                     )
                 )
-                logger.info("removed: %s", removed_names)
+                logger.info("removed schedule entry %s", removed_names)
 
             new_names = names.difference(names_in_db)
             if len(new_names) > 0:
@@ -156,7 +145,7 @@ class SQLScheduler(Scheduler):
                         ]
                     )
                 )
-                logger.info("added: %s", new_names)
+                logger.info("added schedule entry: %s", new_names)
 
             possibly_changed_names = names.intersection(names_in_db)
             changed_names = []
@@ -180,8 +169,9 @@ class SQLScheduler(Scheduler):
                 if rv.rowcount != 0:
                     changed_names.append(possibly_changed_name)
             if len(changed_names) > 0:
-                logger.info("updated: %s", changed_names)
+                logger.info("updated schedule entry: %s", changed_names)
             session.commit()
+            logger.info("synced schedule to SQL database")
 
     def close(self) -> None:
         self.sync()
