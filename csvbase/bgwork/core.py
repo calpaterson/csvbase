@@ -15,7 +15,7 @@ def initialise_celery(flask_app: Flask, config: Config) -> None:
     # initially down, best to just crash.
     celery.conf["broker_connection_retry_on_startup"] = False
 
-    celery.conf["beat_scheduler"] = "csvbase.bgwork.sql_scheduler:SQLScheduler"
+    celery.conf["beat_scheduler"] = "csvbase.bgwork.sql_scheduler:SQLAlchemyScheduler"
     celery.conf["beat_sqlalchemy_scheduler_db_url"] = get_db_url()
 
     # Make sure the flask app context is pushed for all tasks.

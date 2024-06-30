@@ -5,7 +5,7 @@ from celery import Celery
 from celery.beat import ScheduleEntry
 
 from csvbase.db import get_db_url
-from csvbase.bgwork.sql_scheduler import SQLScheduler
+from csvbase.bgwork.sql_scheduler import SQLAlchemyScheduler
 
 from .utils import random_string
 
@@ -19,7 +19,7 @@ def celery_app():
 
 
 def test_sql_schedule__get_initial_schedule(celery_app):
-    scheduler = SQLScheduler(celery_app)
+    scheduler = SQLAlchemyScheduler(celery_app)
 
     schedule = scheduler.get_schedule()
     assert set(schedule.keys()) == {"celery.backend_cleanup"}
@@ -51,7 +51,7 @@ def test_sql_schedule__test_persistence_works(celery_app):
         timedelta(minutes=30).total_seconds(), example_task.s()
     )
 
-    scheduler = SQLScheduler(celery_app)
+    scheduler = SQLAlchemyScheduler(celery_app)
     schedule = scheduler.get_schedule()
     assert set(schedule.keys()) == {
         "celery.backend_cleanup",

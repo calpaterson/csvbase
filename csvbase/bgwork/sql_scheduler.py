@@ -1,16 +1,11 @@
-"""Celery beat scheduler that persists in sqlalchemy instead of a shelve file.
-
-Experimental.
-
-This doesn't make it any easier to edit the schedules in the database (unlike
-django-celery-beat) but it does save having a file stored on disk somewhere.
+"""Celery beat scheduler that persists in SQL instead of a shelve file.
 
 Unlike the rest of csvbase, this uses only standard sqlalchemy types as it is
 designed to be extracted into a separate library at some point.
 
 """
 
-from typing import Dict, Any
+from typing import Dict
 from logging import getLogger
 import contextlib
 
@@ -26,20 +21,22 @@ from sqlalchemy import (
     create_engine,
     func,
 )
+from sqlalchemy.sql.expression import TableClause
 from sqlalchemy.orm import Session
 
 logger = getLogger(__name__)
 
 
-class SQLScheduler(Scheduler):
-    """Scheduler that persists schedules in SQL rather than the filesystem.
+class SQLAlchemyScheduler(Scheduler):
+    """Scheduler that persists schedules in SQL (via SQLAlchemy) rather than
+    the filesystem.
 
     This doesn't make schedules any easier to edit (as django-celery-beat does)
     it just avoids saving the schedule in a file on disk.
     """
 
     def __init__(self, app: Celery, *args, **kwargs):
-        self._store: Dict[str, Any] = {}
+        self._entries: Dict[str, ScheduleEntry] = {}
 
         db_url = app.conf.get("beat_sqlalchemy_scheduler_db_url")
         if db_url is None:
@@ -57,6 +54,7 @@ class SQLScheduler(Scheduler):
         super().__init__(app, *args, **kwargs)
 
     def setup_schedule(self) -> None:
+        """Called in the superclass to initialise the scheduler (when lazy=False)."""
         # There seem to be numerous long standing bugs in this area.
         # https://github.com/celery/celery/issues/4842
         # https://github.com/celery/celery/issues/2649
@@ -74,14 +72,18 @@ class SQLScheduler(Scheduler):
         self.sync()
 
     def get_schedule(self) -> Dict[str, ScheduleEntry]:
-        return self._store["entries"]
+        """Return the schedule."""
+        return self._entries
 
     def set_schedule(self, schedule: Dict[str, ScheduleEntry]) -> None:
-        self._store["entries"] = schedule
+        """Set the schedule.  This does not send the schedule to the database
+        as that is done manually via .sync()."""
+        self._entries = schedule
 
     schedule = property(get_schedule, set_schedule)
 
-    def _get_tableclause(self):
+    def _get_tableclause(self) -> TableClause:
+        """Returns a SQLAlchemy TableClause for the table the schedule is kept in."""
         return satable(  # type: ignore
             self._sql_table_name,
             sacolumn("celery_app_name", type_=satypes.String),
@@ -93,7 +95,7 @@ class SQLScheduler(Scheduler):
         )
 
     def _load_schedule(self) -> None:
-        """Load the schedule into memory from the SQL database."""
+        """Load the schedule into memory from the SQL database.  Only used once, at startup."""
         table = self._get_tableclause()
         entries: Dict[str, ScheduleEntry] = {}
         with contextlib.closing(Session(self._engine)) as session:
@@ -103,13 +105,14 @@ class SQLScheduler(Scheduler):
             for name, schedule_entry in entry_rows:
                 logger.info("found schedule entry: %s", schedule_entry)
                 entries[name] = schedule_entry
-        self._store["entries"] = entries
+        self._entries = entries
         logger.info("loaded schedule from SQL database")
 
     def sync(self) -> None:
+        """Write out (transactionally) the schedule to the database."""
         table = self._get_tableclause()
-        schedule = self._store["entries"]
-        names = set(self._store["entries"].keys())
+        schedule = self._entries
+        names = set(self._entries.keys())
 
         with contextlib.closing(Session(self._engine)) as session:
             names_in_db = set(
@@ -174,6 +177,7 @@ class SQLScheduler(Scheduler):
             logger.info("synced schedule to SQL database")
 
     def close(self) -> None:
+        # Nothing to close so just sync
         self.sync()
 
     def _get_schedule_url(self) -> str:
