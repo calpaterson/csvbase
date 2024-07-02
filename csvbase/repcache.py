@@ -42,18 +42,21 @@ class RepCache:
         mode: str = "rb",
     ) -> Generator[IO[bytes], None, None]:
         if "w" in mode:
-            with self._temp_path().open(mode) as temp_file:
-                # make sure the file exists on disk:
-                temp_file.flush()
-                yield temp_file
-                # to avoid corrupting the cache with partway failures, the
-                # tempfile is written first and hardlinked into the final
-                # position
-                os.link(
-                    temp_file.name,
-                    self._rep_path(),
-                )
-                os.unlink(temp_file.name)
+            try:
+                with self._temp_path().open(mode) as temp_file:
+                    # make sure the file exists on disk:
+                    temp_file.flush()
+                    yield temp_file
+                    # to avoid corrupting the cache with partway failures, the
+                    # tempfile is written first and hardlinked into the final
+                    # position
+                    os.link(
+                        temp_file.name,
+                        self._rep_path(),
+                    )
+            finally:
+                # try to ensure that the temp file is unlinked in the event of a crash
+                self._temp_path().unlink(missing_ok=True)
 
             logger.info(
                 "wrote new representation of %s (%s)",

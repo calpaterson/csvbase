@@ -14,6 +14,7 @@ from csvbase import svc
 from csvbase.bgwork.core import celery
 from csvbase.follow import update
 from csvbase.follow.git import GitSource
+from csvbase.repcache import RepCache
 
 logger = getLogger(__name__)
 
@@ -68,9 +69,19 @@ def update_stripe_subscriptions() -> None:
 
 
 @celery.task
-def populate_repcache(table_uuid: UUID, content_type: ContentType) -> None:
+def populate_repcache(table_uuid: UUID, content_type_str: str) -> None:
     sesh = get_sesh()
-    svc.populate_repcache(sesh, table_uuid, content_type)
+    table = svc.get_table_by_uuid(sesh, table_uuid)
+    content_type = ContentType(content_type_str)
+    repcache = RepCache(table.table_uuid, content_type, table.last_changed)
+    if repcache.write_in_progress():
+        logger.info(
+            "repcache already being populated for %s/%s",
+            table.ref(),
+            table.last_changed,
+        )
+    else:
+        svc.populate_repcache(sesh, table_uuid, content_type)
 
 
 @celery.on_after_configure.connect

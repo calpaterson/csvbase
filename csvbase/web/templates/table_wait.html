@@ -1,0 +1,22 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "app_base.html" %}
+
+{% block main %}
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 offset-lg-2">
+        <h1 class="py-2">Please wait...</h1>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-lg-8 offset-lg-2">
+        <p>
+          That table is <a href="{{url_for('faq.faq_entry', slug='big')}}">big</a> and the representation you want is still being generated.
+        </p>
+        <p>
+          The file you want will download automatically when it's ready.
+        </p>
+      </div>
+    </div>
+  </div>
+{% endblock %}

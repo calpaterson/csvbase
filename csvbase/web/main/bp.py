@@ -82,6 +82,7 @@ from ...constants import COPY_BUFFER_SIZE
 from ..billing import svc as billing_svc
 from ...repcache import RepCache
 from ...config import get_config
+from csvbase.bgwork import task_registry
 
 logger = getLogger(__name__)
 
@@ -455,6 +456,15 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
 
         repcache = RepCache(table.table_uuid, content_type, table.last_changed)
         if not repcache.exists():
+            is_big = backend.count(table.table_uuid).is_big()
+            if is_big:
+                if not repcache.write_in_progress():
+                    task_registry.populate_repcache.delay(
+                        table.table_uuid, content_type.value
+                    )
+                response = make_wait_response(table, content_type)
+                return response
+
             svc.populate_repcache(sesh, table.table_uuid, content_type)
 
         if get_config().x_accel_redirect:
@@ -469,6 +479,26 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
         with_cache_headers = add_table_view_cache_headers(table, response, etag)
         with_metadata_headers = add_table_metadata_headers(table, with_cache_headers)
         return with_metadata_headers
+
+
+def make_wait_response(table: Table, content_type: ContentType) -> Response:
+    wait_content_type = negotiate_content_type([ContentType.HTML])
+    delay_seconds = 10
+    if wait_content_type is ContentType.HTML:
+        response = make_response(
+            render_template(
+                "table_wait.html",
+                page_title="Please wait...",
+                table=table,
+                content_type=content_type,
+                delay_seconds=delay_seconds,
+            ),
+            503,
+        )
+
+    response.headers["Retry-After"] = str(delay_seconds)
+    response.headers["Refresh"] = str(delay_seconds)
+    return response
 
 
 def keyset_to_dict(keyset: KeySet) -> Dict:
