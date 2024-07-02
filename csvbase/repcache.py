@@ -1,7 +1,6 @@
 """A cache for generated representations of tables."""
 
 from logging import getLogger
-import tempfile
 import os
 from pathlib import Path
 from typing import IO, Generator, Dict
@@ -33,25 +32,28 @@ class RepCache:
         self.content_type = content_type
         self.last_changed = last_changed
 
+    def write_in_progress(self) -> bool:
+        """Returns true if this rep is currently being written."""
+        return self._temp_path().exists()
+
     @contextlib.contextmanager
     def open(
         self,
         mode: str = "rb",
     ) -> Generator[IO[bytes], None, None]:
         if "w" in mode:
-            with tempfile.NamedTemporaryFile(
-                dir=_repcache_dir(),
-                suffix=f".{self.content_type.file_extension()}.tmp",
-                mode=mode,
-            ) as temp_file:
+            with self._temp_path().open(mode) as temp_file:
+                # make sure the file exists on disk:
+                temp_file.flush()
                 yield temp_file
                 # to avoid corrupting the cache with partway failures, the
                 # tempfile is written first and hardlinked into the final
                 # position
                 os.link(
                     temp_file.name,
-                    _rep_path(self.table_uuid, self.content_type, self.last_changed),
+                    self._rep_path(),
                 )
+                os.unlink(temp_file.name)
 
             logger.info(
                 "wrote new representation of %s (%s)",
@@ -71,12 +73,10 @@ class RepCache:
         else:
             # it's a bit weird that we leave this open, but that is necessary
             # to stream responses at the web level
-            yield _rep_path(self.table_uuid, self.content_type, self.last_changed).open(
-                mode=mode
-            )
+            yield self._rep_path().open(mode=mode)
 
     def exists(self) -> bool:
-        rep_path = _rep_path(self.table_uuid, self.content_type, self.last_changed)
+        rep_path = self._rep_path()
         return rep_path.exists()
 
     @staticmethod
@@ -100,21 +100,23 @@ class RepCache:
         This is used for X-Accel-Redirect.
 
         """
-        rep_path = _rep_path(self.table_uuid, self.content_type, self.last_changed)
+        rep_path = self._rep_path()
         return str(rep_path.relative_to(_repcache_dir()))
+
+    def _rep_path(self) -> Path:
+        safe_dtstr = _safe_dtstr(self.last_changed)
+        rep_dir = _rep_dir(self.table_uuid)
+        return rep_dir / f"{safe_dtstr}.{self.content_type.file_extension()}"
+
+    def _temp_path(self) -> Path:
+        safe_dtstr = _safe_dtstr(self.last_changed)
+        rep_dir = _rep_dir(self.table_uuid)
+        return rep_dir / f"{safe_dtstr}.{self.content_type.file_extension()}.tmp"
 
 
 def _safe_dtstr(dt: datetime) -> str:
     # cut out colons, which cause problems on ntfs
     return dt.isoformat().replace(":", "_")
-
-
-def _rep_path(
-    table_uuid: UUID, content_type: ContentType, last_changed: datetime
-) -> Path:
-    safe_dtstr = _safe_dtstr(last_changed)
-    rep_dir = _rep_dir(table_uuid)
-    return rep_dir / f"{safe_dtstr}.{content_type.file_extension()}"
 
 
 def _rep_dir(table_uuid: UUID) -> Path:

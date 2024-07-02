@@ -22,9 +22,11 @@ def test_repcache__hit():
     contents = b"a,b,c\n1,2,3"
 
     with repcache.open("wb") as rep_file:
+        assert repcache.write_in_progress()
         rep_file.write(contents)
 
     assert repcache.exists()
+    assert not repcache.write_in_progress()
 
     with repcache.open("rb") as rep_file:
         assert rep_file.read() == contents
