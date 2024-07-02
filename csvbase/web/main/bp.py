@@ -453,20 +453,16 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
             table.username, table.table_name, content_type.file_extension()
         )
 
-        repcache = RepCache()
-        if not repcache.exists(table.table_uuid, content_type, table.last_changed):
+        repcache = RepCache(table.table_uuid, content_type, table.last_changed)
+        if not repcache.exists():
             svc.populate_repcache(sesh, table.table_uuid, content_type)
 
         if get_config().x_accel_redirect:
             response = make_response()
-            repcache_path = repcache.path(
-                table.table_uuid, content_type, table.last_changed
-            )
+            repcache_path = repcache.path()
             response.headers["X-Accel-Redirect"] = f"/repcache/{repcache_path}"
         else:
-            with repcache.open(
-                table.table_uuid, content_type, table.last_changed, mode="rb"
-            ) as response_buf:
+            with repcache.open(mode="rb") as response_buf:
                 response = make_streaming_response(
                     response_buf, content_type, download_filename
                 )
@@ -1551,7 +1547,7 @@ def get_table_reps(sesh: Session, table: Table) -> List[TableRepresentation]:
         ContentType.JSON_LINES,
     ]
 
-    rep_sizes = RepCache().sizes(table.table_uuid, table.last_changed)
+    rep_sizes = RepCache.sizes(table.table_uuid, table.last_changed)
     backend = PGUserdataAdapter(sesh)
     is_big = backend.count(table.table_uuid).is_big()
 

@@ -26,18 +26,22 @@ class RepCache:
 
     """
 
+    def __init__(
+        self, table_uuid: UUID, content_type: ContentType, last_changed: datetime
+    ) -> None:
+        self.table_uuid = table_uuid
+        self.content_type = content_type
+        self.last_changed = last_changed
+
     @contextlib.contextmanager
     def open(
         self,
-        table_uuid: UUID,
-        content_type: ContentType,
-        last_changed: datetime,
         mode: str = "rb",
     ) -> Generator[IO[bytes], None, None]:
         if "w" in mode:
             with tempfile.NamedTemporaryFile(
                 dir=_repcache_dir(),
-                suffix=f".{content_type.file_extension()}.tmp",
+                suffix=f".{self.content_type.file_extension()}.tmp",
                 mode=mode,
             ) as temp_file:
                 yield temp_file
@@ -45,32 +49,38 @@ class RepCache:
                 # tempfile is written first and hardlinked into the final
                 # position
                 os.link(
-                    temp_file.name, _rep_path(table_uuid, content_type, last_changed)
+                    temp_file.name,
+                    _rep_path(self.table_uuid, self.content_type, self.last_changed),
                 )
 
-            logger.info("wrote new representation of %s (%s)", table_uuid, content_type)
-            expected_dtstr = _safe_dtstr(last_changed)
-            for rep_path in _rep_dir(table_uuid).iterdir():
+            logger.info(
+                "wrote new representation of %s (%s)",
+                self.table_uuid,
+                self.content_type,
+            )
+            expected_dtstr = _safe_dtstr(self.last_changed)
+            for rep_path in _rep_dir(self.table_uuid).iterdir():
                 if rep_path.stem != expected_dtstr:
                     rep_path.unlink()
                     logger.info(
                         "deleted old representation of %s: %s",
-                        table_uuid,
+                        self.table_uuid,
                         rep_path.name,
                     )
 
         else:
             # it's a bit weird that we leave this open, but that is necessary
             # to stream responses at the web level
-            yield _rep_path(table_uuid, content_type, last_changed).open(mode=mode)
+            yield _rep_path(self.table_uuid, self.content_type, self.last_changed).open(
+                mode=mode
+            )
 
-    def exists(
-        self, table_uuid: UUID, content_type: ContentType, last_changed: datetime
-    ) -> bool:
-        rep_path = _rep_path(table_uuid, content_type, last_changed)
+    def exists(self) -> bool:
+        rep_path = _rep_path(self.table_uuid, self.content_type, self.last_changed)
         return rep_path.exists()
 
-    def sizes(self, table_uuid: UUID, last_changed: datetime) -> Dict[ContentType, int]:
+    @staticmethod
+    def sizes(table_uuid: UUID, last_changed: datetime) -> Dict[ContentType, int]:
         """Return the sizes of the various representations held."""
 
         rv = {}
@@ -83,16 +93,14 @@ class RepCache:
                     rv[content_type] = size
         return rv
 
-    def path(
-        self, table_uuid: UUID, content_type: ContentType, last_changed: datetime
-    ) -> str:
+    def path(self) -> str:
         """Returns the path of a specific representation's file on disk,
         relative to the repcache root directory.
 
         This is used for X-Accel-Redirect.
 
         """
-        rep_path = _rep_path(table_uuid, content_type, last_changed)
+        rep_path = _rep_path(self.table_uuid, self.content_type, self.last_changed)
         return str(rep_path.relative_to(_repcache_dir()))
 
 

@@ -845,18 +845,16 @@ def populate_repcache(
     sesh: Session, table_uuid: UUID, content_type: ContentType
 ) -> None:
     """Populate the repcache for a given table and content type."""
-    repcache = RepCache()
     backend = PGUserdataAdapter(sesh)
     table = get_table_by_uuid(sesh, table_uuid)
-    if repcache.exists(table_uuid, content_type, table.last_changed):
+    repcache = RepCache(table_uuid, content_type, table.last_changed)
+    if repcache.exists():
         logger.info(
             "not populated repcache for '%s'@%s, already present",
             table.ref(),
             table.last_changed,
         )
-    with repcache.open(
-        table.table_uuid, content_type, table.last_changed, mode="wb"
-    ) as rep_file:
+    with repcache.open(mode="wb") as rep_file:
         columns = backend.get_columns(table.table_uuid)
         rows = backend.table_as_rows(table.table_uuid)
         if content_type is ContentType.PARQUET:
