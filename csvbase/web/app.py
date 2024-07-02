@@ -43,6 +43,7 @@ from .billing import bp as billing_bp
 from .main.bp import bp as main_bp
 from .main.create_table import bp as create_table_bp
 from ..value_objs import ContentType
+from ..bgwork.core import initialise_celery
 
 logger = getLogger(__name__)
 
@@ -155,6 +156,7 @@ def init_app() -> Flask:
     app.config["SQLALCHEMY_DATABASE_URI"] = get_db_url()
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.init_app(app)
+    initialise_celery(app, config)
 
     # Currently the toolbar is broken (and I wouldn't want to enable it by
     # default anyway - too dangerous) but it can be used if you downgrade to

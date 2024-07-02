@@ -455,21 +455,7 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
 
         repcache = RepCache()
         if not repcache.exists(table.table_uuid, content_type, table.last_changed):
-            with repcache.open(
-                table.table_uuid, content_type, table.last_changed, mode="wb"
-            ) as rep_file:
-                columns = backend.get_columns(table.table_uuid)
-                rows = backend.table_as_rows(table.table_uuid)
-                if content_type is ContentType.PARQUET:
-                    table_io.rows_to_parquet(columns, rows, rep_file)
-                elif content_type is ContentType.JSON_LINES:
-                    table_io.rows_to_jsonlines(columns, rows, rep_file)
-                elif content_type is ContentType.XLSX:
-                    table_io.rows_to_xlsx(
-                        columns, rows, excel_table=False, buf=rep_file
-                    )
-                else:
-                    table_io.rows_to_csv(columns, rows, buf=rep_file)
+            svc.populate_repcache(sesh, table.table_uuid, content_type)
 
         if get_config().x_accel_redirect:
             response = make_response()

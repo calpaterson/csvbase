@@ -1,5 +1,5 @@
 from uuid import UUID
-from typing import cast
+from typing import cast, Optional
 from datetime import timedelta
 from urllib.parse import urlparse
 from logging import getLogger
@@ -7,7 +7,7 @@ from logging import getLogger
 from celery import Celery
 
 from csvbase.web.billing import svc as billing_svc
-from csvbase.value_objs import GitUpstream
+from csvbase.value_objs import GitUpstream, ContentType
 from csvbase.userdata import PGUserdataAdapter
 from csvbase.sesh import get_sesh
 from csvbase import svc
@@ -25,6 +25,15 @@ def is_test_url(url: str) -> bool:
     """
     parsed = urlparse(url)
     return parsed.netloc.endswith("example.com")
+
+
+@celery.task
+def demo_task(sentinel: Optional[str]) -> None:
+    """Demo task, for testing/debugging celery."""
+    if sentinel is not None:
+        logger.info("demo task run, sentinel: %s", sentinel)
+    else:
+        logger.info("demo task run")
 
 
 @celery.task
@@ -50,11 +59,18 @@ def update_external_table(table_uuid: UUID) -> None:
             svc.mark_table_changed(sesh, table.table_uuid)
             sesh.commit()
 
+
 @celery.task
 def update_stripe_subscriptions() -> None:
     sesh = get_sesh()
     billing_svc.initialise_stripe()
     billing_svc.update_stripe_subscriptions(sesh, full=False)
+
+
+@celery.task
+def populate_repcache(table_uuid: UUID, content_type: ContentType) -> None:
+    sesh = get_sesh()
+    svc.populate_repcache(sesh, table_uuid, content_type)
 
 
 @celery.on_after_configure.connect

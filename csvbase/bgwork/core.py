@@ -1,8 +1,12 @@
+from logging import getLogger
+
 from celery import Celery, Task
 from flask import Flask
 
 from csvbase.config import Config
 from csvbase.db import get_db_url
+
+logger = getLogger(__name__)
 
 celery = Celery("csvbase.bgwork")
 
@@ -26,3 +30,4 @@ def initialise_celery(flask_app: Flask, config: Config) -> None:
 
     celery.task_cls = FlaskContextTask  # type: ignore
     celery.set_default()
+    logger.info("initialised celery")

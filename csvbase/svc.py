@@ -36,8 +36,10 @@ from .value_objs import (
     Backend,
     GitUpstream,
     UpstreamVersion,
+    ContentType,
 )
 from .follow.git import GitSource, get_repo_path
+from .repcache import RepCache
 
 logger = getLogger(__name__)
 
@@ -837,3 +839,32 @@ def git_tables(sesh: Session) -> Iterable[Tuple[Table, GitUpstream]]:
         )
         ext_source = cast(GitUpstream, table.upstream)
         yield (table, ext_source)
+
+
+def populate_repcache(
+    sesh: Session, table_uuid: UUID, content_type: ContentType
+) -> None:
+    """Populate the repcache for a given table and content type."""
+    repcache = RepCache()
+    backend = PGUserdataAdapter(sesh)
+    table = get_table_by_uuid(sesh, table_uuid)
+    if repcache.exists(table_uuid, content_type, table.last_changed):
+        logger.info(
+            "not populated repcache for '%s'@%s, already present",
+            table.ref(),
+            table.last_changed,
+        )
+    with repcache.open(
+        table.table_uuid, content_type, table.last_changed, mode="wb"
+    ) as rep_file:
+        columns = backend.get_columns(table.table_uuid)
+        rows = backend.table_as_rows(table.table_uuid)
+        if content_type is ContentType.PARQUET:
+            table_io.rows_to_parquet(columns, rows, rep_file)
+        elif content_type is ContentType.JSON_LINES:
+            table_io.rows_to_jsonlines(columns, rows, rep_file)
+        elif content_type is ContentType.XLSX:
+            table_io.rows_to_xlsx(columns, rows, excel_table=False, buf=rep_file)
+        else:
+            table_io.rows_to_csv(columns, rows, buf=rep_file)
+    logger.info("populated repcache for %s@%s", table.ref(), table.last_changed)

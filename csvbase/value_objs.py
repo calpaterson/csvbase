@@ -155,6 +155,9 @@ class Table:
     def age(self) -> timedelta:
         return self.created - datetime.now(timezone.utc)
 
+    def ref(self) -> str:
+        return f"{self.username}/{self.table_name}"
+
 
 @dataclass
 class GitUpstream:
