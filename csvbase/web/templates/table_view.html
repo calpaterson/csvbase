@@ -21,7 +21,7 @@
 
         <tbody>
         {% for row in page.rows %}
-          <tr {% if row[ROW_ID_COLUMN] == highlight %}class="table-info"{% endif %}>
+          <tr {% if row[ROW_ID_COLUMN] == highlight %}class="table-active"{% endif %}>
             {% for col in table.columns %}
               {% if loop.index == 1 %}
                 <td><a
