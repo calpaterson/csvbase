@@ -3,6 +3,12 @@
 {% macro render_cell(type, value, truncate=true) %}
   {% if value == None %}
     <span class="text-muted"><abbr title="No data/blank" class="initialism">&lt;NA&gt;</abbr></span>
+  {% elif type.name == "BOOLEAN" %}
+    {% if value == True %}
+      Yes
+    {% elif value == False %}
+      No
+    {% endif %}
   {% elif type.name == "TEXT" %}
     {% if value|length > 200 and truncate %}
       {{ value[:200] }}<span data-bs-toggle="tooltip" data-bs-placement="top" title="truncated">[...]</span>
@@ -82,16 +88,11 @@
       style="resize: both"
       >{{ form_text(val) }}</textarea>
   {% elif col.type_.name == "BOOLEAN" %}
-    <div class="form-check">
-      <input
-        class="form-check-input"
-        id="{{col.name}}-input"
-        type="{{ form_type(col) }}"
-        name="{{ col.name }}"
-        {% if val %}
-          checked
-        {% endif %}
-        >
+    <select class="form-select" name="{{ col.name }}">
+      <option value="na" {% if val == None %}selected{% endif %}>{{ render_cell(col.type_, None) }}</option>
+      <option value="true" {% if val == True %}selected{% endif %}>{{ render_cell(col.type_, True) }}</option>
+      <option value="false" {% if val == False %}selected{% endif %}>{{ render_cell(col.type_, False) }}</option>
+    </select>
   {% else %}
     <input
         class="form-control"

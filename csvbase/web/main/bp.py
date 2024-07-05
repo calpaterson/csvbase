@@ -1511,12 +1511,13 @@ def form_to_row(
     return row
 
 
+HTML_FORM_BOOLMAP = {"na": None, "true": True, "false": False}
 def from_html_form_to_python(
     column_type: ColumnType, form_value: Optional[str]
 ) -> Optional["PythonType"]:
     """Parses values from HTML forms into Python objects, according to ColumnType."""
     if column_type is ColumnType.BOOLEAN:
-        return True if form_value == "on" else False
+        return HTML_FORM_BOOLMAP[form_value]
     elif column_type is ColumnType.DATE:
         return DateConverter().convert(form_value or "")
     elif column_type is ColumnType.INTEGER:
