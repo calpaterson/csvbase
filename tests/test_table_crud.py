@@ -198,7 +198,9 @@ hello,1,1.5,FALSE,2018-01-03
         resp = client.put(
             url,
             data=new_csv,
-            headers={"Content-Type": "text/csv"},
+            headers={
+                "Content-Type": "text/csv",
+            },
         )
         assert resp.status_code == 201
 
@@ -212,6 +214,45 @@ hello,1,1.5,FALSE,2018-01-03
         )
         actual_df = pd.read_csv(BytesIO(resp.data), index_col="csvbase_row_id")
         assert_frame_equal(expected_df, actual_df)
+
+
+def test_create__doesnt_exist(client, test_user):
+    new_csv = """a,b,c,d,e
+hello,1,1.5,FALSE,2018-01-03
+"""
+    table_name = random_string()
+    url = f"/{test_user.username}/{table_name}"
+    with current_user(test_user):
+        resp = client.put(
+            url,
+            data=new_csv,
+            headers={"Content-Type": "text/csv", "If-None-Match": "*"},
+        )
+        assert resp.status_code == 201
+
+        resp = get_table(client, test_user.username, table_name, ContentType.CSV)
+    assert resp.status_code == 200
+
+
+def test_create__already_exists(client, test_user, ten_rows):
+    """Test that when creating you can set If-None-Match to ensure the table
+    doesn't already exist.
+
+    """
+    new_csv = """csvbase_row_id,roman_numeral,is_even,as_date,as_float
+,I,no,2018-01-1,1.0
+    """
+
+    resp = client.put(
+        f"/{test_user.username}/{ten_rows.table_name}",
+        data=new_csv,
+        headers={
+            "Content-Type": "text/csv",
+            "Authorization": test_user.basic_auth(),
+            "If-None-Match": "*",
+        },
+    )
+    assert resp.status_code == 409
 
 
 def test_create__public(client, test_user):

@@ -7,6 +7,8 @@ class CSVBaseException(Exception):
 
 
 # FIXME: the "not exists" exceptions should be unified somehow
+class TableAlreadyExists(CSVBaseException):
+    """A table already exists under that name"""
 
 
 class TableDoesNotExistException(CSVBaseException):

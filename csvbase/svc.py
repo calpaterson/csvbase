@@ -273,6 +273,11 @@ def create_table_metadata(
 
     """
     check_table_name_is_allowed(table_name)
+
+    # We check here to ensure that the table does not exist
+    if table_exists(sesh, user_uuid, table_name):
+        raise exc.TableAlreadyExists()
+
     table_uuid = uuid4()
     table_obj = models.Table(
         table_uuid=table_uuid,

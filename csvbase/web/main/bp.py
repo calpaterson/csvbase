@@ -231,6 +231,10 @@ class TableView(MethodView):
             ensure_table_access(sesh, table, "write")
             ensure_not_read_only(table)
 
+            create_only = request.headers.get("If-None-Match", None) == "*"
+            if create_only:
+                raise exc.TableAlreadyExists()
+
             provided_etag = request.headers.get("If-Weak-Match", None)
             if provided_etag is not None:
                 keyset = KeySet(
