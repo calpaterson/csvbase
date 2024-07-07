@@ -20,7 +20,7 @@ becomes
 
 <a href="https://csvbase.com/meripaterson/stock-exchanges.csv">https://csvbase.com/meripaterson/stock-exchanges<strong>.csv</strong></a>
 
-Anyone can create an account and start creating tables on csvbasse.
+Anyone can create an account and start creating tables on csvbase.
 
 Each table on csvbase is made available in various formats:
 - CSV
