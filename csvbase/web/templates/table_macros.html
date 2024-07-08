@@ -37,14 +37,14 @@
       form="praise-form"
       type='submit'
       class="btn btn-warning btn-sm"
-      ><img class="icon" src="{{ url_for('static', filename='praised.svg') }}"> Praised</button>
+      ><img class="icon" src="{{ url_for('static', filename='icons/praised.svg') }}"> Praised</button>
     {% else %}
       <button
         form="praise-form"
         id="praise-button"
         type='submit'
         class="btn btn-secondary btn-sm"
-        ><img class="icon icon-hidden" src="{{ url_for('static', filename='praised.svg') }}"><img class="icon icon-invert" src="{{ url_for('static', filename='praise.svg') }}"> <span id="praise-span">Praise</span></button>
+        ><img class="icon icon-hidden" src="{{ url_for('static', filename='icons/praised.svg') }}"><img class="icon icon-invert" src="{{ url_for('static', filename='icons/praise.svg') }}"> <span id="praise-span">Praise</span></button>
     {% endif %}
 {% endmacro %}
 
