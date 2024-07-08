@@ -22,6 +22,17 @@
     margin-right: 0.1em;
 }
 
+#table-icon {
+    height: 1em;
+    width: 1em;
+}
+
+@media (prefers-color-scheme: dark) {
+    #table-icon {
+        filter: invert(0.8);
+    }
+}
+
 .icon-invert {
     filter: invert(0.8);
 }

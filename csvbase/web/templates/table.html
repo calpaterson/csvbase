@@ -26,7 +26,17 @@
   <div class="container">
     <div class="row">
       <div class="col-auto">
-        <h1><a
+        <h1><img id="table-icon"
+                 class="icon"
+                 data-bs-toggle="tooltip"
+                 {% if table.is_public %}
+                   src="{{ url_for('static', filename='icons/public-table.svg') }}"
+                   title="This is a public table"
+                 {% else %}
+                   src="{{ url_for('static', filename='icons/private-table.svg') }}"
+                   title="This is a private table"
+                 {% endif %}
+                   > <a
           href="{{ url_for('csvbase.user', username=table.username) }}">{{ table.username }}</a> / <a
           href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}"
           >{{ table.table_name }}</a> {# {{ data_licence_badge(table.data_licence) }} {{ privacy_badge(table) }} #}</h1>
