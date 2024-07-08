@@ -5,9 +5,23 @@
 
 {% block main %}
   <div class="container">
+    <ul class="nav nav-tabs">
+      <li class="nav-item">
+        <a
+          class="nav-link {% if request.endpoint == 'csvbase.index' %}active{% endif %}"
+          href="{{ url_for('csvbase.index')}}"
+          >Most praised</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% if request.endpoint == 'csvbase.newest' %}active{% endif %}"
+           href="{{ url_for('csvbase.newest')}}"
+           >Newest</a>
+      </li>
+    </ul>
+
     <div class="row my-2">
-      <div class="col-md-8 offset-md-2">
-        {% for table in top_ten %}
+      <div class="col-auto">
+        {% for table in tables %}
           {{ table_macros.table_card(table) }}
         {% endfor %}
       </div>

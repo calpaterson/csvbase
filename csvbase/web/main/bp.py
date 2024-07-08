@@ -105,7 +105,15 @@ CORS(
 @bp.get("/")
 def index() -> str:
     sesh = get_sesh()
-    return render_template("index.html", top_ten=svc.get_top_n(sesh))
+    return make_response(render_template("index.html", tables=svc.get_top_n(sesh)))
+
+
+@bp.get("/newest")
+def newest() -> Response:
+    sesh = get_sesh()
+    return make_response(
+        render_template("index.html", tables=svc.get_newest_tables(sesh))
+    )
 
 
 @bp.get("/about")

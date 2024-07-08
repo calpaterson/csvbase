@@ -88,6 +88,7 @@ def user_by_name(sesh: Session, username: str) -> User:
         .one_or_none()
     )
     if rp is None:
+        logger.error("unable to find user: '%s'", username)
         raise exc.UserDoesNotExistException(username)
     else:
         user_uuid, registered, api_key, email, timezone, ml = rp
@@ -583,6 +584,17 @@ def _make_source(
             branch=source_model.branch,
             path=source_model.path,
         )
+
+
+def get_newest_tables(sesh: Session, n: int = 10) -> Iterable[Table]:
+    newest_tables = (
+        sesh.query(models.Table.table_name, models.User.username)
+        .join(models.User)
+        .order_by(models.Table.created.desc())
+        .limit(n)
+    )
+    for table_name, username in newest_tables:
+        yield get_table(sesh, username, table_name)
 
 
 def get_top_n(sesh: Session, n: int = 10) -> Iterable[Table]:

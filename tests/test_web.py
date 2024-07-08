@@ -109,3 +109,15 @@ def test_safe_redirect__unhappy(app, unsafe_url):
     with app.app_context():
         with pytest.raises(exc.InvalidRequest):
             safe_redirect(unsafe_url)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        pytest.param("/", id="index"),
+        pytest.param("/newest", id="newest"),
+    ],
+)
+def test_indexes(client, url):
+    response = client.get(url)
+    assert response.status_code == 200
