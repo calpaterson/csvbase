@@ -103,7 +103,7 @@ CORS(
 
 
 @bp.get("/")
-def index() -> str:
+def index() -> Response:
     sesh = get_sesh()
     return make_response(render_template("index.html", tables=svc.get_top_n(sesh)))
 
@@ -204,8 +204,8 @@ class TableView(MethodView):
         # No ETag is set because a HEAD request is not about a specific
         # representation and we don't know what ETag to set.  We're simply
         # saying that the table exists.
-        response = add_table_view_cache_headers(table, response, etag=None)
-        response = add_table_metadata_headers(table, response)
+        add_table_view_cache_headers(table, response, etag=None)
+        add_table_metadata_headers(table, response)
 
         return response
 
@@ -405,8 +405,8 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
     if if_none_match == etag:
         logger.debug("matched etag (%s), returning 304", etag)
         response = Response(status=304)
-        response = add_table_view_cache_headers(table, response, etag)
-        response = add_table_metadata_headers(table, response)
+        add_table_view_cache_headers(table, response, etag)
+        add_table_metadata_headers(table, response)
         return response
     elif if_none_match is not None:
         logger.info(
@@ -452,14 +452,13 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                 )
             )
             # HTML doesn't get an etag - too hard to key everything that goes in
-            response = add_table_view_cache_headers(table, response)
-            response = add_table_metadata_headers(table, response)
+            add_table_view_cache_headers(table, response)
+            add_table_metadata_headers(table, response)
             return response
         else:
-            response = add_table_view_cache_headers(
-                table, jsonify(table_to_json_dict(table, page)), etag
-            )
-            response = add_table_metadata_headers(table, response)
+            response = jsonify(table_to_json_dict(table, page))
+            add_table_view_cache_headers(table, response, etag)
+            add_table_metadata_headers(table, response)
             return response
     else:
         download_filename = make_download_filename(
@@ -488,9 +487,9 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                 response = make_streaming_response(
                     response_buf, content_type, download_filename
                 )
-        with_cache_headers = add_table_view_cache_headers(table, response, etag)
-        with_metadata_headers = add_table_metadata_headers(table, with_cache_headers)
-        return with_metadata_headers
+        add_table_view_cache_headers(table, response, etag)
+        add_table_metadata_headers(table, response)
+        return response
 
 
 def make_wait_response(table: Table, content_type: ContentType) -> Response:
@@ -572,7 +571,8 @@ def make_row_etag(table: Table, row: Row, content_type: ContentType) -> str:
     return etag
 
 
-def add_table_metadata_headers(table: Table, response: Response) -> Response:
+# FIXME: possibly this and the add_table_view_cache_headers should be combined
+def add_table_metadata_headers(table: Table, response: Response) -> None:
     """Add Link and Last-Modified, which are useful out-of-band information for
     consumers.
 
@@ -586,17 +586,18 @@ def add_table_metadata_headers(table: Table, response: Response) -> Response:
         _external=True,
     )
     response.headers["Link"] = f'<{ url }>; rel="canonical"'
-    # setting the 'Last-Modified' seems to make varnish get it badly wrong, so
-    # set this for now
-    response.headers["CSVBase-Last-Modified"] = last_changed.strftime(
-        "%a, %d %b %Y %H:%M:%S GMT"
-    )
-    return response
+
+    last_changed_http_format = last_changed.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    response.headers["Last-Modified"] = last_changed_http_format
+
+    # this was added at some point to work around varnish issues.  it is
+    # undocumented but needs to be maintained for a while
+    response.headers["CSVBase-Last-Modified"] = last_changed_http_format
 
 
 def add_table_view_cache_headers(
     table: Table, response: Response, etag: Optional[str] = None
-) -> Response:
+) -> None:
     """Set the Cache-Control, ETag and xkey (varnish) cache headers relevant to
     table views."""
     if etag is not None:
@@ -623,7 +624,6 @@ def add_table_view_cache_headers(
     # xkeys are used by varnish to do invalidation - currently not used because
     # etags works well enough for now
     # response.headers["xkey"] = "table/{table_uuid}"
-    return response
 
 
 def add_row_view_cache_headers(
