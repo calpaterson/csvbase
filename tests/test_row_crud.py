@@ -135,7 +135,7 @@ def test_create__missing_column(
     else:
         kwargs["data"] = {
             "roman_numeral": "XI",
-            "is_even": "",
+            "is_even": "false",
             "as_date": "2018-01-11",
         }
 
@@ -395,7 +395,7 @@ def test_update__happy(client, ten_rows, test_user, post_content_type):
         form = {
             "csvbase_row_id": 1,
             "roman_numeral": "i",
-            "is_even": "on",
+            "is_even": "true",
             "as_date": "2018-02-01",
             "as_float": "1.5",
         }
@@ -464,7 +464,7 @@ def test_update__missing_column(client, ten_rows, test_user, post_content_type):
         form = {
             "csvbase_row_id": 1,
             "roman_numeral": "i",
-            "is_even": "on",
+            "is_even": "true",
             "as_date": "2018-02-01",
         }
         kwargs["data"] = form

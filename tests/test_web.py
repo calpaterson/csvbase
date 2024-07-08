@@ -22,8 +22,9 @@ from .utils import assert_is_valid_etag
 @pytest.mark.parametrize(
     "column_type, form_value, expected",
     [
-        (ColumnType.BOOLEAN, "on", True),
-        (ColumnType.BOOLEAN, None, False),
+        (ColumnType.BOOLEAN, "true", True),
+        (ColumnType.BOOLEAN, "na", None),
+        (ColumnType.BOOLEAN, "false", False),
         (ColumnType.DATE, "2018-01-03", date(2018, 1, 3)),
         (ColumnType.DATE, "", None),
     ],

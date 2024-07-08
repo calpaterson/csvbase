@@ -1512,11 +1512,16 @@ def form_to_row(
 
 
 HTML_FORM_BOOLMAP = {"na": None, "true": True, "false": False}
+
+
 def from_html_form_to_python(
-    column_type: ColumnType, form_value: Optional[str]
+    column_type: ColumnType, form_value: str
 ) -> Optional["PythonType"]:
     """Parses values from HTML forms into Python objects, according to ColumnType."""
     if column_type is ColumnType.BOOLEAN:
+        if form_value not in HTML_FORM_BOOLMAP:
+            logger.warning("didn't find %s in HTML_FORM_BOOLMAP", form_value)
+            raise exc.UnconvertableValueException(column_type, form_value)
         return HTML_FORM_BOOLMAP[form_value]
     elif column_type is ColumnType.DATE:
         return DateConverter().convert(form_value or "")
