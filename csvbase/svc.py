@@ -256,6 +256,12 @@ def delete_table_and_metadata(sesh: Session, username: str, table_name: str) -> 
         models.UniqueColumn.table_uuid == table_model.table_uuid
     ).delete()
     sesh.delete(table_model)
+
+    # Make sure the metadata is purged prior to deleting the userdata,
+    # otherwise the metadata remains present which can confuse readers (eg the
+    # newest page)
+    sesh.flush()
+
     backend = PGUserdataAdapter(sesh)
     backend.drop_table(table_model.table_uuid)
 
