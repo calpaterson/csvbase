@@ -596,6 +596,7 @@ def get_newest_tables(sesh: Session, n: int = 10) -> Iterable[Table]:
     newest_tables = (
         sesh.query(models.Table.table_name, models.User.username)
         .join(models.User)
+        .where(models.Table.public)
         .order_by(models.Table.created.desc())
         .limit(n)
     )
