@@ -87,14 +87,14 @@ class KeySet:
 #     op: "BinaryOp"
 
 
-# @enum.unique
-# class BinaryOp(enum.Enum):
-#     EQ = 1
-#     NQE = 2
-#     GT = 3
-#     GTE = 4
-#     LT = 5
-#     LTE = 6
+@enum.unique
+class BinaryOp(enum.Enum):
+    EQ = 1
+    NQE = 2
+    GT = 3
+    GTE = 4
+    LT = 5
+    LTE = 6
 
 
 @dataclass

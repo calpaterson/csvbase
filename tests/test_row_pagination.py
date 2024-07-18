@@ -1,3 +1,5 @@
+"""Test the pagination of rows within a table"""
+
 import string
 
 import pytest
@@ -17,6 +19,7 @@ from csvbase.value_objs import (
 from .utils import random_string
 
 
+# FIXME: scope="module"?
 @pytest.fixture()
 def letters_table(test_user, module_sesh) -> Table:
     table_name = random_string()

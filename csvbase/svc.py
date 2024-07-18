@@ -4,8 +4,9 @@ import secrets
 from contextlib import closing
 from datetime import datetime, timezone, date
 from logging import getLogger
-from typing import Iterable, Optional, Sequence, Tuple, cast
+from typing import Iterable, Optional, Sequence, Tuple, cast, List
 from uuid import UUID, uuid4
+from dataclasses import dataclass
 
 import bleach
 from sqlalchemy import (
@@ -16,6 +17,7 @@ from sqlalchemy import (
     cast as sacast,
     text,
     or_,
+    tuple_ as satuple,
 )
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import exists
@@ -37,7 +39,9 @@ from .value_objs import (
     GitUpstream,
     UpstreamVersion,
     ContentType,
+    BinaryOp,
 )
+from .constants import MIN_UUID, FAR_FUTURE
 from .follow.git import GitSource, get_repo_path
 from .repcache import RepCache
 
@@ -549,6 +553,71 @@ def tables_for_user(
         )
 
 
+@dataclass
+class UserTablePage:
+    has_more: bool
+    has_less: bool
+    tables: List[Table]
+
+
+def table_page(
+    sesh: Session,
+    user_uuid: UUID,
+    viewer: User,
+    op: BinaryOp = BinaryOp.LT,
+    key: Tuple[datetime, UUID] = (FAR_FUTURE, MIN_UUID),
+    count: int = 10,
+) -> UserTablePage:
+    """Return a page of tables"""
+    base_query = (
+        sesh.query(models.Table, models.User.username, models.GitUpstream)
+        .join(models.User)
+        .outerjoin(models.GitUpstream)
+        .filter(models.Table.user_uuid == user_uuid)
+    )
+    if user_uuid != viewer.user_uuid:
+        base_query = base_query.filter(models.Table.public)
+
+    table_key = satuple(models.Table.last_changed, models.Table.table_uuid)
+    page_key = satuple(*key)
+
+    rp = base_query
+    if op is BinaryOp.GT:
+        rp = rp.filter(table_key > page_key).order_by(*table_key)
+    elif op is BinaryOp.LT:
+        rp = rp.filter(table_key < page_key).order_by(*(t.desc() for t in table_key))
+    rp = rp.limit(count)
+    backend = PGUserdataAdapter(sesh)
+    tables = []
+    for table_model, username, source in rp:
+        columns = backend.get_columns(table_model.table_uuid)
+        row_count = backend.count(table_model.table_uuid)
+        unique_column_names = (
+            sesh.query(func.array_agg(models.UniqueColumn.column_name))
+            .filter(models.UniqueColumn.table_uuid == table_model.table_uuid)
+            .scalar()
+        )
+        tables.append(
+            _make_table(
+                username, table_model, columns, row_count, source, unique_column_names
+            )
+        )
+
+    if len(tables) > 1:
+        first_table = (tables[0].last_changed, tables[0].table_uuid)
+        last_table = (tables[-1].last_changed, tables[-1].table_uuid)
+        has_more = sesh.query(
+            base_query.filter(table_key < last_table).exists()
+        ).scalar()
+        has_less = sesh.query(
+            base_query.filter(table_key > first_table).exists()
+        ).scalar()
+    else:
+        raise NotImplementedError()
+
+    return UserTablePage(has_more=has_more, has_less=has_less, tables=tables)
+
+
 def _make_table(
     username: str,
     table_model: models.Table,
@@ -557,6 +626,7 @@ def _make_table(
     source: Optional[models.GitUpstream],
     unique_column_names: Optional[Sequence[str]],
 ) -> Table:
+    """Make a Table object from inputs"""
     if unique_column_names is not None:
         key = [c for c in columns if c in unique_column_names]
     else:

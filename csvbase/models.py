@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List, Mapping
 from uuid import UUID
 
@@ -107,6 +108,11 @@ class TableBackend(Base):
     backend_name = Column(satypes.String, nullable=False)
 
 
+def _last_changed_default(context) -> datetime:
+    """Set last_changed to the same value as created by default."""
+    return context.get_current_parameters()["created"]
+
+
 class Table(Base):
     __tablename__ = "tables"
     __table_args__ = (
@@ -120,8 +126,15 @@ class Table(Base):
     table_uuid = Column(PGUUID, primary_key=True)
     user_uuid = Column(PGUUID, ForeignKey("metadata.users.user_uuid"), nullable=False)
     public = Column(satypes.Boolean, nullable=False)
+
+    # Setting the default to datetime.now, rather than func.now(), helps tests
+    # as otherwise multiple tables created in a single SQLA tx get the same
+    # time
     created = Column(
-        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+        satypes.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
     )
     licence_id = Column(
         satypes.SmallInteger,
@@ -133,8 +146,12 @@ class Table(Base):
         satypes.String,
         nullable=False,
     )
+
     last_changed = Column(
-        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+        satypes.DateTime(timezone=True),
+        default=_last_changed_default,
+        nullable=False,
+        index=True,
     )
     backend_id = Column(
         satypes.SmallInteger, ForeignKey(TableBackend.backend_id), nullable=False
