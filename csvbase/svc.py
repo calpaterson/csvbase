@@ -582,11 +582,18 @@ def table_page(
     page_key = satuple(*key)
 
     rp = base_query
-    if op is BinaryOp.GT:
-        rp = rp.filter(table_key > page_key).order_by(*table_key)
-    elif op is BinaryOp.LT:
+    if op is BinaryOp.LT:
         rp = rp.filter(table_key < page_key).order_by(*(t.desc() for t in table_key))
-    rp = rp.limit(count)
+        rp = rp.limit(count)
+    elif op is BinaryOp.GT:
+        rp = rp.filter(table_key > page_key).order_by(*table_key)
+        rp = rp.limit(count)
+
+        # necessary to reverse in subquery to get the tables in the right order
+        # FIXME: this is not 2.0 safe:
+        # https://docs.sqlalchemy.org/en/20/changelog/migration_20.html#selecting-from-the-query-itself-as-a-subquery-e-g-from-self
+        rp = rp.from_self().order_by(table_key.desc())
+
     backend = PGUserdataAdapter(sesh)
     tables = []
     for table_model, username, source in rp:

@@ -1,4 +1,4 @@
-from csvbase.value_objs import Column, ColumnType
+from csvbase.value_objs import Column, ColumnType, BinaryOp
 from csvbase import svc
 
 import pytest
@@ -45,3 +45,58 @@ def test_second_page(sesh, user_with_tables):
     assert table_names == ["table-8", "table-7"]
     assert second_page.has_less
     assert second_page.has_more
+
+
+def test_back_to_first_page(sesh, user_with_tables):
+    first_page = svc.table_page(
+        sesh, user_with_tables.user_uuid, user_with_tables, count=2
+    )
+    last_on_first_page = first_page.tables[-1]
+
+    second_page = svc.table_page(
+        sesh,
+        user_with_tables.user_uuid,
+        user_with_tables,
+        count=2,
+        key=(last_on_first_page.last_changed, last_on_first_page.table_uuid),
+    )
+    first_on_second_page = second_page.tables[0]
+
+    back_to_first_page = svc.table_page(
+        sesh,
+        user_with_tables.user_uuid,
+        user_with_tables,
+        count=2,
+        key=(first_on_second_page.last_changed, first_on_second_page.table_uuid),
+        op=BinaryOp.GT,
+    )
+
+    table_names = [t.table_name for t in back_to_first_page.tables]
+    assert table_names == ["table-10", "table-9"]
+    assert not back_to_first_page.has_less
+    assert back_to_first_page.has_more
+
+
+@pytest.mark.xfail(reason="test not implemented")
+def test_last_page():
+    assert False
+
+
+@pytest.mark.xfail(reason="test not implemented")
+def test_backward_paging():
+    assert False
+
+
+@pytest.mark.xfail(reason="test not implemented")
+def test_pagination_over_the_top():
+    assert False
+
+
+@pytest.mark.xfail(reason="test not implemented")
+def test_pagination_under_the_bottom():
+    assert False
+
+
+@pytest.mark.xfail(reason="test not implemented")
+def test_paging_on_empty_table():
+    assert False
