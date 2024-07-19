@@ -2,7 +2,7 @@ import io
 from uuid import UUID
 from pathlib import Path
 import shutil
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta, timezone
 import codecs
 from logging import getLogger
 from typing import (
@@ -11,12 +11,13 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
-    Union,
     cast,
     Iterator,
     IO,
     TypeVar,
     List,
+    Union,
+    Tuple,
 )
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import hashlib
@@ -77,8 +78,9 @@ from ...value_objs import (
     Row,
     Table,
     Backend,
+    BinaryOp,
 )
-from ...constants import COPY_BUFFER_SIZE
+from ...constants import COPY_BUFFER_SIZE, FAR_FUTURE, MAX_UUID
 from ..billing import svc as billing_svc
 from ...repcache import RepCache
 from ...config import get_config
@@ -1133,29 +1135,85 @@ def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Resp
 
 @bp.get("/<username>")
 def user(username: str) -> Response:
+    def get_op() -> Union[Literal[BinaryOp.LT], Literal[BinaryOp.GT]]:
+        """Reads the BinaryOp out of the request args"""
+        op_value = request.args.get("op", None)
+        if op_value is None:
+            return BinaryOp.LT
+        elif op_value not in {"gt", "lt"}:
+            raise exc.InvalidRequest()
+        else:
+            return BinaryOp(op_value)  # type: ignore
+
+    def get_key() -> Tuple[datetime, UUID]:
+        """Reads the key out of the request args"""
+        key_value = request.args.get("key", None)
+        if key_value is None:
+            return (FAR_FUTURE, MAX_UUID)
+        try:
+            datetime_str, uuid_str = key_value.split(",")
+            uuid = UUID(uuid_str)
+            dt = datetime.fromisoformat(datetime_str)
+            return dt, uuid
+        except Exception:
+            raise exc.InvalidRequest()
+
     sesh = get_sesh()
-    include_private = False
     current_user = get_current_user()
-    if current_user is not None and current_user.username == username:
-        include_private = True
-        has_subscription = billing_svc.has_subscription(sesh, current_user.user_uuid)
-    else:
-        has_subscription = False
+
+    content_type = negotiate_content_type([ContentType.JSON, ContentType.HTML])
+
     user = svc.user_by_name(sesh, username)
-    tables = svc.tables_for_user(
-        sesh,
-        user.user_uuid,
-        include_private=include_private,
+    table_page = svc.table_page(
+        sesh, user.user_uuid, current_user, op=get_op(), key=get_key()
     )
-    return make_response(
-        render_template(
-            "user.html",
-            user=user,
-            page_title=f"{username}",
-            tables=list(tables),
-            show_manage_subscription=has_subscription,
+
+    if table_page.has_next:
+        last_table = table_page.tables[-1]
+        next_page_url = url_for(
+            "csvbase.user",
+            username=username,
+            op="lt",
+            key=",".join(
+                [last_table.last_changed.isoformat(), str(last_table.table_uuid)]
+            ),
         )
-    )
+    else:
+        next_page_url = None
+
+    if table_page.has_prev:
+        first_table = table_page.tables[0]
+        prev_page_url = url_for(
+            "csvbase.user",
+            username=username,
+            op="gt",
+            key=",".join(
+                [first_table.last_changed.isoformat(), str(first_table.table_uuid)]
+            ),
+        )
+    else:
+        prev_page_url = None
+
+    if content_type is ContentType.HTML:
+        if current_user is not None and current_user.username == username:
+            has_subscription = billing_svc.has_subscription(
+                sesh, current_user.user_uuid
+            )
+        else:
+            has_subscription = False
+        return make_response(
+            render_template(
+                "user.html",
+                user=user,
+                page_title=f"{username}",
+                table_page=table_page,
+                show_manage_subscription=has_subscription,
+                next_page_url=next_page_url,
+                prev_page_url=prev_page_url,
+            )
+        )
+    else:
+        raise NotImplementedError()
 
 
 @bp.route("/<username>/settings", methods=["GET", "POST"])

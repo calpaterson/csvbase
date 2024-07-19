@@ -4,7 +4,7 @@ import secrets
 from contextlib import closing
 from datetime import datetime, timezone, date
 from logging import getLogger
-from typing import Iterable, Optional, Sequence, Tuple, cast, List
+from typing import Iterable, Optional, Sequence, Tuple, cast, List, Union
 from uuid import UUID, uuid4
 from dataclasses import dataclass
 
@@ -24,6 +24,7 @@ from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import table as satable
 from sqlalchemy.dialects.postgresql import insert as pginsert
 import importlib_resources
+from typing_extensions import Literal
 
 from . import exc, models, table_io
 from .userdata import PGUserdataAdapter
@@ -41,7 +42,7 @@ from .value_objs import (
     ContentType,
     BinaryOp,
 )
-from .constants import MIN_UUID, FAR_FUTURE
+from .constants import FAR_FUTURE, MAX_UUID
 from .follow.git import GitSource, get_repo_path
 from .repcache import RepCache
 
@@ -527,76 +528,55 @@ def is_valid_api_key(sesh: Session, username: str, hex_api_key: str) -> bool:
     return exists
 
 
-def tables_for_user(
-    sesh: Session, user_uuid: UUID, include_private: bool = False
-) -> Iterable[Table]:
-    rp = (
-        sesh.query(models.Table, models.User.username, models.GitUpstream)
-        .join(models.User)
-        .outerjoin(models.GitUpstream)
-        .filter(models.Table.user_uuid == user_uuid)
-        .order_by(models.Table.created.desc())
-    )
-    if not include_private:
-        rp = rp.filter(models.Table.public)
-    backend = PGUserdataAdapter(sesh)
-    for table_model, username, source in rp:
-        columns = backend.get_columns(table_model.table_uuid)
-        row_count = backend.count(table_model.table_uuid)
-        unique_column_names = (
-            sesh.query(func.array_agg(models.UniqueColumn.column_name))
-            .filter(models.UniqueColumn.table_uuid == table_model.table_uuid)
-            .scalar()
-        )
-        yield _make_table(
-            username, table_model, columns, row_count, source, unique_column_names
-        )
-
-
 @dataclass
 class UserTablePage:
-    has_more: bool
-    has_less: bool
+    has_next: bool
+    has_prev: bool
     tables: List[Table]
 
 
 def table_page(
     sesh: Session,
     user_uuid: UUID,
-    viewer: User,
-    op: BinaryOp = BinaryOp.LT,
-    key: Tuple[datetime, UUID] = (FAR_FUTURE, MIN_UUID),
+    viewer: Optional[User],
+    op: Union[Literal[BinaryOp.LT], Literal[BinaryOp.GT]] = BinaryOp.LT,
+    key: Tuple[datetime, UUID] = (FAR_FUTURE, MAX_UUID),
     count: int = 10,
 ) -> UserTablePage:
-    """Return a page of tables"""
-    base_query = (
+    """Return a page of tables for the given user, as should be seen by the
+    perspective of the given viewer.
+
+    """
+    # all tables by the given user_uuid that viewer should be able to see
+    visible_tables = (
         sesh.query(models.Table, models.User.username, models.GitUpstream)
         .join(models.User)
         .outerjoin(models.GitUpstream)
         .filter(models.Table.user_uuid == user_uuid)
     )
-    if user_uuid != viewer.user_uuid:
-        base_query = base_query.filter(models.Table.public)
+    if viewer is not None and user_uuid != viewer.user_uuid:
+        visible_tables = visible_tables.filter(models.Table.public)
 
     table_key = satuple(models.Table.last_changed, models.Table.table_uuid)
-    page_key = satuple(*key)
-
-    rp = base_query
+    page_key = satuple(*key)  # type: ignore
+    page_of_tables = visible_tables
     if op is BinaryOp.LT:
-        rp = rp.filter(table_key < page_key).order_by(*(t.desc() for t in table_key))
-        rp = rp.limit(count)
+        page_of_tables = page_of_tables.filter(table_key < page_key).order_by(
+            table_key.desc()
+        )
+        page_of_tables = page_of_tables.limit(count)
     elif op is BinaryOp.GT:
-        rp = rp.filter(table_key > page_key).order_by(*table_key)
-        rp = rp.limit(count)
+        page_of_tables = page_of_tables.filter(table_key > page_key).order_by(table_key)
+        page_of_tables = page_of_tables.limit(count)
 
         # necessary to reverse in subquery to get the tables in the right order
         # FIXME: this is not 2.0 safe:
         # https://docs.sqlalchemy.org/en/20/changelog/migration_20.html#selecting-from-the-query-itself-as-a-subquery-e-g-from-self
-        rp = rp.from_self().order_by(table_key.desc())
+        page_of_tables = page_of_tables.from_self().order_by(table_key.desc())
 
     backend = PGUserdataAdapter(sesh)
     tables = []
-    for table_model, username, source in rp:
+    for table_model, username, source in page_of_tables:
         columns = backend.get_columns(table_model.table_uuid)
         row_count = backend.count(table_model.table_uuid)
         unique_column_names = (
@@ -610,19 +590,19 @@ def table_page(
             )
         )
 
-    if len(tables) > 1:
+    if len(tables) > 0:
         first_table = (tables[0].last_changed, tables[0].table_uuid)
         last_table = (tables[-1].last_changed, tables[-1].table_uuid)
-        has_more = sesh.query(
-            base_query.filter(table_key < last_table).exists()
+        has_next = sesh.query(
+            visible_tables.filter(table_key < last_table).exists()
         ).scalar()
-        has_less = sesh.query(
-            base_query.filter(table_key > first_table).exists()
+        has_prev = sesh.query(
+            visible_tables.filter(table_key > first_table).exists()
         ).scalar()
     else:
         raise NotImplementedError()
 
-    return UserTablePage(has_more=has_more, has_less=has_less, tables=tables)
+    return UserTablePage(has_next=has_next, has_prev=has_prev, tables=tables)
 
 
 def _make_table(

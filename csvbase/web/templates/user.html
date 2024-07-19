@@ -3,6 +3,22 @@
 
 {% import 'table_macros.html' as table_macros %}
 
+{% macro pagination() %}
+  <nav>
+    <ul class="pagination">
+      <li class="page-item {% if not table_page.has_prev%}disabled{% endif %}"><a class="page-link"
+                               {% if table_page.has_prev %}href="{{prev_page_url}}"{% else %}href="#"{% endif %}
+                               >Previous</a>
+      </li>
+      <li class="page-item {% if not table_page.has_next%}disabled{% endif %}"><a class="page-link"
+                               {% if table_page.has_next %}href="{{next_page_url}}"{% else %}href="#"{% endif %}
+                               >Next</a>
+      </li>
+    </ul>
+  </nav>
+{% endmacro %}
+
+
 {% block main %}
   <div class="container">
     <h1><a href="{{ url_for('csvbase.user', username=user.username) }}">{{ user.username }}</a></h1>
@@ -19,9 +35,11 @@
       <p>You are currently subscribed. <a href="{{ url_for('billing.manage') }}">Manage your subscription</a>.</p>
     {% endif %}
 
-
     <h2>Tables</h2>
-    {% for table in tables %}
+
+    {{ pagination() }}
+
+    {% for table in table_page.tables %}
       <div class="row">
         <div class="col-md-8">
           {{ table_macros.table_card(table) }}

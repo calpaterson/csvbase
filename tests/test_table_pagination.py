@@ -24,8 +24,8 @@ def test_first_page(sesh, user_with_tables):
     page = svc.table_page(sesh, user_with_tables.user_uuid, user_with_tables, count=2)
     table_names = [t.table_name for t in page.tables]
     assert table_names == ["table-10", "table-9"]
-    assert not page.has_less
-    assert page.has_more
+    assert not page.has_prev
+    assert page.has_next
 
 
 def test_second_page(sesh, user_with_tables):
@@ -43,8 +43,8 @@ def test_second_page(sesh, user_with_tables):
     )
     table_names = [t.table_name for t in second_page.tables]
     assert table_names == ["table-8", "table-7"]
-    assert second_page.has_less
-    assert second_page.has_more
+    assert second_page.has_prev
+    assert second_page.has_next
 
 
 def test_back_to_first_page(sesh, user_with_tables):
@@ -73,8 +73,8 @@ def test_back_to_first_page(sesh, user_with_tables):
 
     table_names = [t.table_name for t in back_to_first_page.tables]
     assert table_names == ["table-10", "table-9"]
-    assert not back_to_first_page.has_less
-    assert back_to_first_page.has_more
+    assert not back_to_first_page.has_prev
+    assert back_to_first_page.has_next
 
 
 @pytest.mark.xfail(reason="test not implemented")
