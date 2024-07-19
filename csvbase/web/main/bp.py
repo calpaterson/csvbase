@@ -431,7 +431,7 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
             reps = get_table_reps(sesh, table)
 
             template_kwargs = dict(
-                page_title=f"{table.username}/{table.table_name}",
+                page_title=table.table_name,
                 table=table,
                 page=page,
                 keyset=keyset,
