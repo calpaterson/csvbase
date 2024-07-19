@@ -600,7 +600,7 @@ def table_page(
             visible_tables.filter(table_key > first_table).exists()
         ).scalar()
     else:
-        raise NotImplementedError()
+        has_next = has_prev = False
 
     return UserTablePage(has_next=has_next, has_prev=has_prev, tables=tables)
 

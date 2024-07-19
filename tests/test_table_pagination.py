@@ -97,6 +97,8 @@ def test_pagination_under_the_bottom():
     assert False
 
 
-@pytest.mark.xfail(reason="test not implemented")
-def test_paging_on_empty_table():
-    assert False
+def test_paging_on_empty_table(sesh, test_user):
+    page = svc.table_page(sesh, test_user.user_uuid, test_user, count=2)
+    assert page.tables == []
+    assert not page.has_next
+    assert not page.has_prev
