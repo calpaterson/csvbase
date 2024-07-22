@@ -547,6 +547,9 @@ def table_page(
     perspective of the given viewer.
 
     """
+    # NOTE: This function is likely to expand into a kind of mini-orm for
+    # querying tables, so will likely include search, ordering, etc
+
     # all tables by the given user_uuid that viewer should be able to see
     visible_tables = (
         sesh.query(models.Table, models.User.username, models.GitUpstream)
@@ -554,7 +557,7 @@ def table_page(
         .outerjoin(models.GitUpstream)
         .filter(models.Table.user_uuid == user_uuid)
     )
-    if viewer is not None and user_uuid != viewer.user_uuid:
+    if viewer is None or user_uuid != viewer.user_uuid:
         visible_tables = visible_tables.filter(models.Table.public)
 
     table_key = satuple(models.Table.last_changed, models.Table.table_uuid)

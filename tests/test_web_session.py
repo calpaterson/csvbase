@@ -2,6 +2,7 @@ import pytest
 
 
 from csvbase import svc
+from csvbase.value_objs import ContentType
 from .utils import random_string, current_user
 
 
@@ -13,7 +14,7 @@ def test_registering_no_whence(client):
     assert response.status_code == 302
     assert response.headers["Location"] == f"/{username}"
 
-    get_resp = client.get(f"/{username}")
+    get_resp = client.get(f"/{username}", headers={"Accept": ContentType.HTML.value})
     assert get_resp.status_code == 200
 
 

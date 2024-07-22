@@ -1518,6 +1518,7 @@ def page_to_json_dict(table: Table, page: Page) -> Dict[str, Any]:
 
 
 def table_to_json_dict(table: Table, page: Page) -> Dict[str, Any]:
+    """Converts a table to a dict (including first page) for JSON."""
     rv = {
         "name": table.table_name,
         "is_public": table.is_public,
