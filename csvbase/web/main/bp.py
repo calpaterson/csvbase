@@ -107,14 +107,20 @@ CORS(
 @bp.get("/")
 def index() -> Response:
     sesh = get_sesh()
-    return make_response(render_template("index.html", tables=svc.get_top_n(sesh)))
+    backend = PGUserdataAdapter(sesh)
+    preview_keyset = KeySet([ROW_ID_COLUMN], (0,), op="greater_than", size=5)
+    tables_and_pages = [(table, backend.table_page(table, preview_keyset)) for table in svc.get_top_n(sesh)]
+    return make_response(render_template("index.html", tables_and_pages=tables_and_pages))
 
 
 @bp.get("/newest")
 def newest() -> Response:
     sesh = get_sesh()
+    backend = PGUserdataAdapter(sesh)
+    preview_keyset = KeySet([ROW_ID_COLUMN], (0,), op="greater_than", size=5)
+    tables_and_pages = [(table, backend.table_page(table, preview_keyset)) for table in svc.get_newest_tables(sesh)]
     return make_response(
-        render_template("index.html", tables=svc.get_newest_tables(sesh))
+        render_template("index.html", tables_and_pages=tables_and_pages)
     )
 
 
@@ -248,7 +254,7 @@ class TableView(MethodView):
             provided_etag = request.headers.get("If-Weak-Match", None)
             if provided_etag is not None:
                 keyset = KeySet(
-                    [Column("csvbase_row_id", ColumnType.INTEGER)],
+                    [ROW_ID_COLUMN],
                     (0,),
                     op="greater_than",
                 )
@@ -1201,12 +1207,18 @@ def user(username: str) -> Response:
             )
         else:
             has_subscription = False
+
+        backend = PGUserdataAdapter(sesh)
+        preview_keyset = KeySet([ROW_ID_COLUMN], (0,), op="greater_than", size=5)
+        tables_and_pages = [(table, backend.table_page(table, preview_keyset)) for table in table_page.tables]
+
         return make_response(
             render_template(
                 "user.html",
                 user=user,
                 page_title=f"{username}",
                 table_page=table_page,
+                tables_and_pages=tables_and_pages,
                 show_manage_subscription=has_subscription,
                 next_page_url=next_page_url,
                 prev_page_url=prev_page_url,
@@ -1464,7 +1476,7 @@ def keyset_from_request_args() -> KeySet:
     op: Literal["greater_than", "less_than"] = (
         "greater_than" if request.args.get("op", default="gt") == "gt" else "less_than"
     )
-    keyset = KeySet([Column("csvbase_row_id", ColumnType.INTEGER)], (n,), op=op)
+    keyset = KeySet([Column("csvbase_row_id", ColumnType.INTEGER)], (n,), op=op, size=20)
     return keyset
 
 

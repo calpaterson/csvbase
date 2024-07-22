@@ -1,5 +1,7 @@
 {# -*- mode: jinja2 -*- #}
 
+{% import 'row_macros.html' as row_macros %}
+
 {% macro praise_button_form(table, praise_id) %}
   {# This form is split apart from the praise button for formatting reasons
   (not able to put a form in a btn-group) #}
@@ -52,7 +54,7 @@
   <a href="{{ url_for('csvbase.copy_view', username=table.username, table_name=table.table_name) }}" class="btn btn-primary btn-sm">Make a copy</a>
 {% endmacro %}
 
-{% macro table_card(table) %}
+{% macro table_card(table, page) %}
   <div class="card table-card">
     <div class="card-body">
       <h5 class="card-title"><a href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">{{table.username}}/{{table.table_name}}</a></h5>
@@ -60,17 +62,7 @@
       {% if table.has_caption() %}<h6 class="card-subtitle mb-2 text-muted">&quot;{{ table.caption }}&quot;</h6>{% endif %}
       <p>Created {{ table.age()|timedeltaformat }} ago</p>
 
-      <p>{{ table.user_columns()|length }} column{% if table.user_columns()|length > 1 %}s{% endif %}:
-        <ul>
-          {% for column in table.user_columns() %}
-            <li>{{ column.name}} ({{column.type_.pretty_name().lower()}})</li>
-          {% endfor %}
-        </ul>
-      </p>
-      {# <p>{{ praise_button(table, None) }}</p> #}
-      <a class="card-link" href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">View</a>
-      <a class="card-link" href="{{ url_for('csvbase.get_table_apidocs', username=table.username, table_name=table.table_name) }}">API</a>
-      <a class="card-link" href="{{ url_for('csvbase.table_view_with_extension', username=table.username, table_name=table.table_name, extension='csv') }}">Download CSV</a>
+      {{ render_table(table, page, is_preview=True) }}
     </div>
   </div>
 {% endmacro %}
@@ -85,3 +77,44 @@
     <span title="{{table.row_count.exact}} rows" data-tooltip="top">{{ table.row_count.exact|humanize_intword("%0.0f") }}</span>
   {%- endif -%}
 {%- endmacro -%}
+
+{% macro render_table(table, page, is_preview=False) %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            {% for col in table.columns %}
+              {% if col.name == "csvbase_row_id" %}
+                <th>Row ID</th>
+              {% else %}
+                <th>{{ col.name }}</th>
+              {% endif %}
+            {% endfor %}
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for row in page.rows %}
+            <tr {% if row[ROW_ID_COLUMN] == highlight %}class="table-active"{% endif %}>
+              {% for col in table.columns %}
+                {% if loop.index == 1 %}
+                  <td><a
+                        href="{{ url_for('csvbase.row_view', username=table.username, table_name=table.table_name, row_id=row[col]) }}"
+                        >{{row_macros.render_cell(col.type_, row[col])}}</a></td>
+                {% else %}
+                  <td>{{row_macros.render_cell(col.type_, row[col])}}</td>
+                {% endif %}
+              {% endfor %}
+            </tr>
+          {% endfor %}
+          {% if is_preview and page.has_more %}
+            <tr>
+              {% for col in table.columns %}
+                <td><a href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">[...]</a></td>
+              {% endfor %}
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+{% endmacro %}

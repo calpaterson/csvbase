@@ -21,8 +21,8 @@
 
     <div class="row my-2">
       <div class="col-auto">
-        {% for table in tables %}
-          {{ table_macros.table_card(table) }}
+        {% for table, page in tables_and_pages %}
+          {{ table_macros.table_card(table, page) }}
         {% endfor %}
       </div>
     </div>

@@ -5,7 +5,7 @@
 
 {% macro pagination() %}
   <nav>
-    <ul class="pagination">
+    <ul class="pagination justify-content-center">
       <li class="page-item {% if not table_page.has_prev%}disabled{% endif %}"><a class="page-link"
                                {% if table_page.has_prev %}href="{{prev_page_url}}"{% else %}href="#"{% endif %}
                                >Previous</a>
@@ -32,31 +32,20 @@
         {% if show_manage_subscription %}
           <li><a href="{{ url_for('billing.manage') }}">Manage your subscription</a></li>
         {% endif %}
+        <li>API key:  <code>{{ current_user.hex_api_key() }}</code></li>
       </ul>
     {% endif %}
-
-    {# {% if show_manage_subscription %} #}
-    {#   <h2>Your subscription</h2> #}
-    {#   <p>You are currently subscribed. .</p> #}
-    {# {% endif %} #}
 
     <h2>Tables</h2>
 
     {{ pagination() }}
 
-    {% for table in table_page.tables %}
+    {% for table, page in tables_and_pages %}
       <div class="row">
-        <div class="col-md-8">
-          {{ table_macros.table_card(table) }}
-        </div>
+        {{ table_macros.table_card(table, page) }}
       </div>
     {% endfor %}
     {% if current_username == user.username %}
-      <p>Or <a href="{{ url_for('create_table.paste')}}"> paste a new table</a></p>
-
-      <h2>Your API Key</h2>
-      <code>{{ current_user.hex_api_key() }}</code>
-
       <h2>Account controls</h2>
       <a href="{{ url_for('csvbase.sign_out') }}" class="btn btn-danger">Sign out</a>
     {% endif %}
