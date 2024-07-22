@@ -110,7 +110,11 @@
           {% if is_preview and page.has_more %}
             <tr>
               {% for col in table.columns %}
-                <td><a href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">[...]</a></td>
+                {% if col == ROW_ID_COLUMN %}
+                  <td><a href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">[{{table.row_count.best() - page.row_count()}} more rows]</a></td>
+                {% else %}
+                  <td>...</td>
+                {% endif %}
               {% endfor %}
             </tr>
           {% endif %}

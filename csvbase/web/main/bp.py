@@ -109,8 +109,13 @@ def index() -> Response:
     sesh = get_sesh()
     backend = PGUserdataAdapter(sesh)
     preview_keyset = KeySet([ROW_ID_COLUMN], (0,), op="greater_than", size=5)
-    tables_and_pages = [(table, backend.table_page(table, preview_keyset)) for table in svc.get_top_n(sesh)]
-    return make_response(render_template("index.html", tables_and_pages=tables_and_pages))
+    tables_and_pages = [
+        (table, backend.table_page(table, preview_keyset))
+        for table in svc.get_top_n(sesh)
+    ]
+    return make_response(
+        render_template("index.html", tables_and_pages=tables_and_pages)
+    )
 
 
 @bp.get("/newest")
@@ -118,7 +123,10 @@ def newest() -> Response:
     sesh = get_sesh()
     backend = PGUserdataAdapter(sesh)
     preview_keyset = KeySet([ROW_ID_COLUMN], (0,), op="greater_than", size=5)
-    tables_and_pages = [(table, backend.table_page(table, preview_keyset)) for table in svc.get_newest_tables(sesh)]
+    tables_and_pages = [
+        (table, backend.table_page(table, preview_keyset))
+        for table in svc.get_newest_tables(sesh)
+    ]
     return make_response(
         render_template("index.html", tables_and_pages=tables_and_pages)
     )
@@ -253,12 +261,7 @@ class TableView(MethodView):
 
             provided_etag = request.headers.get("If-Weak-Match", None)
             if provided_etag is not None:
-                keyset = KeySet(
-                    [ROW_ID_COLUMN],
-                    (0,),
-                    op="greater_than",
-                )
-                expected_etag = make_table_view_etag(table, ContentType.CSV, keyset)
+                expected_etag = make_table_view_etag(table, ContentType.CSV, None)
                 if provided_etag != expected_etag:
                     raise exc.ETagMismatch()
 
@@ -405,7 +408,10 @@ def ensure_not_over_the_top(table: Table, keyset: KeySet, page: Page) -> None:
 def make_table_view_response(sesh, content_type: ContentType, table: Table) -> Response:
     """Build a representation of a table for a content-type and return a
     response ready to be returned from a handler."""
-    keyset = keyset_from_request_args()
+    if content_type in {ContentType.HTML, ContentType.JSON}:
+        keyset = keyset_from_request_args()
+    else:
+        keyset = None
     etag = make_table_view_etag(table, content_type, keyset)
 
     # First, check if we can early-exit without doing anything based on etags
@@ -425,7 +431,7 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
 
     backend = PGUserdataAdapter(sesh)
     # If the representation is page based:
-    if content_type in {ContentType.HTML, ContentType.JSON}:
+    if keyset is not None:
         page = backend.table_page(table, keyset)
         ensure_not_over_the_top(table, keyset, page)
         if content_type is ContentType.HTML:
@@ -441,7 +447,6 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                 table=table,
                 page=page,
                 keyset=keyset,
-                ROW_ID_COLUMN=ROW_ID_COLUMN,
                 praise_id=get_praise_id_if_exists(sesh, table),
                 is_first_page=is_first_page,
                 is_last_page=is_last_page,
@@ -530,7 +535,7 @@ def keyset_to_dict(keyset: KeySet) -> Dict:
 
 
 def make_table_view_etag(
-    table: Table, content_type: ContentType, keyset: KeySet
+    table: Table, content_type: ContentType, keyset: Optional[KeySet]
 ) -> str:
     """Returns the ETag for a given (table, content_type, keyset)."""
     current_user = get_current_user()
@@ -541,7 +546,12 @@ def make_table_view_etag(
     # handle some characters (eg comma) well in the ETag header
     hash_ = hashlib.blake2b()
     hash_.update(table.table_uuid.bytes)
-    hash_.update(str(keyset_to_dict(keyset)).encode("utf-8"))
+
+    # If the representation is paged-based (eg HTML), use the keyset when
+    # calculating:
+    if keyset is not None:
+        hash_.update(str(keyset_to_dict(keyset)).encode("utf-8"))
+
     hash_.update(content_type.value.encode("utf-8"))
     hash_.update(table.last_changed.isoformat().encode("utf-8"))
     if content_type == ContentType.HTML:
@@ -1210,7 +1220,10 @@ def user(username: str) -> Response:
 
         backend = PGUserdataAdapter(sesh)
         preview_keyset = KeySet([ROW_ID_COLUMN], (0,), op="greater_than", size=5)
-        tables_and_pages = [(table, backend.table_page(table, preview_keyset)) for table in table_page.tables]
+        tables_and_pages = [
+            (table, backend.table_page(table, preview_keyset))
+            for table in table_page.tables
+        ]
 
         return make_response(
             render_template(
@@ -1229,7 +1242,7 @@ def user(username: str) -> Response:
             "tables": {
                 "next_page_url": next_page_url,
                 "prev_page_url": prev_page_url,
-                "page": [table_to_json_dict(t) for t in table_page.tables]
+                "page": [table_to_json_dict(t) for t in table_page.tables],
             }
         }
         return jsonify(rv)
@@ -1476,7 +1489,9 @@ def keyset_from_request_args() -> KeySet:
     op: Literal["greater_than", "less_than"] = (
         "greater_than" if request.args.get("op", default="gt") == "gt" else "less_than"
     )
-    keyset = KeySet([Column("csvbase_row_id", ColumnType.INTEGER)], (n,), op=op, size=20)
+    keyset = KeySet(
+        [Column("csvbase_row_id", ColumnType.INTEGER)], (n,), op=op, size=20
+    )
     return keyset
 
 
@@ -1552,7 +1567,7 @@ def table_to_json_dict(table: Table, page: Optional[Page] = None) -> Dict[str, A
         "approx_size": table.row_count.best(),
     }
     if page is not None:
-        rv["page"]: page_to_json_dict(table, page)
+        rv["page"] = page_to_json_dict(table, page)
     return rv
 
 

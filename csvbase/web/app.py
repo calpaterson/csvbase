@@ -42,7 +42,7 @@ from .func import is_browser, is_url, get_current_user
 from .billing import bp as billing_bp
 from .main.bp import bp as main_bp
 from .main.create_table import bp as create_table_bp
-from ..value_objs import ContentType
+from ..value_objs import ContentType, ROW_ID_COLUMN
 from ..bgwork.core import initialise_celery
 
 logger = getLogger(__name__)
@@ -134,6 +134,7 @@ def init_app() -> Flask:
     app.register_blueprint(faq_bp)
 
     app.jinja_env.globals["is_url"] = is_url
+    app.jinja_env.globals["ROW_ID_COLUMN"] = ROW_ID_COLUMN
     app.jinja_env.globals["blueprints"] = app.blueprints.keys()
     app.jinja_env.globals["ContentType"] = ContentType
     app.jinja_env.filters["snake_case"] = snake_case

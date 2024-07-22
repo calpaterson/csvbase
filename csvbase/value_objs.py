@@ -111,16 +111,19 @@ class Page:
     def row_ids(self) -> Set[int]:
         return cast(Set[int], {row[ROW_ID_COLUMN] for row in self.rows})
 
+    def row_count(self) -> int:
+        return len(self.rows)
+
 
 @dataclass
 class RowCount:
     exact: Optional[int]
     approx: int
 
-    def best(self):
+    def best(self) -> int:
         return self.exact or self.approx
 
-    def is_big(self):
+    def is_big(self) -> bool:
         # Big Data == "too big for excel"
         return self.best() > 1_048_576
 

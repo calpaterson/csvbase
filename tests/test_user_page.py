@@ -5,6 +5,7 @@ from csvbase.value_objs import ContentType
 
 from .utils import make_user, current_user
 
+
 @pytest.fixture(scope="module", params=[ContentType.HTML, ContentType.JSON])
 def accept(request):
     yield request.param
@@ -21,7 +22,9 @@ def test_user_view__self(client, test_user, ten_rows, private_table, accept):
 
     assert resp.status_code == 200
     if accept is ContentType.HTML:
-        assert page.xpath(f"//h5[@class='card-title']/a[text()='{ten_rows_display_name}']")
+        assert page.xpath(
+            f"//h5[@class='card-title']/a[text()='{ten_rows_display_name}']"
+        )
         assert page.xpath(
             f"//h5[@class='card-title']/a[text()='{private_table_display_name}']"
         )
@@ -39,7 +42,9 @@ def test_user_view__while_anon(client, test_user, ten_rows, private_table, accep
 
     assert resp.status_code == 200
     if accept is ContentType.HTML:
-        assert page.xpath(f"//h5[@class='card-title']/a[text()='{ten_rows_display_name}']")
+        assert page.xpath(
+            f"//h5[@class='card-title']/a[text()='{ten_rows_display_name}']"
+        )
         assert not page.xpath(
             f"//h5[@class='card-title']/a[text()='{private_table_display_name}']"
         )
