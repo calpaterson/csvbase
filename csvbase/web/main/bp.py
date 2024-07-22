@@ -1213,7 +1213,14 @@ def user(username: str) -> Response:
             )
         )
     else:
-        raise NotImplementedError()
+        rv = {
+            "tables": {
+                "next_page_url": next_page_url,
+                "prev_page_url": prev_page_url,
+                "page": [table_to_json_dict(t) for t in table_page.tables]
+            }
+        }
+        return jsonify(rv)
 
 
 @bp.route("/<username>/settings", methods=["GET", "POST"])
@@ -1517,7 +1524,7 @@ def page_to_json_dict(table: Table, page: Page) -> Dict[str, Any]:
     return rv
 
 
-def table_to_json_dict(table: Table, page: Page) -> Dict[str, Any]:
+def table_to_json_dict(table: Table, page: Optional[Page] = None) -> Dict[str, Any]:
     """Converts a table to a dict (including first page) for JSON."""
     rv = {
         "name": table.table_name,
@@ -1530,9 +1537,10 @@ def table_to_json_dict(table: Table, page: Page) -> Dict[str, Any]:
             {"name": column.name, "type": column.type_.pretty_type()}
             for column in table.columns
         ],
-        "page": page_to_json_dict(table, page),
         "approx_size": table.row_count.best(),
     }
+    if page is not None:
+        rv["page"]: page_to_json_dict(table, page)
     return rv
 
 

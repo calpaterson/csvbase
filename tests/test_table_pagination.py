@@ -78,16 +78,6 @@ def test_back_to_first_page(sesh, user_with_tables):
 
 
 @pytest.mark.xfail(reason="test not implemented")
-def test_last_page():
-    assert False
-
-
-@pytest.mark.xfail(reason="test not implemented")
-def test_backward_paging():
-    assert False
-
-
-@pytest.mark.xfail(reason="test not implemented")
 def test_pagination_over_the_top():
     assert False
 
