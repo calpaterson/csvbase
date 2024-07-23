@@ -33,10 +33,10 @@ jobs:
         stripe_api_key = "sample"
         stripe_price_id = "price_123"
         EOF
-    - name: Set up Python 3.8
+    - name: Set up Python 3.9
       uses: actions/setup-python@v5
       with:
-        python-version: 3.8
+        python-version: 3.9
     - name: Install required ubuntu packages
       run: sudo apt-get update && sudo apt-get install -y libsystemd-dev postgresql-client
     - name: Create schemas
