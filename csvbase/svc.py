@@ -19,7 +19,7 @@ from sqlalchemy import (
     or_,
     tuple_ as satuple,
 )
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from sqlalchemy.sql import exists
 from sqlalchemy.sql.expression import table as satable
 from sqlalchemy.dialects.postgresql import insert as pginsert
@@ -572,10 +572,14 @@ def table_page(
         page_of_tables = page_of_tables.filter(table_key > page_key).order_by(table_key)
         page_of_tables = page_of_tables.limit(count)
 
-        # necessary to reverse in subquery to get the tables in the right order
-        # FIXME: this is not 2.0 safe:
-        # https://docs.sqlalchemy.org/en/20/changelog/migration_20.html#selecting-from-the-query-itself-as-a-subquery-e-g-from-self
-        page_of_tables = page_of_tables.from_self().order_by(table_key.desc())
+        # necessary to reverse in subquery to get the tables in the right
+        # order.  doing this in sqlalchemy 2.0 is quite painful
+        subq = page_of_tables.subquery()
+        t_a = aliased(models.Table, subq)
+        u_a = aliased(models.User, subq)
+        gu_a = aliased(models.GitUpstream, subq)
+        tk_a = satuple(t_a.last_changed, t_a.table_uuid)
+        page_of_tables = sesh.query(t_a, u_a.username, gu_a).order_by(tk_a.desc())
 
     backend = PGUserdataAdapter(sesh)
     tables = []
