@@ -2,6 +2,8 @@
 
 {% import 'row_macros.html' as row_macros %}
 
+{% import "value_macros.html" as value_macros %}
+
 {% macro praise_button_form(table, praise_id) %}
   {# This form is split apart from the praise button for formatting reasons
   (not able to put a form in a btn-group) #}
@@ -19,6 +21,7 @@
 {% endmacro %}
 
 {% macro download_button(table, reps, multiformat_dropdown=False) %}
+  {# reps is unused if multiformat_dropdown is False #}
   {% if multiformat_dropdown %}
     <button class="btn btn-success btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
         Download as
@@ -59,8 +62,14 @@
     <div class="card-body">
       <h5 class="card-title"><a href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">{{table.username}}/{{table.table_name}}</a></h5>
 
-      {% if table.has_caption() %}<h6 class="card-subtitle mb-2 text-muted">&quot;{{ table.caption }}&quot;</h6>{% endif %}
-      <p>Created {{ table.age()|timedeltaformat }} ago</p>
+      <span class="table-topline">
+          {%- if table.has_caption() -%}
+            <span class="table-caption">{{table.caption}}</span> &mdash; {{ render_row_count(table) }} rows
+          {%- else -%}
+            {{ render_row_count(table) }} rows
+          {%- endif -%}
+          , last changed {{ value_macros.render_human_datetime(table.last_changed) }} ago
+      </span>
 
       {{ render_table(table, page, is_preview=True) }}
     </div>
@@ -68,7 +77,6 @@
 {% endmacro %}
 
 {%- macro render_row_count(table) -%}
-
   {%- if table.row_count.exact == None -%}
     <span title="~ {{table.row_count.approx}} rows" data-tooltip="top">approximately {{ table.row_count.approx|humanize_intword("%0.0f") }}</span>
   {%- elif table.row_count.exact == 0 -%}
