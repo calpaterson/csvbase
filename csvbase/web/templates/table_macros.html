@@ -8,7 +8,7 @@
   {# This form is split apart from the praise button for formatting reasons
   (not able to put a form in a btn-group) #}
   <form
-    id="praise-form"
+    id="praise-form-{{table.table_uuid}}"
     method="POST"
     action="{{ url_for('csvbase.praise_table', username=table.username, table_name=table.table_name)}}"
     style="display: none"
@@ -36,16 +36,16 @@
   {% endif %}
 {% endmacro %}
 
-{% macro praise_button(praise_id) %}
+{% macro praise_button(table, praise_id) %}
   {% if praise_id %}
     <button
-      form="praise-form"
+      form="praise-form-{{table.table_uuid}}"
       type='submit'
       class="btn btn-warning btn-sm"
       ><img class="icon" src="{{ url_for('static', filename='icons/praised.svg') }}"> Praised</button>
     {% else %}
       <button
-        form="praise-form"
+        form="praise-form-{{table.table_uuid}}"
         id="praise-button"
         type='submit'
         class="btn btn-secondary btn-sm"
@@ -75,14 +75,15 @@
         </div>
         <div class="col-4 text-end d-md-none">
           <div class="btn-group-vertical">
-            {# {{ download_button(table, reps) }} #}
             {{ download_button(table, multiformat_dropdown=False) }}
-            {{ praise_button(praise_id) }}
+            {# FIXME: need a way to pass praise_id around #}
+            {# {{ praise_button(table, praise_id) }} #}
           </div>
         </div>
         <div class="col-4 text-end d-none d-md-block">
           {{ download_button(table, multiformat_dropdown=False) }}
-          {{ praise_button(praise_id) }}
+          {# FIXME: need a way to pass praise_id around #}
+          {# {{ praise_button(table, praise_id) }} #}
         </div>
       </div>
       {{ render_table(table, page, is_preview=True) }}
