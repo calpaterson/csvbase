@@ -38,7 +38,9 @@
 
     <h2>Tables</h2>
 
-    {{ pagination() }}
+    {% if table_page.has_next or table_page.has_prev %}
+      {{ pagination() }}
+    {% endif %}
 
     {% for table, page in tables_and_pages %}
       <div class="row">
