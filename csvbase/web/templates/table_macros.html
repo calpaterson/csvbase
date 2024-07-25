@@ -62,15 +62,29 @@
     <div class="card-body">
       <h5 class="card-title"><a href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}">{{table.username}}/{{table.table_name}}</a></h5>
 
-      <span class="table-topline">
-          {%- if table.has_caption() -%}
-            <span class="table-caption">{{table.caption}}</span> &mdash; {{ render_row_count(table) }} rows
-          {%- else -%}
-            {{ render_row_count(table) }} rows
-          {%- endif -%}
-          , last changed {{ value_macros.render_human_datetime(table.last_changed) }} ago
-      </span>
-
+      <div class="row">
+        <div class="col-8">
+          <span class="table-topline">
+            {%- if table.has_caption() -%}
+              <span class="table-caption">{{table.caption}}</span> &mdash; {{ render_row_count(table) }} rows
+            {%- else -%}
+              {{ render_row_count(table) }} rows
+            {%- endif -%}
+            , last changed {{ value_macros.render_human_datetime(table.last_changed) }} ago
+          </span>
+        </div>
+        <div class="col-4 text-end d-md-none">
+          <div class="btn-group-vertical">
+            {# {{ download_button(table, reps) }} #}
+            {{ download_button(table, multiformat_dropdown=False) }}
+            {{ praise_button(praise_id) }}
+          </div>
+        </div>
+        <div class="col-4 text-end d-none d-md-block">
+          {{ download_button(table, multiformat_dropdown=False) }}
+          {{ praise_button(praise_id) }}
+        </div>
+      </div>
       {{ render_table(table, page, is_preview=True) }}
     </div>
   </div>
