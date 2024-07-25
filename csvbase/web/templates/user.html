@@ -41,12 +41,15 @@
     {% if table_page.has_next or table_page.has_prev %}
       {{ pagination() }}
     {% endif %}
-
     {% for table, page in tables_and_pages %}
       <div class="row">
         {{ table_macros.table_card(table, page) }}
       </div>
     {% endfor %}
+    {% if table_page.has_next or table_page.has_prev %}
+      {{ pagination() }}
+    {% endif %}
+
     {% if current_username == user.username %}
       <h2>Account controls</h2>
       <a href="{{ url_for('csvbase.sign_out') }}" class="btn btn-danger">Sign out</a>
