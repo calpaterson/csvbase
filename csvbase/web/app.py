@@ -27,9 +27,13 @@ from flask_babel import Babel
 from passlib.context import CryptContext
 from werkzeug.routing import BaseConverter
 from werkzeug.wrappers.response import Response
-import werkzeug.exceptions
 
-from .func import set_current_user, user_timezone_or_utc, format_timedelta
+from .func import (
+    set_current_user,
+    user_timezone_or_utc,
+    format_timedelta,
+    handle_app_level_404_and_405,
+)
 from .. import exc, svc
 from .blog.bp import bp as blog_bp
 from .faq.bp import bp as faq_bp
@@ -122,7 +126,13 @@ def init_app() -> Flask:
         # url-map level
         regex = r"[A-Za-z][-A-Za-z0-9]+"
 
+    class UsernameConverter(BaseConverter):
+        # However it is certainly a good idea to reject invalid usernames on a
+        # url-map level, else incorrect urls get "this user does not exist"
+        regex = r"^[A-Za-z][-A-Za-z0-9]+"
+
     app.url_map.converters["table_name"] = TableNameConverter
+    app.url_map.converters["username"] = UsernameConverter
 
     app.register_blueprint(main_bp)
     app.register_blueprint(create_table_bp)
@@ -255,26 +265,3 @@ def snake_case(inp: str) -> str:
 
 def ppjson(inp: Union[Mapping, Sequence]) -> str:
     return json.dumps(inp, indent=4)
-
-
-def handle_app_level_404_and_405(
-    e: Union[werkzeug.exceptions.NotFound, werkzeug.exceptions.MethodNotAllowed]
-) -> Response:
-    """'Application level' exceptions like some 404s and most 405s (where there
-    is no flask endpoint to route to) require specific handling on the flask
-    app level."""
-
-    code: int = e.code
-    if code == 404:
-        message = "that page does not exist"
-    else:
-        message = "that verb is not allowed"
-    if is_browser():
-        resp = make_response(
-            render_template("error-dynamic.html", http_code=e.code, message=message)
-        )
-    else:
-        doc = {"error": message}
-        resp = jsonify(doc)
-    resp.status_code = e.code
-    return resp

@@ -46,6 +46,7 @@ from flask import session as flask_session
 from flask_cors import cross_origin, CORS
 from typing_extensions import Literal
 from werkzeug.wrappers.response import Response
+import werkzeug.exceptions
 
 from ..func import (
     get_current_user_or_401,
@@ -59,6 +60,7 @@ from ..func import (
     am_a_user,
     am_user_or_400,
     ensure_not_read_only,
+    handle_app_level_404_and_405,
 )
 from ... import exc, svc, streams, table_io
 from ...json import value_to_json, json_to_row
@@ -358,10 +360,12 @@ class TableView(MethodView):
         return response
 
 
-bp.add_url_rule("/<username>/<table_name>", view_func=TableView.as_view("table_view"))
+bp.add_url_rule(
+    "/<username:username>/<table_name>", view_func=TableView.as_view("table_view")
+)
 
 
-@bp.post("/<username>/<table_name:table_name>/delete-table-form-post")
+@bp.post("/<username:username>/<table_name:table_name>/delete-table-form-post")
 def delete_table_form_post(username: str, table_name: str) -> Response:
     """Delete a table, from a form post.
 
@@ -377,8 +381,8 @@ def delete_table_form_post(username: str, table_name: str) -> Response:
     return redirect(url_for("csvbase.user", username=username))
 
 
-@bp.get("/<username>/<table_name:table_name>/export/<extension>")
-@bp.get("/<username>/<table_name:table_name>.<extension>")
+@bp.get("/<username:username>/<table_name:table_name>/export/<extension>")
+@bp.get("/<username:username>/<table_name:table_name>.<extension>")
 @cross_origin(max_age=CORS_EXPIRY, methods=["GET", "PUT"])
 def table_view_with_extension(
     username: str, table_name: str, extension: str
@@ -661,7 +665,7 @@ def add_row_view_cache_headers(
     return response
 
 
-@bp.get("/<username>/<table_name:table_name>/readme")
+@bp.get("/<username:username>/<table_name:table_name>/readme")
 def table_readme(username: str, table_name: str) -> Response:
     sesh = get_sesh()
 
@@ -689,7 +693,7 @@ def table_readme(username: str, table_name: str) -> Response:
     )
 
 
-@bp.get("/<username>/<table_name:table_name>/docs")
+@bp.get("/<username:username>/<table_name:table_name>/docs")
 def get_table_apidocs(username: str, table_name: str) -> str:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
@@ -785,11 +789,11 @@ class CopyView(MethodView):
 
 
 bp.add_url_rule(
-    "/<username>/<table_name>/copy", view_func=CopyView.as_view("copy_view")
+    "/<username:username>/<table_name>/copy", view_func=CopyView.as_view("copy_view")
 )
 
 
-@bp.get("/<username>/<table_name:table_name>/details")
+@bp.get("/<username:username>/<table_name:table_name>/details")
 def table_details(username: str, table_name: str) -> str:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
@@ -807,7 +811,7 @@ def table_details(username: str, table_name: str) -> str:
     )
 
 
-@bp.get("/<username>/<table_name:table_name>/settings")
+@bp.get("/<username:username>/<table_name:table_name>/settings")
 def table_settings(username: str, table_name: str) -> str:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
@@ -829,7 +833,7 @@ def table_settings(username: str, table_name: str) -> str:
     )
 
 
-@bp.post("/<username>/<table_name:table_name>/settings")
+@bp.post("/<username:username>/<table_name:table_name>/settings")
 def post_table_settings(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
@@ -861,7 +865,7 @@ def post_table_settings(username: str, table_name: str) -> Response:
     )
 
 
-@bp.post("/<username>/<table_name:table_name>/praise")
+@bp.post("/<username:username>/<table_name:table_name>/praise")
 def praise_table(username: str, table_name: str) -> Response:
     if not am_a_user():
         raise exc.NotAuthenticatedException()
@@ -882,7 +886,7 @@ def praise_table(username: str, table_name: str) -> Response:
     return safe_redirect(whence)
 
 
-@bp.get("/<username>/<table_name:table_name>/add-row-form")
+@bp.get("/<username:username>/<table_name:table_name>/add-row-form")
 def row_add_form(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
@@ -921,7 +925,7 @@ def create_row_body_model(columns: Sequence[Column], with_row_id: bool):
     return model
 
 
-@bp.post("/<username>/<table_name:table_name>/rows/")
+@bp.post("/<username:username>/<table_name:table_name>/rows/")
 @cross_origin(max_age=CORS_EXPIRY, methods=["POST"])
 def create_row(username: str, table_name: str) -> Response:
     """Create a new row.  This handles both the API and the website's HTML forms."""
@@ -1099,12 +1103,12 @@ class RowView(MethodView):
 
 
 bp.add_url_rule(
-    "/<username>/<table_name:table_name>/rows/<int:row_id>",
+    "/<username:username>/<table_name:table_name>/rows/<int:row_id>",
     view_func=RowView.as_view("row_view"),
 )
 
 
-@bp.get("/<username>/<table_name:table_name>/rows/<int:row_id>/delete-check")
+@bp.get("/<username:username>/<table_name:table_name>/rows/<int:row_id>/delete-check")
 def row_delete_check(username: str, table_name: str, row_id: int) -> Response:
     sesh = get_sesh()
     svc.user_exists(sesh, username)
@@ -1128,7 +1132,7 @@ def row_delete_check(username: str, table_name: str, row_id: int) -> Response:
 
 
 @bp.post(
-    "/<username>/<table_name:table_name>/rows/<int:row_id>/delete-row-for-browsers"
+    "/<username:username>/<table_name:table_name>/rows/<int:row_id>/delete-row-for-browsers"
 )
 def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Response:
     # extremely annoying to need a special endpoint for this but browser forms
@@ -1149,7 +1153,7 @@ def delete_row_for_browsers(username: str, table_name: str, row_id: int) -> Resp
     )
 
 
-@bp.get("/<username>")
+@bp.get("/<username:username>")
 def user(username: str) -> Response:
     def get_op() -> Union[Literal[BinaryOp.LT], Literal[BinaryOp.GT]]:
         """Reads the BinaryOp out of the request args"""
@@ -1248,7 +1252,7 @@ def user(username: str) -> Response:
         return jsonify(rv)
 
 
-@bp.route("/<username>/settings", methods=["GET", "POST"])
+@bp.route("/<username:username>/settings", methods=["GET", "POST"])
 def user_settings(username: str) -> Response:
     am_user_or_400(username)
     sesh = get_sesh()
@@ -1276,7 +1280,7 @@ def user_settings(username: str) -> Response:
         return redirect(url_for("csvbase.user_settings", username=username))
 
 
-@bp.route("/<username>/settings/change-password", methods=["GET", "POST"])
+@bp.route("/<username:username>/settings/change-password", methods=["GET", "POST"])
 def change_password(username: str) -> Response:
     am_user_or_400(username)
     sesh = get_sesh()
@@ -1324,6 +1328,15 @@ def change_password(username: str) -> Response:
         sesh.commit()
         flash("Password changed")
         return redirect(url_for("csvbase.user", username=username))
+
+
+@bp.get("/favicon.ico")
+@bp.get("/apple-touch-icon-precomposed.png")
+@bp.get("/apple-touch-icon.png")
+def favicon() -> Response:
+    response = handle_app_level_404_and_405(werkzeug.exceptions.NotFound())
+    response.cache_control.max_age = int(timedelta(days=1).total_seconds())
+    return response
 
 
 @bp.get("/robots.txt")

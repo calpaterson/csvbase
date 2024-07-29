@@ -1,5 +1,5 @@
 from uuid import UUID
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import itertools
 
 import pytest
@@ -121,3 +121,23 @@ def test_safe_redirect__unhappy(app, unsafe_url):
 def test_indexes(client, url):
     response = client.get(url)
     assert response.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "url", ["favicon.ico", "apple-touch-icon.png", "apple-touch-icon-precomposed.png"]
+)
+def test_cache_headers_for_known_absent_urls(client, url):
+    """We don't have anything for these urls so ensure that the 404 happens,
+    has a relevant error, and is cacheable."""
+    response = client.get(url)
+    assert response.status_code == 404
+    assert response.json == {"error": "that page does not exist"}
+    assert response.cache_control.max_age == int(timedelta(days=1).total_seconds())
+
+
+def test_404_for_unknown_absent_urls(client):
+    """Ensure that unknown urls don't generate the error "this user does not
+    exist", which is very confusing."""
+    response = client.get("/index.php")
+    assert response.status_code == 404
+    assert response.json == {"error": "that page does not exist"}

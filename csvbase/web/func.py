@@ -12,7 +12,15 @@ import werkzeug
 import werkzeug.exceptions
 from werkzeug.wrappers.response import Response
 from flask import session as flask_session
-from flask import request, current_app, redirect as unsafe_redirect, flash
+from flask import (
+    request,
+    current_app,
+    redirect as unsafe_redirect,
+    flash,
+    jsonify,
+    make_response,
+    render_template,
+)
 from flask_babel import get_locale, dates
 
 from .. import exc, sentry, svc
@@ -245,3 +253,26 @@ def am_user_or_400(username: str) -> bool:
 def am_a_user_or_400():
     if not am_a_user():
         raise exc.NotAuthenticatedException()
+
+
+def handle_app_level_404_and_405(
+    e: Union[werkzeug.exceptions.NotFound, werkzeug.exceptions.MethodNotAllowed]
+) -> Response:
+    """'Application level' exceptions like some 404s and most 405s (where there
+    is no flask endpoint to route to) require specific handling on the flask
+    app level."""
+
+    code: int = e.code
+    if code == 404:
+        message = "that page does not exist"
+    else:
+        message = "that verb is not allowed"
+    if is_browser():
+        resp = make_response(
+            render_template("error-dynamic.html", http_code=e.code, message=message)
+        )
+    else:
+        doc = {"error": message}
+        resp = jsonify(doc)
+    resp.status_code = e.code
+    return resp
