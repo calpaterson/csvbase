@@ -367,6 +367,7 @@ class ContentType(enum.Enum):
     JSON_LINES = "application/x-jsonlines"  # no consensus
     PARQUET = "application/parquet"  # this is unofficial, but convenient
     XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    MARKDOWN = "text/markdown"
 
     @classmethod
     def from_file_extension(cls, file_extension: str) -> Optional["ContentType"]:
@@ -386,6 +387,7 @@ EXTENSION_MAP: Mapping[str, ContentType] = {
     "json": ContentType.JSON,
     "jsonl": ContentType.JSON_LINES,
     "xlsx": ContentType.XLSX,
+    "md": ContentType.MARKDOWN,
 }
 
 EXTENSION_MAP_REVERSE = {v: k for k, v in EXTENSION_MAP.items()}
@@ -398,6 +400,7 @@ PRETTY_NAME_MAP: Mapping[ContentType, str] = {
     ContentType.JSON: "JSON",
     ContentType.JSON_LINES: "JSON lines",
     ContentType.XLSX: "MS Excel",
+    ContentType.MARKDOWN: "Markdown",
 }
 
 

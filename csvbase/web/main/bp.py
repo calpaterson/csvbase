@@ -665,32 +665,47 @@ def add_row_view_cache_headers(
     return response
 
 
-@bp.get("/<username:username>/<table_name:table_name>/readme")
-def table_readme(username: str, table_name: str) -> Response:
-    sesh = get_sesh()
+class TableReadmeView(MethodView):
+    def get(self, username: str, table_name: str) -> Response:
+        sesh = get_sesh()
 
-    table = svc.get_table(sesh, username, table_name)
-    ensure_table_access(sesh, table, "read")
+        table = svc.get_table(sesh, username, table_name)
+        ensure_table_access(sesh, table, "read")
+        content_type = negotiate_content_type([ContentType.MARKDOWN])
 
-    readme_markdown = svc.get_readme_markdown(sesh, table.table_uuid)
+        readme_markdown = svc.get_readme_markdown(sesh, table.table_uuid)
+        if readme_markdown is None:
+            readme_markdown = ""
+        response = make_response(readme_markdown)
+        response.content_type = content_type.value
+        return response
 
-    if readme_markdown is not None:
-        readme_html = render_markdown(readme_markdown)
-    else:
-        readme_html = "(no readme set)"
+    def put(self, username: str, table_name: str) -> Response:
+        sesh = get_sesh()
 
-    reps = get_table_reps(sesh, table)
+        table = svc.get_table(sesh, username, table_name)
+        ensure_table_access(sesh, table, "write")
 
-    return make_response(
-        render_template(
-            "table_readme.html",
-            page_title=f"Readme for {username}/{table_name}",
-            table=table,
-            table_readme=readme_html,
-            praise_id=get_praise_id_if_exists(sesh, table),
-            reps=reps,
-        )
-    )
+        owner = svc.user_by_name(sesh, username)
+
+        # Check that the (character) length is under 10k
+        stream = io.TextIOWrapper(request.stream, encoding="utf-8")
+        one_over_the_limit = 10_001
+        readme_markdown = stream.read(one_over_the_limit)
+        if len(readme_markdown) == one_over_the_limit:
+            raise exc.InvalidRequest()
+
+        svc.set_readme_markdown(sesh, owner.user_uuid, table_name, readme_markdown)
+        sesh.commit()
+
+        response = make_response("")
+        return response
+
+
+bp.add_url_rule(
+    "/<username:username>/<table_name:table_name>/readme",
+    view_func=TableReadmeView.as_view("table_readme"),
+)
 
 
 @bp.get("/<username:username>/<table_name:table_name>/docs")
