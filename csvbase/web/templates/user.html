@@ -36,6 +36,11 @@
       </ul>
     {% endif %}
 
+    {% if user_bio != None %}
+    <h2>About</h2>
+    {{ user_bio|safe }}
+    {% endif %}
+
     <h2>Tables</h2>
 
     {% if table_page.has_next or table_page.has_prev %}

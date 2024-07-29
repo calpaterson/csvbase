@@ -21,7 +21,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy.sql import exists
-from sqlalchemy.sql.expression import table as satable
+from sqlalchemy.sql.expression import table as satable, text as satext
 from sqlalchemy.dialects.postgresql import insert as pginsert
 import importlib_resources
 from typing_extensions import Literal
@@ -411,6 +411,18 @@ def set_readme_markdown(
         bleached = bleach.clean(readme_markdown)
 
         table.readme_obj.readme_markdown = bleached
+
+
+def get_user_bio_markdown(sesh: Session, user_uuid: UUID) -> Optional[str]:
+    bio = (
+        sesh.query(models.UserBio.user_bio_markdown)
+        .filter(models.UserBio.user_uuid == user_uuid)
+        .scalar()
+    )
+    if bio is None:
+        return None
+    else:
+        return bleach.clean(bio)
 
 
 def get_a_made_up_row(sesh: Session, table_uuid: UUID) -> Row:

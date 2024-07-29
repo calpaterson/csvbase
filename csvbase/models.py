@@ -60,6 +60,10 @@ class User(Base):
         "UserEmail", uselist=False, backref="user"
     )
 
+    bio_obj: "RelationshipProperty[UserBio]" = relationship(
+        "UserBio", uselist=False, backref="user"
+    )
+
     api_key: "RelationshipProperty[APIKey]" = relationship(
         "APIKey", uselist=False, backref="user"
     )
@@ -79,6 +83,14 @@ class User(Base):
     payment_references: "RelationshipProperty[List[PaymentReference]]" = relationship(
         "PaymentReference", uselist=True, backref="user_objs"
     )
+
+
+class UserBio(Base):
+    __tablename__ = "user_bios"
+    __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+
+    user_uuid = Column(PGUUID, ForeignKey("metadata.users.user_uuid"), primary_key=True)
+    user_bio_markdown = Column(satypes.String(length=10_000), nullable=False)
 
 
 class UserEmail(Base):

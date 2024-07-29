@@ -1230,6 +1230,12 @@ def user(username: str) -> Response:
         prev_page_url = None
 
     if content_type is ContentType.HTML:
+        user_bio = svc.get_user_bio_markdown(sesh, user.user_uuid)
+        if user_bio is not None:
+            user_bio_html = render_markdown(user_bio)
+        else:
+            user_bio_html = None
+
         if current_user is not None and current_user.username == username:
             has_subscription = billing_svc.has_subscription(
                 sesh, current_user.user_uuid
@@ -1254,6 +1260,7 @@ def user(username: str) -> Response:
                 show_manage_subscription=has_subscription,
                 next_page_url=next_page_url,
                 prev_page_url=prev_page_url,
+                user_bio=user_bio_html,
             )
         )
     else:
