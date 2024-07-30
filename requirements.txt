@@ -1,6 +1,6 @@
 alembic[tz]==1.13.1
 argon2-cffi==23.1.0
-bleach==6.0.0
+bleach==6.1.0
 charset-normalizer==3.2.0
 celery[redis]==5.4.0
 click==8.1.7
@@ -14,7 +14,7 @@ flask-cors==4.0.1
 flask-sqlalchemy==3.0.5
 flask==3.0.3
 gunicorn==22.0.0
-humanize==4.9.0
+humanize==4.10.0
 inflect==7.2.0
 jinja2-humanize-extension==0.4.0
 marko[codehilite]==2.0.3
@@ -22,7 +22,7 @@ passlib==1.7.4
 pgcopy==1.6.0
 platformdirs==4.2.0
 psycopg2==2.9.9
-pyarrow==15.0.2
+pyarrow==17.0.0
 pydantic==2.7.0
 sentry-sdk[flask]==1.44.1
 sqlalchemy==1.4.52
@@ -31,4 +31,4 @@ systemd-python==235; sys_platform == "linux"
 toml==0.10.2
 typing-extensions==4.10.0
 werkzeug==3.0.3
-xlsxwriter==3.0.9
+xlsxwriter==3.2.0
