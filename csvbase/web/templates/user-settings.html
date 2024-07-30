@@ -10,6 +10,18 @@
     <form method="POST">
       <div class="mb-3 row g-3">
         <div class="col-2">
+          <label for="about" class="form-label">About</label>
+        </div>
+        <div class="col-auto">
+          <textarea class="form-control" style="resize: both;" name="about">{{ user_bio_markdown if user_bio_markdown is not none }}</textarea>
+        </div>
+        <div class="col-2">
+          <div class="form-text">About yourself (markdown is supported)</div>
+        </div>
+      </div>
+
+      <div class="mb-3 row g-3">
+        <div class="col-2">
           <label for="email" class="form-label">Email address</label>
         </div>
         <div class="col-auto">

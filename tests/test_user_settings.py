@@ -16,16 +16,19 @@ def test_user_settings__cycle(sesh, client, test_user):
         assert dict_form == {
             "timezone": "UTC",
             "email": "",
+            "about": "",
         }
 
         new_timezone = "Asia/Tokyo"
         new_email = "example@example.com"
+        new_about = "Hello, World"
         post_resp = client.post(
             settings_url,
             data={
                 "timezone": new_timezone,
                 "email": new_email,
                 "mailing-list": "checked",
+                "about": new_about,
             },
         )
         assert post_resp.status_code == 302, post_resp.data
@@ -36,6 +39,7 @@ def test_user_settings__cycle(sesh, client, test_user):
         "timezone": new_timezone,
         "email": new_email,
         "mailing-list": "on",
+        "about": new_about,
     }
 
     # finally, just double check it's in the db
@@ -43,6 +47,8 @@ def test_user_settings__cycle(sesh, client, test_user):
     assert new_user_obj.timezone == new_timezone
     assert new_user_obj.email == new_email
     assert new_user_obj.mailing_list
+
+    assert svc.get_user_bio_markdown(sesh, test_user.user_uuid) == new_about
 
 
 def test_user_settings__updating_delete_email(sesh, client, test_user):

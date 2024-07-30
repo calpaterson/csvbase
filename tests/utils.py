@@ -214,6 +214,11 @@ def parse_form(html_str: str) -> Form:
                 # "" emulates what the server gets
                 rv.add(attrs["name"], attrs.get("value", ""))
 
+    textarea_sel = CSSSelector("textarea")
+    textarea_elements = textarea_sel(form)
+    for textarea_element in textarea_elements:
+        rv[textarea_element.attrib["name"]] = textarea_element.text or ""
+
     select_sel = CSSSelector("select")
     select_elements = select_sel(form)
     for select_element in select_elements:

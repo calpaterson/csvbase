@@ -1280,12 +1280,15 @@ def user_settings(username: str) -> Response:
     sesh = get_sesh()
     user = svc.user_by_name(sesh, username)
     timezones = sorted(get_zonefile_instance().zones)
+    user_bio_markdown = svc.get_user_bio_markdown(sesh, user.user_uuid)
+
     if request.method == "GET":
         return make_response(
             render_template(
                 "user-settings.html",
                 user=user,
                 page_title=f"{username} settings",
+                user_bio_markdown=user_bio_markdown,
                 timezones=timezones,
             )
         )
@@ -1296,6 +1299,9 @@ def user_settings(username: str) -> Response:
         user.timezone = timezone
         user.email = request.form.get("email")
         user.mailing_list = request.form.get("mailing-list", type=bool, default=False)
+        svc.set_user_bio_markdown(
+            sesh, user.user_uuid, request.form.get("about", default="")
+        )
         svc.update_user(sesh, user)
         sesh.commit()
         flash("Updated settings")

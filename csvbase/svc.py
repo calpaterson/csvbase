@@ -427,6 +427,34 @@ def get_user_bio_markdown(sesh: Session, user_uuid: UUID) -> Optional[str]:
         return bleach.clean(bio)
 
 
+def set_user_bio_markdown(sesh: Session, user_uuid: UUID, bio_markdown: str) -> None:
+    # as with readmes, if blank remove
+    if bio_markdown.strip() == "":
+        DELETE_STMT = satext(
+            """
+        DELETE FROM metadata.user_bios as ub
+        WHERE ub.user_uuid = :user_uuid
+        """
+        )
+        sesh.execute(DELETE_STMT, dict(user_uuid=user_uuid))
+        logger.info("deleted user bio for %s", user_uuid)
+    else:
+        user_bio_obj = (
+            sesh.query(models.UserBio)
+            .filter(
+                models.UserBio.user_uuid == user_uuid,
+            )
+            .first()
+        )
+        if user_bio_obj is None:
+            user_bio_obj = models.UserBio(user_uuid=user_uuid)
+            sesh.add(user_bio_obj)
+
+        bleached = bleach.clean(bio_markdown)
+
+        user_bio_obj.user_bio_markdown = bleached
+
+
 def get_a_made_up_row(sesh: Session, table_uuid: UUID) -> Row:
     backend = PGUserdataAdapter(sesh)
     columns = backend.get_columns(table_uuid)
