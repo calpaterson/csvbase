@@ -689,10 +689,8 @@ class TableReadmeView(MethodView):
         owner = svc.user_by_name(sesh, username)
 
         # Check that the (character) length is under 10k
-        stream = io.TextIOWrapper(request.stream, encoding="utf-8")
-        one_over_the_limit = 10_001
-        readme_markdown = stream.read(one_over_the_limit)
-        if len(readme_markdown) == one_over_the_limit:
+        readme_markdown = request.stream.read(COPY_BUFFER_SIZE).decode("utf-8")
+        if len(readme_markdown) > 10_000:
             raise exc.InvalidRequest()
 
         svc.set_readme_markdown(sesh, owner.user_uuid, table_name, readme_markdown)
