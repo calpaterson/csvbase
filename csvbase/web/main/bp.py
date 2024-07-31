@@ -694,6 +694,8 @@ class TableReadmeView(MethodView):
             raise exc.InvalidRequest()
 
         svc.set_readme_markdown(sesh, owner.user_uuid, table_name, readme_markdown)
+        # FIXME: only mark as changed if the readme has actually changed
+        svc.mark_table_changed(sesh, table.table_uuid)
         sesh.commit()
 
         response = make_response("")
