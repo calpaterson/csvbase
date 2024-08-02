@@ -5,6 +5,13 @@
 
 {% import 'value_macros.html' as value_macros %}
 
+{% block head %}
+  {{ super() }}
+  {% if table.has_caption() %}
+    <meta name="description" content="{{ table.caption|e }}">
+  {% endif %}
+{% endblock %}
+
 {% macro data_licence_badge(data_licence) %}
   <span
     style="font-size: 0.75rem"
