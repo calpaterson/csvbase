@@ -35,6 +35,7 @@ from .func import (
     handle_app_level_404_and_405,
 )
 from .. import exc, svc
+from . import schemaorg
 from .blog.bp import bp as blog_bp
 from .faq.bp import bp as faq_bp
 from ..config import get_config
@@ -147,6 +148,7 @@ def init_app() -> Flask:
     app.jinja_env.globals["ROW_ID_COLUMN"] = ROW_ID_COLUMN
     app.jinja_env.globals["blueprints"] = app.blueprints.keys()
     app.jinja_env.globals["ContentType"] = ContentType
+    app.jinja_env.globals["schemaorg"] = schemaorg
     app.jinja_env.filters["snake_case"] = snake_case
     app.jinja_env.filters["ppjson"] = ppjson
     app.jinja_env.filters["timedeltaformat"] = format_timedelta

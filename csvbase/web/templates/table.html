@@ -10,6 +10,10 @@
   {% if table.has_caption() %}
     <meta name="description" content="{{ table.caption|e }}">
   {% endif %}
+
+  <script type="application/ld+json">
+ {{ schemaorg.to_dataset(table)|ppjson|safe }}
+  </script>
 {% endblock %}
 
 {% macro data_licence_badge(data_licence) %}

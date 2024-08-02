@@ -1,5 +1,8 @@
+import json
 from lxml import etree
+from datetime import datetime
 
+from csvbase.web import schemaorg
 from .utils import test_data_path
 
 
@@ -28,3 +31,39 @@ def test_sitemap(client):
     # Double check this easy-to-create issue
     first_line = resp.data.splitlines()[0]
     assert first_line == b"<?xml version='1.0' encoding='UTF-8'?>"
+
+
+def test_schemaorg_dataset(ten_rows):
+    expected = {
+        "@context": "https://schema.org",
+        "@type": "Dataset",
+        "name": ten_rows.table_name,
+        "description": ten_rows.caption,
+        "url": f"http://localhost/{ten_rows.username}/{ten_rows.table_name}",
+        "isAccessibleForFree": True,
+        "distribution": [
+            {
+                "@type": "DataDownload",
+                "contentUrl": f"http://localhost/{ten_rows.username}/{ten_rows.table_name}.csv",
+                "encodingFormat": "text/csv",
+            },
+            {
+                "@type": "DataDownload",
+                "contentUrl": f"http://localhost/{ten_rows.username}/{ten_rows.table_name}.parquet",
+                "encodingFormat": "application/parquet",
+            },
+            {
+                "@type": "DataDownload",
+                "contentUrl": f"http://localhost/{ten_rows.username}/{ten_rows.table_name}.jsonl",
+                "encodingFormat": "application/x-jsonlines",
+            },
+        ],
+    }
+    actual = schemaorg.to_dataset(ten_rows)
+
+    # do the dates this way
+    assert datetime.fromisoformat(actual.pop("dateCreated")) == ten_rows.created
+    assert datetime.fromisoformat(actual.pop("dateModified")) == ten_rows.last_changed
+
+    # the rest must match:
+    assert expected == actual
