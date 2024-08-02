@@ -7,6 +7,7 @@ from csvbase.value_objs import Table, ContentType
 
 
 def to_dataset(table: Table) -> Mapping[str, Any]:
+    """Produce a schema.org Dataset object from a Table."""
     # potential improvements:
     # maintainer
     # publisher
@@ -14,7 +15,6 @@ def to_dataset(table: Table) -> Mapping[str, Any]:
         "@context": "https://schema.org",
         "@type": "Dataset",
         "name": table.table_name,
-        "description": table.caption,
         "url": url_for(
             "csvbase.table_view",
             username=table.username,
@@ -27,6 +27,8 @@ def to_dataset(table: Table) -> Mapping[str, Any]:
         "dateModified": table.last_changed.isoformat(),
 
     }
+    if table.has_caption():
+        obj["description"] = table.caption
     # if we knew the table wasn't big we could refer to XLSX here:
     for content_type in [ContentType.CSV, ContentType.PARQUET, ContentType.JSON_LINES]:
         obj["distribution"].append(to_datadownload(table, content_type))
@@ -35,6 +37,7 @@ def to_dataset(table: Table) -> Mapping[str, Any]:
 
 
 def to_datadownload(table: Table, content_type: ContentType) -> Mapping[str, str]:
+    """Produce a schema.org DataDownload object from a table + content type."""
     # potential improvements:
     # contentSize (needs the rep)
     obj = {
