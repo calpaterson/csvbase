@@ -61,8 +61,8 @@ def test_schemaorg_dataset(ten_rows):
     actual = schemaorg.to_dataset(ten_rows)
 
     # do the dates this way
-    assert datetime.fromisoformat(actual.pop("dateCreated")) == ten_rows.created
-    assert datetime.fromisoformat(actual.pop("dateModified")) == ten_rows.last_changed
+    assert datetime.fromisoformat(actual.pop("dateCreated")) == ten_rows.created  # type: ignore
+    assert datetime.fromisoformat(actual.pop("dateModified")) == ten_rows.last_changed  # type: ignore
 
     # the rest must match:
     assert expected == actual
