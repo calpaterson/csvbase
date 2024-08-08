@@ -24,7 +24,7 @@ import pyarrow.parquet as pq
 
 from . import conv, exc
 from .streams import UserSubmittedCSVData, rewind
-from .value_objs import ColumnType, PythonType, Column
+from .value_objs import ColumnType, PythonType, Column, Table
 from .json import value_to_json
 
 logger = getLogger(__name__)
@@ -184,9 +184,25 @@ def rows_to_csv(
     return buf
 
 
+def make_xlsx_sheet_name(table: Table) -> str:
+    """Turn a table name into an excel sheet name, obeying the various
+    restrictions excel imposes on sheet names."""
+    max_length = 31
+
+    # slashes are not allowed, use semi-colon
+    sheet_name = ";".join([table.username, table.table_name])
+
+    # make it clear it's been abbreviated
+    if len(sheet_name) > max_length:
+        sheet_name = sheet_name[: max_length - 3] + "..."
+
+    return sheet_name
+
+
 def rows_to_xlsx(
     columns: Sequence[Column],
     rows: Iterable[UnmappedRow],
+    sheet_name=None,
     excel_table: bool = False,
     buf: Optional[IO[bytes]] = None,
 ) -> IO[bytes]:
@@ -200,7 +216,7 @@ def rows_to_xlsx(
     buf = buf or io.BytesIO()
     with rewind(buf):
         with xlsxwriter.Workbook(buf, workbook_args) as workbook:
-            worksheet = workbook.add_worksheet()
+            worksheet = workbook.add_worksheet(name=sheet_name)
 
             if excel_table:
                 rows = list(rows)

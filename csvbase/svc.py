@@ -1002,7 +1002,13 @@ def populate_repcache(
         elif content_type is ContentType.JSON_LINES:
             table_io.rows_to_jsonlines(columns, rows, rep_file)
         elif content_type is ContentType.XLSX:
-            table_io.rows_to_xlsx(columns, rows, excel_table=False, buf=rep_file)
+            table_io.rows_to_xlsx(
+                columns,
+                rows,
+                excel_table=False,
+                buf=rep_file,
+                sheet_name=table_io.make_xlsx_sheet_name(table),
+            )
         else:
             table_io.rows_to_csv(columns, rows, buf=rep_file)
     logger.info("populated repcache for %s@%s", table.ref(), table.last_changed)
