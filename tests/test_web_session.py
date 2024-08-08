@@ -1,5 +1,8 @@
-import pytest
+"""Tests for authentication (the "web session")."""
 
+from base64 import b64encode
+
+import pytest
 
 from csvbase import svc
 from csvbase.value_objs import ContentType
@@ -88,3 +91,29 @@ def test_sign_out(client, test_user, whence):
             expected_location = whence
         assert expected_location == resp.headers["Location"]
         assert resp.headers["Clear-Site-Data"] == "*"
+
+
+def test_api_key__invalid(client, test_user, ten_rows):
+    """Test for an incorrectly formatted api key (most often this is a user's own password)."""
+    encoded = b64encode(f"{test_user.username}:password".encode("utf-8")).decode(
+        "utf-8"
+    )
+    authorization = f"Basic {encoded}"
+    resp = client.get(
+        f"{test_user.username}/{ten_rows.table_name}",
+        headers={"Authorization": authorization},
+    )
+    assert resp.status_code == 400
+    assert resp.json == {"error": "invalid api key"}
+
+
+def test_api_key__with_whitespace(client, test_user, ten_rows):
+    encoded = b64encode(
+        f"{test_user.username}: {test_user.hex_api_key()}".encode("utf-8")
+    ).decode("utf-8")
+    authorization = f"Basic {encoded}"
+    resp = client.get(
+        f"{test_user.username}/{ten_rows.table_name}",
+        headers={"Authorization": authorization},
+    )
+    assert resp.status_code == 200

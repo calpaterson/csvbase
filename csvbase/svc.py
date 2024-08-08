@@ -557,6 +557,16 @@ def is_correct_password(
 
 
 def is_valid_api_key(sesh: Session, username: str, hex_api_key: str) -> bool:
+    """Return True if the provided api key is valid for that user, False otherwise."""
+
+    # Strip whitespace here to improve usability.
+    #
+    # API keys do not contain whitespace.  People often copy their key straight
+    # from the website into an obscured password input field.  If whitepace got
+    # added somewhere along the way (common when copying+pasting from websites)
+    # then they end up very confused.
+    hex_api_key = hex_api_key.strip()
+
     try:
         api_key = binascii.unhexlify(hex_api_key)
     except binascii.Error:
