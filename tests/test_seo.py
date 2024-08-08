@@ -1,4 +1,3 @@
-import json
 from lxml import etree
 from datetime import datetime
 

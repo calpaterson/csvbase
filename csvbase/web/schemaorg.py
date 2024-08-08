@@ -1,4 +1,3 @@
-import json
 from typing import Mapping, Any
 
 from flask import url_for
@@ -25,7 +24,6 @@ def to_dataset(table: Table) -> Mapping[str, Any]:
         "distribution": [],
         "dateCreated": table.created.isoformat(),
         "dateModified": table.last_changed.isoformat(),
-
     }
     if table.has_caption():
         obj["description"] = table.caption

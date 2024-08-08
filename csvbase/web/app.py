@@ -218,6 +218,7 @@ def init_app() -> Flask:
     def put_user_on_request() -> None:
         app_logger = current_app.logger
         user_uuid: Optional[Any] = flask_session.get("user_uuid")
+
         auth = request.authorization
         if user_uuid is not None:
             if not isinstance(user_uuid, UUID):
