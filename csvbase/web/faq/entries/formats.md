@@ -1,10 +1,10 @@
 <!--
-title = "How do I download a table in CSV/Parquet/Excel/my favourite format?"
+title = "What formats does csvbase support?"
 description = "Accessing tables in various formats"
 draft = false
 created = 2024-05-21
 updated = 2024-05-21
-category = "tools"
+category = "basics"
 -->
 
 csvbase supports the following formats:
