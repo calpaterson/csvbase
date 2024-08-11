@@ -93,7 +93,6 @@ def user_by_name(sesh: Session, username: str) -> User:
         .one_or_none()
     )
     if rp is None:
-        logger.error("unable to find user: '%s'", username)
         raise exc.UserDoesNotExistException(username)
     else:
         user_uuid, registered, api_key, email, timezone, ml = rp
