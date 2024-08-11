@@ -1,5 +1,6 @@
 from uuid import UUID
-from .value_objs import ColumnType, KeySet
+from typing import Collection
+from .value_objs import ColumnType, KeySet, ContentType
 
 
 class CSVBaseException(Exception):
@@ -75,7 +76,12 @@ class ETagMismatch(CSVBaseException):
 
 
 class CantNegotiateContentType(CSVBaseException):
-    def __init__(self, supported):
+    def __init__(self, supported: Collection[ContentType]):
+        super().__init__(supported)
+
+
+class TooBigForContentType(CSVBaseException):
+    def __init__(self, supported: Collection[ContentType]):
         super().__init__(supported)
 
 

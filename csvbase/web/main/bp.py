@@ -486,6 +486,15 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
         if not repcache.exists():
             is_big = backend.count(table.table_uuid).is_big()
             if is_big:
+                if content_type is ContentType.XLSX:
+                    other_content_types = [
+                        ContentType.PARQUET,
+                        ContentType.JSON_LINES,
+                        ContentType.CSV,
+                        ContentType.JSON,
+                        ContentType.HTML,
+                    ]
+                    raise exc.TooBigForContentType(other_content_types)
                 if not repcache.write_in_progress():
                     task_registry.populate_repcache.delay(
                         table.table_uuid, content_type.value

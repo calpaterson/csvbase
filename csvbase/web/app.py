@@ -66,6 +66,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
     exc.InvalidAPIKeyException: ("invalid api key", 400),
     exc.InvalidRequest: ("invalid request", 400),
     exc.CantNegotiateContentType: ("can't agree with you on a content type", 406),
+    exc.TooBigForContentType: ("table too big for that content type", 406),
     exc.WrongContentType: ("you sent the wrong content type", 400),
     exc.ProhibitedUsernameException: ("that username is not allowed", 400),
     exc.UsernameAlreadyExistsException: ("that username is taken", 400),

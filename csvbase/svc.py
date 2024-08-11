@@ -1002,6 +1002,15 @@ def populate_repcache(
         elif content_type is ContentType.JSON_LINES:
             table_io.rows_to_jsonlines(columns, rows, rep_file)
         elif content_type is ContentType.XLSX:
+            if table.row_count.is_big():
+                other_content_types = [
+                    ContentType.PARQUET,
+                    ContentType.JSON_LINES,
+                    ContentType.CSV,
+                    ContentType.JSON,
+                    ContentType.HTML,
+                ]
+                raise exc.TooBigForContentType(other_content_types)
             table_io.rows_to_xlsx(
                 columns,
                 rows,
