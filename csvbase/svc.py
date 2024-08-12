@@ -7,6 +7,7 @@ from logging import getLogger
 from typing import Iterable, Optional, Sequence, Tuple, cast, List, Union
 from uuid import UUID, uuid4
 from dataclasses import dataclass
+from typing import cast
 
 import bleach
 from sqlalchemy import (
@@ -346,7 +347,7 @@ def update_upstream(sesh: Session, table: Table) -> None:
 
 
 def set_version(sesh: Session, table_uuid: UUID, version: UpstreamVersion) -> None:
-    sesh.query(models.GitUpstream).where(  # type: ignore
+    sesh.query(models.GitUpstream).where(
         models.GitUpstream.table_uuid == table_uuid
     ).update(
         {
@@ -363,7 +364,9 @@ def update_table_metadata(
     caption: str,
     licence: DataLicence,
 ) -> None:
-    table_obj = sesh.get(models.Table, table_uuid)  # type: ignore
+    # If we have a table uuid, the table must exist
+    table_obj = cast(Table, sesh.get(models.Table, table_uuid))
+
     table_obj.public = is_public
     table_obj.caption = caption
     table_obj.licence_id = licence.value
@@ -908,7 +911,7 @@ RETURNING
 
 def mark_table_changed(sesh: Session, table_uuid: UUID) -> None:
     sesh.execute(
-        update(models.Table)  # type: ignore
+        update(models.Table)
         .where(models.Table.table_uuid == table_uuid)
         .values(last_changed=func.now())
     )

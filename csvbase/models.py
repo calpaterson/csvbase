@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlalchemy import types as satypes, ForeignKey, UniqueConstraint, func
 from sqlalchemy.orm import mapped_column, DeclarativeBase, relationship
 from sqlalchemy.dialects.postgresql import BYTEA, UUID as _PGUUID
-from sqlalchemy.schema import CheckConstraint, Identity, MetaData  # type: ignore
+from sqlalchemy.schema import CheckConstraint, Identity, MetaData
 
 naming_convention = {
     "ix": "ix_%(column_0_label)s",

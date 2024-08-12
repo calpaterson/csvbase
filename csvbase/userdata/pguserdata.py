@@ -239,7 +239,7 @@ class PGUserdataAdapter:
         else:
             # if we're going backwards we need to reverse the order via a subquery
             keyset_page = keyset_page.order_by(table_vals.desc())
-            keyset_sub = select(keyset_page.alias())  # type: ignore
+            keyset_sub = select(keyset_page.alias())
             keyset_page = keyset_sub.order_by(*key_names)
 
         row_tuples: List[RowProxy] = list(self.sesh.execute(keyset_page))
@@ -252,25 +252,25 @@ class PGUserdataAdapter:
                 *[getattr(last_row, colname) for colname in key_names]
             )
             has_more_q = (
-                table_clause.select().where(table_vals > has_more_vals).exists()  # type: ignore
+                table_clause.select().where(table_vals > has_more_vals).exists()
             )
             has_more = self.sesh.query(has_more_q).scalar()
             has_less_vals = satuple(
                 *[getattr(first_row, colname) for colname in key_names]
             )
             has_less_q = (
-                table_clause.select().where(table_vals < has_less_vals).exists()  # type: ignore
+                table_clause.select().where(table_vals < has_less_vals).exists()
             )
             has_less = self.sesh.query(has_less_q).scalar()
         else:
             if keyset.op == "greater_than":
                 has_more = False
                 has_less = self.sesh.query(
-                    table_clause.select().where(table_vals < keyset_vals).exists()  # type: ignore
+                    table_clause.select().where(table_vals < keyset_vals).exists()
                 ).scalar()
             else:
                 has_more = self.sesh.query(
-                    table_clause.select().where(table_vals > keyset_vals).exists()  # type: ignore
+                    table_clause.select().where(table_vals > keyset_vals).exists()
                 ).scalar()
                 has_less = False
 
@@ -332,7 +332,7 @@ class PGUserdataAdapter:
             column_names,
             select(*add_stmt_select_columns)
             .select_from(temp_tableclause)
-            .where(temp_tableclause.c.csvbase_row_id.is_not(None)),  # type: ignore
+            .where(temp_tableclause.c.csvbase_row_id.is_not(None)),
         )
 
         reset_serial_stmt = select(
@@ -372,7 +372,7 @@ class PGUserdataAdapter:
 
         """
         main_tableclause = self._get_userdata_tableclause(table.table_uuid)
-        main_fullname = main_tableclause.fullname  # type: ignore
+        main_fullname = main_tableclause.fullname
         # FIXME: should consider DELETE if table is small - that's faster in
         # that case
         truncate_stmt = text(f"TRUNCATE {main_fullname};")
@@ -465,7 +465,7 @@ class PGUserdataAdapter:
 
         # 1. for removals
         ids_to_delete = (
-            select(main_tableclause.c.csvbase_row_id)  # type: ignore
+            select(main_tableclause.c.csvbase_row_id)
             .select_from(
                 main_tableclause.outerjoin(
                     temp_tableclause,
@@ -500,7 +500,7 @@ class PGUserdataAdapter:
         ]
         add_stmt_no_blanks = main_tableclause.insert().from_select(
             existing_column_names,
-            select(*add_stmt_select_columns)  # type: ignore
+            select(*add_stmt_select_columns)
             .select_from(
                 temp_tableclause.outerjoin(
                     main_tableclause,
@@ -510,7 +510,7 @@ class PGUserdataAdapter:
             )
             .where(
                 main_tableclause.c.csvbase_row_id.is_(None),
-                temp_tableclause.c.csvbase_row_id.is_not(None),  # type: ignore
+                temp_tableclause.c.csvbase_row_id.is_not(None),
             ),
         )
 
@@ -530,7 +530,7 @@ class PGUserdataAdapter:
         ]
         add_stmt_blanks = main_tableclause.insert().from_select(
             existing_column_names,
-            select(*select_columns)  # type: ignore
+            select(*select_columns)
             .select_from(
                 temp_tableclause.outerjoin(main_tableclause, and_(*join_clause))
             )

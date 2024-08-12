@@ -27,7 +27,7 @@ def load_prohibited_usernames():
 @click.command(
     help="Make the tables in the database (from the models, without using alembic)"
 )
-def make_tables():
+def make_tables() -> None:
     with init_app().app_context():
         sesh = get_sesh()
         sesh.execute("CREATE SCHEMA IF NOT EXISTS metadata")

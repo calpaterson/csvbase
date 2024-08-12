@@ -21,7 +21,7 @@ def upgrade():
     op.create_table(
         "threads",
         sa.Column(
-            "thread_id", sa.BigInteger(), sa.Identity(always=False), nullable=False  # type: ignore
+            "thread_id", sa.BigInteger(), sa.Identity(always=False), nullable=False
         ),
         sa.Column("thread_created", sa.DateTime(timezone=True), nullable=False),
         sa.Column("thread_updated", sa.DateTime(timezone=True), nullable=False),
@@ -55,7 +55,7 @@ def upgrade():
     op.create_table(
         "comments",
         sa.Column(
-            "comment_id", sa.BigInteger(), sa.Identity(always=False), nullable=False  # type: ignore
+            "comment_id", sa.BigInteger(), sa.Identity(always=False), nullable=False
         ),
         sa.Column("user_uuid", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("thread_id", sa.BigInteger(), nullable=False),

@@ -17,7 +17,7 @@ down_revision = "a0f88c5755b3"
 branch_labels = None
 depends_on = None
 
-data_licence_table = table(  # type: ignore
+data_licence_table = table(
     "data_licences",
     column("licence_id", sa.SmallInteger),
     column("licence_name", sa.String),
