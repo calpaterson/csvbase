@@ -42,4 +42,4 @@ def upgrade():
 
 
 def downgrade():
-    op.get_bind().execute("delete from metadata.data_licences")
+    op.get_bind().execute(sa.text("delete from metadata.data_licences"))

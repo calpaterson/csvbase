@@ -365,7 +365,7 @@ def update_table_metadata(
     licence: DataLicence,
 ) -> None:
     # If we have a table uuid, the table must exist
-    table_obj = cast(Table, sesh.get(models.Table, table_uuid))
+    table_obj = cast(models.Table, sesh.get(models.Table, table_uuid))
 
     table_obj.public = is_public
     table_obj.caption = caption

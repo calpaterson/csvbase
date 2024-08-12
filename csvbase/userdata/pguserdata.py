@@ -15,6 +15,7 @@ from sqlalchemy import (
     tuple_ as satuple,
     delete,
     and_,
+    ColumnClause,
 )
 from sqlalchemy.orm import Session
 from sqlalchemy.schema import Column as SAColumn, DDLElement
@@ -145,17 +146,18 @@ class PGUserdataAdapter:
     def min_row_id(self, table_uuid: UUID) -> int:
         """Returns the lowest row id in the table, or if there are no rows, 0."""
         table_clause = self._get_userdata_tableclause(table_uuid)
+        row_id: ColumnClause[int] = table_clause.c.csvbase_row_id
         stmt = (
-            select([table_clause.c.csvbase_row_id])
-            .order_by(table_clause.c.csvbase_row_id)
+            select(row_id)
+            .order_by(row_id)
             .limit(1)
         )
         cursor = self.sesh.execute(stmt)
-        row_id: Optional[int] = cursor.scalar()
-        if row_id is None:
+        min_rid: Optional[int] = cursor.scalar()
+        if min_rid is None:
             return 0
         else:
-            return row_id
+            return min_rid
 
     def row_id_bounds(self, table_uuid: UUID) -> Tuple[Optional[int], Optional[int]]:
         """Returns the min and max row id.
