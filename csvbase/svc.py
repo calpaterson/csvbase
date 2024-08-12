@@ -19,6 +19,7 @@ from sqlalchemy import (
     text,
     or_,
     tuple_ as satuple,
+    delete,
 )
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy.sql import exists
@@ -819,7 +820,7 @@ def praise(
             praiser_uuid=praiser_uuid,
         ),
     )
-    return rp.scalar()
+    return cast(int, rp.scalar())
 
 
 def is_praised(sesh: Session, user_uuid: UUID, table_uuid: UUID) -> Optional[int]:
@@ -836,10 +837,8 @@ def is_praised(sesh: Session, user_uuid: UUID, table_uuid: UUID) -> Optional[int
 
 
 def unpraise(sesh: Session, praise_id: int) -> None:
-    rp = sesh.execute(
-        text("DELETE FROM metadata.praise where praise_id = :praise_id"),
-        dict(praise_id=praise_id),
-    )
+    stmt = delete(models.Praise).where(models.Praise.praise_id == praise_id)
+    rp = sesh.execute(stmt)
     if rp.rowcount != 1:
         logger.error("praise could not be removed: %s", praise_id)
         raise RuntimeError("could not unpraise")

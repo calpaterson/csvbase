@@ -4,6 +4,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    cast,
 )
 from uuid import UUID, uuid4
 
@@ -29,6 +30,7 @@ from sqlalchemy.sql.expression import (
     Executable,
     ClauseElement,
 )
+from sqlalchemy.sql.dml import ReturningInsert
 from sqlalchemy.ext.compiler import compiles
 
 from ..value_objs import (
@@ -109,7 +111,10 @@ class PGUserdataAdapter:
         tableclause = satable(
             self._make_userdata_table_name(table_uuid), *[], schema="userdata"
         )
-        exact, approx = self.sesh.execute(RowCountStatement(tableclause)).fetchone()
+        exact, approx = cast(
+            Tuple[Optional[int], int],
+            self.sesh.execute(RowCountStatement(tableclause)).fetchone(),
+        )
         return RowCount(exact, approx)
 
     def get_columns(self, table_uuid: UUID) -> List["Column"]:
@@ -147,11 +152,7 @@ class PGUserdataAdapter:
         """Returns the lowest row id in the table, or if there are no rows, 0."""
         table_clause = self._get_userdata_tableclause(table_uuid)
         row_id: ColumnClause[int] = table_clause.c.csvbase_row_id
-        stmt = (
-            select(row_id)
-            .order_by(row_id)
-            .limit(1)
-        )
+        stmt = select(row_id).order_by(row_id).limit(1)
         cursor = self.sesh.execute(stmt)
         min_rid: Optional[int] = cursor.scalar()
         if min_rid is None:
@@ -173,7 +174,7 @@ class PGUserdataAdapter:
             func.max(table_clause.c.csvbase_row_id),
         )
         cursor = self.sesh.execute(stmt)
-        return cursor.fetchone()
+        return cast(Tuple[Optional[int], Optional[int]], cursor.fetchone())
 
     def get_a_sample_row(self, table_uuid: UUID) -> Row:
         """Returns a sample row from the table (the lowest row id).
@@ -195,9 +196,10 @@ class PGUserdataAdapter:
     def insert_row(self, table_uuid: UUID, row: Row) -> int:
         table = self._get_userdata_tableclause(table_uuid)
         values = {c.name: v for c, v in row.items()}
-        return self.sesh.execute(
+        stmt: ReturningInsert[Tuple[int]] = (
             table.insert().values(values).returning(table.c.csvbase_row_id)
-        ).scalar()
+        )
+        return cast(int, self.sesh.execute(stmt).scalar())
 
     def update_row(
         self,
@@ -244,7 +246,7 @@ class PGUserdataAdapter:
             keyset_sub = select(keyset_page.alias())
             keyset_page = keyset_sub.order_by(*key_names)
 
-        row_tuples: List[RowProxy] = list(self.sesh.execute(keyset_page))
+        row_tuples = list(self.sesh.execute(keyset_page))
 
         if len(row_tuples) > 1:
             first_row = row_tuples[0]
@@ -422,7 +424,9 @@ class PGUserdataAdapter:
     def copy_table_data(self, from_table_uuid: UUID, to_table_uuid: UUID) -> None:
         from_tableclause = self._get_userdata_tableclause(from_table_uuid)
         to_tableclause = self._get_userdata_tableclause(to_table_uuid)
-        stmt = to_tableclause.insert().from_select(from_tableclause.c, from_tableclause)
+        stmt = to_tableclause.insert().from_select(
+            list(from_tableclause.c), from_tableclause
+        )
         self.sesh.execute(stmt)
         self._reset_pk_sequence(to_tableclause)
 
@@ -558,7 +562,7 @@ class PGUserdataAdapter:
                 "relname": self._make_userdata_table_name(table_uuid, with_schema=True)
             },
         )
-        return rs.scalar()
+        return cast(int, rs.scalar())
 
 
 class CreateTempTableLike(DDLElement):
