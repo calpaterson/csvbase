@@ -21,6 +21,7 @@ from sqlalchemy import (
     create_engine,
     func,
 )
+from sqlalchemy import URL
 from sqlalchemy.sql.expression import TableClause
 from sqlalchemy.orm import Session
 
@@ -84,7 +85,7 @@ class SQLAlchemyScheduler(Scheduler):
 
     def _get_tableclause(self) -> TableClause:
         """Returns a SQLAlchemy TableClause for the table the schedule is kept in."""
-        return satable(  # type: ignore
+        return satable(
             self._sql_table_name,
             sacolumn("celery_app_name", type_=satypes.String),
             sacolumn("name", type_=satypes.String),
@@ -99,7 +100,7 @@ class SQLAlchemyScheduler(Scheduler):
         table = self._get_tableclause()
         entries: Dict[str, ScheduleEntry] = {}
         with contextlib.closing(Session(self._engine)) as session:
-            entry_rows = session.query(  # type: ignore
+            entry_rows = session.query(
                 table.c.name, table.c.pickled_schedule_entry
             ).where(table.c.celery_app_name == self.app.main)
             for name, schedule_entry in entry_rows:
@@ -117,7 +118,7 @@ class SQLAlchemyScheduler(Scheduler):
         with contextlib.closing(Session(self._engine)) as session:
             names_in_db = set(
                 t[0]
-                for t in session.query(table.c.name).where(  # type: ignore
+                for t in session.query(table.c.name).where(
                     table.c.celery_app_name == self.app.main
                 )
             )
@@ -125,7 +126,7 @@ class SQLAlchemyScheduler(Scheduler):
             removed_names = names_in_db.difference(names)
             if len(removed_names) > 0:
                 session.execute(
-                    delete(table).where(  # type: ignore
+                    delete(table).where(
                         table.c.name.in_(removed_names),
                         table.c.celery_app_name == self.app.main,
                     )
@@ -155,7 +156,7 @@ class SQLAlchemyScheduler(Scheduler):
             for possibly_changed_name in possibly_changed_names:
                 schedule_entry = schedule[possibly_changed_name]
                 stmt = (
-                    update(table)  # type: ignore
+                    update(table)
                     .where(
                         table.c.name == possibly_changed_name,
                         table.c.celery_app_name == self.app.main,
@@ -180,7 +181,7 @@ class SQLAlchemyScheduler(Scheduler):
         # Nothing to close so just sync
         self.sync()
 
-    def _get_schedule_url(self) -> str:
+    def _get_schedule_url(self) -> URL:
         return self._engine.url
 
     @property

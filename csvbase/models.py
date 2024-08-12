@@ -1,18 +1,10 @@
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, List, Mapping
+from typing import TYPE_CHECKING, Mapping
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, UniqueConstraint, func
-from sqlalchemy import types as satypes
-from sqlalchemy.orm import mapped_column
-from sqlalchemy.dialects.postgresql import BYTEA
-from sqlalchemy.dialects.postgresql import UUID as _PGUUID
-
-if TYPE_CHECKING:
-    from sqlalchemy.ext.declarative import declarative_base
-else:
-    from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy import types as satypes, ForeignKey, UniqueConstraint, func
+from sqlalchemy.orm import mapped_column, DeclarativeBase, relationship
+from sqlalchemy.dialects.postgresql import BYTEA, UUID as _PGUUID
 from sqlalchemy.schema import CheckConstraint, Identity, MetaData  # type: ignore
 
 naming_convention = {
@@ -26,7 +18,10 @@ naming_convention = {
 
 metadata = MetaData(naming_convention=naming_convention)
 
-Base = declarative_base(metadata=metadata)
+
+class Base(DeclarativeBase):
+    pass
+
 
 # https://github.com/dropbox/sqlalchemy-stubs/issues/94
 if TYPE_CHECKING:

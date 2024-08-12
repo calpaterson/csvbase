@@ -1,5 +1,4 @@
 from typing import (
-    TYPE_CHECKING,
     Iterable,
     List,
     Optional,
@@ -19,7 +18,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Session
 from sqlalchemy.schema import Column as SAColumn, DDLElement
-from sqlalchemy.schema import CreateTable, DropTable, MetaData, Identity  # type: ignore
+from sqlalchemy.schema import CreateTable, DropTable, MetaData, Identity
 from sqlalchemy.schema import Table as SATable
 from sqlalchemy.sql.expression import (
     TableClause,
@@ -43,9 +42,6 @@ from ..value_objs import (
     ROW_ID_COLUMN,
 )
 
-if TYPE_CHECKING:
-    from sqlalchemy.engine import RowProxy
-
 
 class PGUserdataAdapter:
     def __init__(self, sesh: Session) -> None:
@@ -61,7 +57,7 @@ class PGUserdataAdapter:
     def _get_tableclause(
         self, table_name: str, columns: Sequence[Column], schema: Optional[str] = None
     ) -> TableClause:
-        return satable(  # type: ignore
+        return satable(
             table_name,
             *[sacolumn(c.name, type_=c.type_.sqla_type()) for c in columns],
             schema=schema,
@@ -85,7 +81,7 @@ class PGUserdataAdapter:
         This should be done after inserts that raise the csvbase_row_id.
 
         """
-        fullname = tableclause.fullname  # type: ignore
+        fullname = tableclause.fullname
 
         stmt = select(
             func.setval(
@@ -109,7 +105,9 @@ class PGUserdataAdapter:
     def count(self, table_uuid: UUID) -> RowCount:
         """Count the rows."""
         # we don't need the columns here, just a table
-        tableclause = satable(self._make_userdata_table_name(table_uuid), *[], schema="userdata")  # type: ignore
+        tableclause = satable(
+            self._make_userdata_table_name(table_uuid), *[], schema="userdata"
+        )
         exact, approx = self.sesh.execute(RowCountStatement(tableclause)).fetchone()
         return RowCount(exact, approx)
 
