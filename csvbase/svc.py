@@ -7,7 +7,6 @@ from logging import getLogger
 from typing import Iterable, Optional, Sequence, Tuple, cast, List, Union
 from uuid import UUID, uuid4
 from dataclasses import dataclass
-from typing import cast
 
 import bleach
 from sqlalchemy import (
