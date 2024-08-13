@@ -7,9 +7,6 @@ from csvbase.value_objs import Table, ContentType
 
 def to_dataset(table: Table) -> Mapping[str, Any]:
     """Produce a schema.org Dataset object from a Table."""
-    # potential improvements:
-    # maintainer
-    # publisher
     obj = {
         "@context": "https://schema.org",
         "@type": "Dataset",
@@ -24,6 +21,8 @@ def to_dataset(table: Table) -> Mapping[str, Any]:
         "distribution": [],
         "dateCreated": table.created.isoformat(),
         "dateModified": table.last_changed.isoformat(),
+        "publisher": make_organisation(),
+        "maintainer": to_person(table.username),
     }
     if table.has_caption():
         obj["description"] = table.caption
@@ -56,3 +55,23 @@ def to_datadownload(table: Table, content_type: ContentType) -> Mapping[str, str
         "encodingFormat": content_type.value,
     }
     return obj
+
+
+def make_organisation() -> Mapping[str, str]:
+    """Produce the schema.org Publisher object for this csvbase instance."""
+    return {
+        "@type": "Organization",
+        "name": "csvbase",
+        "url": url_for("csvbase.index", _external=True),
+        "logo": url_for("static", filename="logo/192x192.png", _external=True),
+    }
+
+
+def to_person(username: str) -> Mapping[str, str]:
+    """Produce the schema.org Person object for this username."""
+    # This is quite basic
+    return {
+        "@type": "Person",
+        "name": username,
+        "url": url_for("csvbase.user", username=username, _external=True),
+    }

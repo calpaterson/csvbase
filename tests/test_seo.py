@@ -62,6 +62,17 @@ def test_schemaorg_dataset(ten_rows):
                 "encodingFormat": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             },
         ],
+        "publisher": {
+            "@type": "Organization",
+            "logo": "http://localhost/static/logo/192x192.png",
+            "name": "csvbase",
+            "url": "http://localhost/",
+        },
+        "maintainer": {
+            "@type": "Person",
+            "name": ten_rows.username,
+            "url": f"http://localhost/{ten_rows.username}",
+        },
     }
     actual = schemaorg.to_dataset(ten_rows)
 
