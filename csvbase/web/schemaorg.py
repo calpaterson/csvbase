@@ -27,9 +27,13 @@ def to_dataset(table: Table) -> Mapping[str, Any]:
     }
     if table.has_caption():
         obj["description"] = table.caption
-    # if we knew the table wasn't big we could refer to XLSX here:
+
+    # Mark up all the reps we hold
     distribution = []
-    for content_type in [ContentType.CSV, ContentType.PARQUET, ContentType.JSON_LINES]:
+    content_types = [ContentType.CSV, ContentType.PARQUET, ContentType.JSON_LINES]
+    if not table.row_count.is_big():
+        content_types.append(ContentType.XLSX)
+    for content_type in content_types:
         distribution.append(to_datadownload(table, content_type))
     obj["distribution"] = distribution
 

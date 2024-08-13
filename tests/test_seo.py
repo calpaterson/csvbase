@@ -56,6 +56,11 @@ def test_schemaorg_dataset(ten_rows):
                 "contentUrl": f"http://localhost/{ten_rows.username}/{ten_rows.table_name}.jsonl",
                 "encodingFormat": "application/x-jsonlines",
             },
+            {
+                "@type": "DataDownload",
+                "contentUrl": f"http://localhost/{ten_rows.username}/{ten_rows.table_name}.xlsx",
+                "encodingFormat": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            },
         ],
     }
     actual = schemaorg.to_dataset(ten_rows)
