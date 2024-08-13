@@ -51,7 +51,7 @@ def test_subscribe__stripe_rejects_customer_email(client, sesh, app):
 
     def reject_if_email_present(**kwargs):
         if "customer_email" in kwargs:
-            raise stripe.error.InvalidRequestError(
+            raise stripe.InvalidRequestError(
                 message="Invalid email address: darth@deathstar",
                 param="customer_email",
                 code="email_invalid",
@@ -80,11 +80,11 @@ def test_subscribe__not_signed_in(client):
 def test_subscribe__stripe_rejects_for_other_reason(client, test_user):
     with current_user(test_user):
         with patch.object(bp.stripe.checkout.Session, "create") as mock_create:
-            mock_create.side_effect = stripe.error.InvalidRequestError(
+            mock_create.side_effect = stripe.InvalidRequestError(
                 message="Something else",
                 param="something",
             )
-            with pytest.raises(stripe.error.InvalidRequestError):
+            with pytest.raises(stripe.InvalidRequestError):
                 client.get("/billing/subscribe")
 
 
