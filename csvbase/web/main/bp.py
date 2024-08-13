@@ -22,7 +22,6 @@ from typing import (
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 import hashlib
 import json
-import dataclasses
 
 import pydantic
 from sqlalchemy.orm import Session
@@ -81,6 +80,7 @@ from ...value_objs import (
     Table,
     Backend,
     BinaryOp,
+    TableRepresentation,
 )
 from ...constants import COPY_BUFFER_SIZE, FAR_FUTURE, MAX_UUID
 from ..billing import svc as billing_svc
@@ -444,30 +444,23 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
             is_first_page = min_row_id is None or (min_row_id in row_ids)
             is_last_page = max_row_id is None or (max_row_id in row_ids)
 
-            reps = get_table_reps(sesh, table)
-
             template_kwargs = dict(
                 page_title=table.table_name,
-                table=table,
                 page=page,
                 keyset=keyset,
-                praise_id=get_praise_id_if_exists(sesh, table),
                 is_first_page=is_first_page,
                 is_last_page=is_last_page,
                 max_row_id=max_row_id,
                 highlight=request.args.get("highlight", None, type=int),
-                reps=reps,
             )
 
             if is_first_page:
                 template_kwargs["readme_html"] = readme_html(sesh, table.table_uuid)
 
-            response = make_response(
-                render_template(
-                    "table_view.html",
-                    **template_kwargs,
-                )
+            response = render_table_page(
+                sesh, "table_view.html", table=table, **template_kwargs
             )
+
             # HTML doesn't get an etag - too hard to key everything that goes in
             add_table_view_cache_headers(table, response)
             add_table_metadata_headers(table, response)
@@ -718,7 +711,7 @@ bp.add_url_rule(
 
 
 @bp.get("/<username:username>/<table_name:table_name>/docs")
-def get_table_apidocs(username: str, table_name: str) -> str:
+def get_table_apidocs(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
     ensure_table_access(sesh, table, "read")
@@ -729,13 +722,12 @@ def get_table_apidocs(username: str, table_name: str) -> str:
     sample_row = backend.get_a_sample_row(table.table_uuid)
     sample_page = Page(has_less=False, has_more=True, rows=[sample_row])
 
-    reps = get_table_reps(sesh, table)
-
-    return render_template(
+    return render_table_page(
+        sesh,
         "table_api.html",
+        table,
         page_title=f"REST docs: {username}/{table_name}",
         owner=owner,
-        table=table,
         sample_row=sample_row,
         sample_row_id=row_id_from_row(sample_row),
         sample_page=sample_page,
@@ -743,8 +735,6 @@ def get_table_apidocs(username: str, table_name: str) -> str:
         row_to_json_dict=row_to_json_dict,
         table_to_json_dict=table_to_json_dict,
         url_for_with_auth=url_for_with_auth,
-        praise_id=get_praise_id_if_exists(sesh, table),
-        reps=reps,
     )
 
 
@@ -818,42 +808,37 @@ bp.add_url_rule(
 
 
 @bp.get("/<username:username>/<table_name:table_name>/details")
-def table_details(username: str, table_name: str) -> str:
+def table_details(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
     ensure_table_access(sesh, table, "read")
-    reps = get_table_reps(sesh, table)
 
-    return render_template(
+    return render_table_page(
+        sesh,
         "table_details.html",
+        table,
         username=username,
         page_title=f"Schema & Details: {username}/{table_name}",
         DataLicence=DataLicence,
-        table=table,
-        praise_id=get_praise_id_if_exists(sesh, table),
-        reps=reps,
     )
 
 
 @bp.get("/<username:username>/<table_name:table_name>/settings")
-def table_settings(username: str, table_name: str) -> str:
+def table_settings(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
     ensure_table_access(sesh, table, "write")
 
     table_readme_markdown = svc.get_readme_markdown(sesh, table.table_uuid)
 
-    reps = get_table_reps(sesh, table)
-
-    return render_template(
+    return render_table_page(
+        sesh,
         "table_settings.html",
+        table,
         username=username,
         page_title=f"Settings: {username}/{table_name}",
         table_readme=table_readme_markdown or "",
         DataLicence=DataLicence,
-        table=table,
-        praise_id=get_praise_id_if_exists(sesh, table),
-        reps=reps,
     )
 
 
@@ -1720,17 +1705,6 @@ def get_user_str_buf() -> codecs.StreamReader:
     return str_buf
 
 
-@dataclasses.dataclass
-class TableRepresentation:
-    """Convenience object holding metadata on a specific representation (eg:
-    csv) of a table."""
-
-    content_type: ContentType
-    offered: bool
-    size: int
-    size_is_estimate: bool
-
-
 def get_table_reps(sesh: Session, table: Table) -> List[TableRepresentation]:
     supported_content_types = [
         ContentType.CSV,
@@ -1765,3 +1739,24 @@ def get_table_reps(sesh: Session, table: Table) -> List[TableRepresentation]:
             )
         )
     return rv
+
+
+def render_table_page(
+    sesh: Session,
+    template_name: str,
+    table: Table,
+    **template_kwargs,
+) -> Response:
+    """Type-safe helper to ensure that we pass the list of reps whenever we render the a table page."""
+    praise_id = get_praise_id_if_exists(sesh, table)
+    reps = get_table_reps(sesh, table)
+
+    return make_response(
+        render_template(
+            template_name,
+            table=table,
+            reps=reps,
+            praise_id=praise_id,
+            **template_kwargs,
+        )
+    )

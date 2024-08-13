@@ -547,3 +547,14 @@ class Backend(enum.Enum):
     POSTGRES = 1
     HTTP = 2
     GIT = 3
+
+
+@dataclass
+class TableRepresentation:
+    """Convenience object holding metadata on a specific representation (eg:
+    csv) of a table."""
+
+    content_type: ContentType
+    offered: bool
+    size: int
+    size_is_estimate: bool
