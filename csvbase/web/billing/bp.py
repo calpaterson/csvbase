@@ -22,7 +22,7 @@ from . import svc
 
 logger = getLogger(__name__)
 
-bp = Blueprint("billing", __name__)
+bp = Blueprint("billing", __name__, template_folder="templates")
 
 
 def init_blueprint(app: Flask) -> None:
@@ -181,7 +181,7 @@ def pricing() -> Response:
         has_subscription = svc.has_subscription(sesh, current_user.user_uuid)
     return make_response(
         render_template(
-            "billing/pricing.html",
+            "pricing.html",
             page_title="Support csvbase",
             has_subscription=has_subscription,
         )
