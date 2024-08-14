@@ -27,7 +27,7 @@ def test_subscribe(client, test_user):
         )
         with patch.object(bp.stripe.checkout.Session, "create") as mock_create:
             mock_create.return_value = fake_checkout_session
-            subscribe_response = client.get("/billing/subscribe")
+            subscribe_response = client.post("/billing/subscribe")
     assert subscribe_response.status_code == 302
     assert subscribe_response.headers["Location"] == fake_checkout_session.url
 
@@ -63,14 +63,14 @@ def test_subscribe__stripe_rejects_customer_email(client, sesh, app):
     with current_user(test_user):
         with patch.object(bp.stripe.checkout.Session, "create") as mock_create:
             mock_create.side_effect = reject_if_email_present
-            subscribe_response = client.get("/billing/subscribe")
+            subscribe_response = client.post("/billing/subscribe")
     assert subscribe_response.status_code == 302
     assert subscribe_response.headers["Location"] == fake_checkout_session.url
 
 
 def test_subscribe__not_signed_in(client):
     """When you try to subscribe but aren't signed in you get asked to register"""
-    subscribe_response = client.get(
+    subscribe_response = client.post(
         "/billing/subscribe", headers={"Accept": "text/html"}
     )
     assert subscribe_response.status_code == 302
@@ -85,7 +85,7 @@ def test_subscribe__stripe_rejects_for_other_reason(client, test_user):
                 param="something",
             )
             with pytest.raises(stripe.InvalidRequestError):
-                client.get("/billing/subscribe")
+                client.post("/billing/subscribe")
 
 
 def test_success_url(client, sesh, test_user):

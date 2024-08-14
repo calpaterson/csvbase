@@ -41,10 +41,12 @@
         {% if has_subscription %}
           <p>You are already subscribed. <a href="{{ url_for('billing.manage') }}">Manage your subscription</a>.
         {% else %}
-          <a href="{{ url_for('billing.subscribe') }}"
-             class="btn btn-success btn-lg active text-center"
-             role="button"
-             >Become a supporter</a>
+          <form action="{{ url_for('billing.subscribe') }}" method="POST">
+            <button type="submit"
+                   class="btn btn-success btn-lg active text-center"
+                   role="button"
+                   >Become a supporter</button>
+          </form>
         {% endif %}
         <div class="text-center">
           <p>Have a question?  Feel free to <a href="mailto:cal@calpaterson.com">get in contact</a><p>

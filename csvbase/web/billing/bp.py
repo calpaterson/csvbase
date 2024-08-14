@@ -33,7 +33,7 @@ def init_blueprint(app: Flask) -> None:
         logger.info("initialised billing blueprint")
 
 
-@bp.route("/subscribe", methods=["GET"])
+@bp.route("/subscribe", methods=["POST"])
 def subscribe() -> Response:
     """Redirect the user to the checkout"""
     sesh = get_sesh()
