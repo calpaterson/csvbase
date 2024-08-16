@@ -24,6 +24,8 @@ You can also use plain csv:
 select * from read_csv_auto("https://csvbase.com/meripaterson/stock-exchanges.csv");
 ```
 
+But that is, generally, slower.
+
 ## Read and write access from the `duckdb` Python driver
 
 If you're using the Python driver for duckdb you can also use `csvbase-client`

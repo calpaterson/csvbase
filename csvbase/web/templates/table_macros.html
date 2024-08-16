@@ -93,11 +93,11 @@
 
 {%- macro render_row_count(table) -%}
   {%- if table.row_count.exact == None -%}
-    <span title="~ {{table.row_count.approx}} rows" data-tooltip="top">approximately {{ table.row_count.approx|humanize_intword("%0.0f") }}</span>
+    <span title="~ {{table.row_count.approx}} rows" data-tooltip="top">approx. {{ table.row_count.approx|humanize_intcomma }}</span>
   {%- elif table.row_count.exact == 0 -%}
     0
   {%- else -%}
-    <span title="{{table.row_count.exact}} rows" data-tooltip="top">{{ table.row_count.exact|humanize_intword("%0.0f") }}</span>
+    <span title="{{table.row_count.exact}} rows" data-tooltip="top">{{ table.row_count.exact|humanize_intcomma }}</span>
   {%- endif -%}
 {%- endmacro -%}
 
