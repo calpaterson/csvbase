@@ -23,9 +23,9 @@ def to_dataset(table: Table, reps: Collection[TableRepresentation]) -> Dict[str,
         "dateModified": table.last_changed.isoformat(),
         "publisher": make_organisation(),
         "maintainer": to_person(table.username),
+        # description is a mandatory field for most
+        "description": table.caption if table.has_caption() else "No caption",
     }
-    if table.has_caption():
-        obj["description"] = table.caption
 
     # Mark up all the reps we hold
     distribution = []
