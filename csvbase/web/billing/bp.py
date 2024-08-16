@@ -22,7 +22,7 @@ from . import svc
 
 logger = getLogger(__name__)
 
-bp = Blueprint("billing", __name__)
+bp = Blueprint("billing", __name__, template_folder="templates")
 
 
 def init_blueprint(app: Flask) -> None:
@@ -33,18 +33,20 @@ def init_blueprint(app: Flask) -> None:
         logger.info("initialised billing blueprint")
 
 
-@bp.route("/subscribe", methods=["GET"])
+@bp.route("/subscribe", methods=["POST"])
 def subscribe() -> Response:
     """Redirect the user to the checkout"""
     sesh = get_sesh()
     config = get_config()
 
     price_id = config.stripe_price_id
+    if price_id is None:
+        raise RuntimeError("stripe_price_id not configured")
     current_user = get_current_user_or_401()
 
     payment_reference_uuid = uuid4()
 
-    checkout_session_kwargs = {
+    checkout_session_kwargs: stripe.checkout.Session.CreateParams = {
         "mode": "subscription",
         "success_url": url_for(
             "billing.success",
@@ -70,7 +72,7 @@ def subscribe() -> Response:
 
     try:
         checkout_session = stripe.checkout.Session.create(**checkout_session_kwargs)
-    except stripe.error.InvalidRequestError as e:
+    except stripe.InvalidRequestError as e:
         if e.code == "email_invalid":
             # if stripe did reject the email address, remove it and retry
             logger.warning(
@@ -82,6 +84,9 @@ def subscribe() -> Response:
         else:
             logger.exception("stripe invalid request error")
             raise
+
+    if checkout_session.url is None:
+        raise RuntimeError("checkout session url is None (inactive?)")
 
     svc.record_payment_reference(
         sesh, payment_reference_uuid, current_user, checkout_session.id
@@ -115,7 +120,17 @@ def success(payment_reference_uuid: str) -> Response:
         payment_reference, expand=["subscription"]
     )
 
-    svc.insert_stripe_customer_id(sesh, user_uuid, checkout_session.customer)
+    if checkout_session.customer is None:
+        raise RuntimeError("stripe has no customer attached to that checkout session")
+    elif hasattr(checkout_session.customer, "id"):
+        logger.warning(
+            "customer has been expanded - this should not happen (but is handled)"
+        )
+        customer_id = checkout_session.customer.id
+    else:
+        customer_id = checkout_session.customer
+
+    svc.insert_stripe_customer_id(sesh, user_uuid, customer_id)
     svc.insert_stripe_subscription(sesh, user_uuid, checkout_session.subscription)
     sesh.commit()
     logger.info(
@@ -126,8 +141,6 @@ def success(payment_reference_uuid: str) -> Response:
     )
 
     user = user_by_user_uuid(sesh, user_uuid)
-
-    # FIXME: now mark the user as having subscribed
 
     flash("You have subscribed to csvbase")
     return redirect(url_for("csvbase.user", username=user.username))
@@ -168,7 +181,7 @@ def pricing() -> Response:
         has_subscription = svc.has_subscription(sesh, current_user.user_uuid)
     return make_response(
         render_template(
-            "billing/pricing.html",
+            "pricing.html",
             page_title="Support csvbase",
             has_subscription=has_subscription,
         )

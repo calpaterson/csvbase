@@ -2,6 +2,7 @@ from lxml import etree
 from datetime import datetime
 
 from csvbase.web import schemaorg
+from csvbase.web.main.bp import get_table_reps
 from .utils import test_data_path
 
 
@@ -32,7 +33,7 @@ def test_sitemap(client):
     assert first_line == b"<?xml version='1.0' encoding='UTF-8'?>"
 
 
-def test_schemaorg_dataset(ten_rows):
+def test_schemaorg_dataset(sesh, ten_rows):
     expected = {
         "@context": "https://schema.org",
         "@type": "Dataset",
@@ -56,13 +57,37 @@ def test_schemaorg_dataset(ten_rows):
                 "contentUrl": f"http://localhost/{ten_rows.username}/{ten_rows.table_name}.jsonl",
                 "encodingFormat": "application/x-jsonlines",
             },
+            {
+                "@type": "DataDownload",
+                "contentUrl": f"http://localhost/{ten_rows.username}/{ten_rows.table_name}.xlsx",
+                "encodingFormat": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            },
         ],
+        "publisher": {
+            "@type": "Organization",
+            "logo": "http://localhost/static/logo/192x192.png",
+            "name": "csvbase",
+            "url": "http://localhost/",
+        },
+        "maintainer": {
+            "@type": "Person",
+            "name": ten_rows.username,
+            "url": f"http://localhost/{ten_rows.username}",
+        },
     }
-    actual = schemaorg.to_dataset(ten_rows)
+    reps = get_table_reps(sesh, ten_rows)
+    actual = schemaorg.to_dataset(ten_rows, reps)
+
+    def key(d):
+        return d["encodingFormat"]
+
+    assert sorted(actual.pop("distribution"), key=key) == sorted(
+        expected.pop("distribution"), key=key
+    )
 
     # do the dates this way
-    assert datetime.fromisoformat(actual.pop("dateCreated")) == ten_rows.created  # type: ignore
-    assert datetime.fromisoformat(actual.pop("dateModified")) == ten_rows.last_changed  # type: ignore
+    assert datetime.fromisoformat(actual.pop("dateCreated")) == ten_rows.created
+    assert datetime.fromisoformat(actual.pop("dateModified")) == ten_rows.last_changed
 
     # the rest must match:
     assert expected == actual

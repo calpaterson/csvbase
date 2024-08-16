@@ -11,7 +11,7 @@ category = "basics"
 
 There is no limit on number of public tables a user can create.
 
-Paying users can also create private tables.
+Supporters can also create private tables.
 
 ## How long are tables kept?
 

@@ -12,7 +12,7 @@
   {% endif %}
 
   <script type="application/ld+json">
- {{ schemaorg.to_dataset(table)|ppjson|safe }}
+ {{ schemaorg.to_dataset(table, reps)|ppjson|safe }}
   </script>
 {% endblock %}
 

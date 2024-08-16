@@ -39,7 +39,8 @@ username and password.  For example:
 
 `https://calpaterson:0123456789abcdef0123456789abcdef@csvbase.com/calpaterson/countries`
 
-Other times they will not and there will often be a separate field
+Occasionally, some tools will have a separate field where you enter the
+username and password.
 
 ## The `~/.netrc` file
 
