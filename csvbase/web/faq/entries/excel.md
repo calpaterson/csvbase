@@ -28,7 +28,8 @@ the Ribbon.
 
 ![](/static/faq/excel-04-refresh.png)
 
-And you can configure the frequency of the refresh with the connection properties:
+Or, alternatively, you can configure the frequency of the refresh with the
+connection properties:
 
 ![](/static/faq/excel-06-connection-properties.png)
 
