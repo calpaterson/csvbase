@@ -35,7 +35,10 @@ def test_sitemap(client):
 
 def test_schemaorg_dataset(sesh, ten_rows):
     expected = {
-        "@context": "https://schema.org",
+        "@context": [
+            "https://schema.org",
+            {"csvw": "https://www.w3.org/ns/csvw#"},
+        ],
         "@type": "Dataset",
         "name": ten_rows.table_name,
         "description": ten_rows.caption,
@@ -73,6 +76,33 @@ def test_schemaorg_dataset(sesh, ten_rows):
             "@type": "Person",
             "name": ten_rows.username,
             "url": f"http://localhost/{ten_rows.username}",
+        },
+        "mainEntity": {
+            "@type": "csvw:Table",
+            "csvw:tableSchema": {
+                "csvw:columns": [
+                    {
+                        "csvw:name": "csvbase_row_id",
+                        "csvw:datatype": "integer",
+                    },
+                    {
+                        "csvw:name": "roman_numeral",
+                        "csvw:datatype": "string",
+                    },
+                    {
+                        "csvw:name": "is_even",
+                        "csvw:datatype": "boolean",
+                    },
+                    {
+                        "csvw:name": "as_date",
+                        "csvw:datatype": "date",
+                    },
+                    {
+                        "csvw:name": "as_float",
+                        "csvw:datatype": "double",
+                    },
+                ]
+            },
         },
     }
     reps = get_table_reps(sesh, ten_rows)
