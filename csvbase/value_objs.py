@@ -13,14 +13,17 @@ from typing import (
     cast,
     Any,
     IO,
+    Iterable,
 )
 from typing_extensions import Literal
 from uuid import UUID
 from datetime import datetime, date, timedelta, timezone
-from dataclasses import dataclass, asdict as dataclass_as_dict
+from dataclasses import dataclass, asdict as dataclass_as_dict, fields as dataclass_fields
 import enum
 import binascii
 import encodings.aliases
+import importlib_resources
+import csv
 
 import giturlparse
 from dateutil.tz import gettz
@@ -244,6 +247,28 @@ class DataLicence(enum.Enum):
     def is_free(self) -> bool:
         return self.value > 1
 
+
+@dataclass(frozen=True, eq=True) # FIXME: set slots=True when 3.10+
+class Licence:
+    """Represents a licence."""
+
+    spdx_id: str
+    name: str
+    osi_approved: bool
+
+
+def build_licence_map() -> Iterable[Tuple[str, Licence]]:
+    with importlib_resources.files("csvbase").joinpath("data/spdx-licences.csv").open("r") as spdx_licences_f:
+        reader = csv.DictReader(spdx_licences_f)
+        for row in reader:
+            l = Licence(
+                spdx_id=row["licenseId"],
+                name=row["name"],
+                osi_approved=True if row["isOsiApproved"] == "True" else False,
+            )
+            yield l.spdx_id, l
+
+# LICENCE_MAP: Mapping[str, Licence] = dict(build_licence_map())
 
 _DATA_LICENCE_PP_MAP = {
     DataLicence.UNKNOWN: "Unknown",
