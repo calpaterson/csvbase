@@ -1,3 +1,10 @@
+"""Functions for producing JSON-LD documents from value objects.
+
+These functions are all in the web tier and can rely on the Flask app context
+being pushed.
+
+"""
+
 from typing import Dict, Any, Collection
 
 from flask import url_for
@@ -85,7 +92,7 @@ CSVW_TYPE_MAP = {
 
 
 def to_csvw_table(table: Table) -> Dict[str, Any]:
-    """Produce CSVW ("CSV on the Web") structured data for this table."""
+    """Produce CSVW ("CSV on the Web") Table from our table."""
     return {
         "@type": "csvw:Table",
         "csvw:tableSchema": {
