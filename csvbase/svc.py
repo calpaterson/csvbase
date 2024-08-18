@@ -381,28 +381,21 @@ def get_readme_markdown(sesh: Session, table_uuid: UUID) -> Optional[str]:
         return bleach.clean(readme)
 
 
-def set_readme_markdown(
-    sesh: Session, user_uuid: UUID, table_name: str, readme_markdown: str
-) -> None:
+def set_readme_markdown(sesh: Session, table_uuid: UUID, readme_markdown: str) -> None:
     # if it's empty or ws-only, don't store it and indeed remove it
     if readme_markdown.strip() == "":
         DELETE_STMT = satext(
             """
         DELETE FROM metadata.table_readmes as tr
-        USING metadata.tables as t
-        WHERE tr.table_uuid = t.table_uuid
-        AND t.table_name = :table_name
-        AND t.user_uuid = :user_uuid
+        WHERE tr.table_uuid = tr.table_uuid
         """
         )
-        sesh.execute(DELETE_STMT, dict(table_name=table_name, user_uuid=user_uuid))
-        logger.info("deleted readme for %s/%s", user_uuid, table_name)
+        sesh.execute(DELETE_STMT, dict(table_uuid=table_uuid))
     else:
         table = (
             sesh.query(models.Table)
             .filter(
-                models.Table.table_name == table_name,
-                models.Table.user_uuid == user_uuid,
+                models.Table.table_uuid == table_uuid,
             )
             .one()
         )

@@ -21,7 +21,6 @@ from datetime import datetime, date, timedelta, timezone
 from dataclasses import (
     dataclass,
     asdict as dataclass_as_dict,
-    fields as dataclass_fields,
 )
 import enum
 import binascii
@@ -276,12 +275,12 @@ def build_licence_map() -> Iterable[Tuple[str, Licence]]:
     ) as spdx_licences_f:
         reader = csv.DictReader(spdx_licences_f)
         for row in reader:
-            l = Licence(
+            licence = Licence(
                 spdx_id=row["licenseId"],
                 name=row["name"],
                 osi_approved=True if row["isOsiApproved"] == "True" else False,
             )
-            yield l.spdx_id, l
+            yield licence.spdx_id, licence
 
 
 LICENCE_MAP: Mapping[str, Licence] = dict(build_licence_map())

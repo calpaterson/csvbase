@@ -454,11 +454,13 @@ def make_table_view_response(sesh, content_type: ContentType, table: Table) -> R
                 highlight=request.args.get("highlight", None, type=int),
             )
 
+            readme_md = svc.get_readme_markdown(sesh, table.table_uuid)
+
             if is_first_page:
-                template_kwargs["readme_html"] = readme_html(sesh, table.table_uuid)
+                template_kwargs["readme_html"] = readme_html(sesh, readme_md)
 
             response = render_table_page(
-                sesh, "table_view.html", table=table, **template_kwargs
+                sesh, "table_view.html", table, readme_md, **template_kwargs
             )
 
             # HTML doesn't get an etag - too hard to key everything that goes in
@@ -688,14 +690,12 @@ class TableReadmeView(MethodView):
         table = svc.get_table(sesh, username, table_name)
         ensure_table_access(sesh, table, "write")
 
-        owner = svc.user_by_name(sesh, username)
-
         # Check that the (character) length is under 10k
         readme_markdown = request.stream.read(COPY_BUFFER_SIZE).decode("utf-8")
         if len(readme_markdown) > 10_000:
             raise exc.InvalidRequest()
 
-        svc.set_readme_markdown(sesh, owner.user_uuid, table_name, readme_markdown)
+        svc.set_readme_markdown(sesh, table.table_uuid, readme_markdown)
         # FIXME: only mark as changed if the readme has actually changed
         svc.mark_table_changed(sesh, table.table_uuid)
         sesh.commit()
@@ -721,11 +721,13 @@ def get_table_apidocs(username: str, table_name: str) -> Response:
     backend = PGUserdataAdapter(sesh)
     sample_row = backend.get_a_sample_row(table.table_uuid)
     sample_page = Page(has_less=False, has_more=True, rows=[sample_row])
+    table_readme_md = svc.get_readme_markdown(sesh, table.table_uuid)
 
     return render_table_page(
         sesh,
         "table_api.html",
         table,
+        table_readme_md,
         page_title=f"REST docs: {username}/{table_name}",
         owner=owner,
         sample_row=sample_row,
@@ -812,11 +814,13 @@ def table_details(username: str, table_name: str) -> Response:
     sesh = get_sesh()
     table = svc.get_table(sesh, username, table_name)
     ensure_table_access(sesh, table, "read")
+    table_readme_md = svc.get_readme_markdown(sesh, table.table_uuid)
 
     return render_table_page(
         sesh,
         "table_details.html",
         table,
+        table_readme_md,
         username=username,
         page_title=f"Schema & Details: {username}/{table_name}",
         DataLicence=DataLicence,
@@ -829,15 +833,15 @@ def table_settings(username: str, table_name: str) -> Response:
     table = svc.get_table(sesh, username, table_name)
     ensure_table_access(sesh, table, "write")
 
-    table_readme_markdown = svc.get_readme_markdown(sesh, table.table_uuid)
+    table_readme_md = svc.get_readme_markdown(sesh, table.table_uuid)
 
     return render_table_page(
         sesh,
         "table_settings.html",
         table,
+        table_readme_md,
         username=username,
         page_title=f"Settings: {username}/{table_name}",
-        table_readme=table_readme_markdown or "",
         DataLicence=DataLicence,
     )
 
@@ -856,8 +860,7 @@ def post_table_settings(username: str, table_name: str) -> Response:
     data_licence = DataLicence(request.form.get("data-licence", type=int))
 
     readme_markdown = request.form.get("table-readme-markdown", "")
-    current_user = get_current_user_or_401()
-    svc.set_readme_markdown(sesh, current_user.user_uuid, table_name, readme_markdown)
+    svc.set_readme_markdown(sesh, table.table_uuid, readme_markdown)
 
     svc.update_table_metadata(sesh, table.table_uuid, is_public, caption, data_licence)
     svc.mark_table_changed(sesh, table.table_uuid)
@@ -1675,10 +1678,9 @@ def from_html_form_to_python(
         return column_type.python_type()(form_value)
 
 
-def readme_html(sesh, table_uuid: UUID) -> Optional[str]:
-    readme_markdown = svc.get_readme_markdown(sesh, table_uuid)
-    if readme_markdown is not None:
-        readme_html = render_markdown(readme_markdown)
+def readme_html(sesh, readme_md: Optional[str]) -> Optional[str]:
+    if readme_md is not None:
+        readme_html = render_markdown(readme_md)
         return readme_html
     else:
         return None
@@ -1745,6 +1747,7 @@ def render_table_page(
     sesh: Session,
     template_name: str,
     table: Table,
+    table_readme_md: Optional[str],
     **template_kwargs,
 ) -> Response:
     """Type-safe helper to ensure that we pass the list of reps whenever we render the a table page."""
@@ -1756,6 +1759,7 @@ def render_table_page(
             template_name,
             table=table,
             reps=reps,
+            table_readme_md=table_readme_md,
             praise_id=praise_id,
             **template_kwargs,
         )
