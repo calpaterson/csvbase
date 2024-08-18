@@ -2,7 +2,13 @@ import json
 from datetime import datetime
 import itertools
 
-from csvbase.value_objs import ColumnType, GitUpstream
+from csvbase.value_objs import (
+    ColumnType,
+    GitUpstream,
+    Licence,
+    DataLicence,
+    LICENCE_MAP,
+)
 from csvbase.conv import from_string_to_python
 
 import pytest
@@ -108,3 +114,18 @@ def test_git_upstream__gh_commit_link(repo_url, last_sha, expected):
 def test_git_upstream__gh_link(repo_url, branch, path, expected):
     gu = GitUpstream(datetime(2018, 1, 3), b"f" * 32, repo_url, branch, path)
     assert gu.github_file_link() == expected
+
+
+@pytest.mark.parametrize(
+    "data_licence, expected_licence",
+    [
+        (DataLicence.UNKNOWN, None),
+        (DataLicence.ALL_RIGHTS_RESERVED, None),
+        (DataLicence.PDDL, LICENCE_MAP["PDDL-1.0"]),
+        (DataLicence.ODC_BY, LICENCE_MAP["ODC-By-1.0"]),
+        (DataLicence.ODBL, LICENCE_MAP["ODbL-1.0"]),
+        (DataLicence.OGL, LICENCE_MAP["OGL-UK-3.0"]),
+    ],
+)
+def test_licence_from_data_licence(data_licence, expected_licence):
+    assert Licence.from_data_licence(data_licence) == expected_licence
