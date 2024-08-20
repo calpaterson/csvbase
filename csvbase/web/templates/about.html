@@ -17,7 +17,7 @@
   <div class="row">
     <div class="col-12 text-center">
       <div class="my-3">
-        <mark>csvbase is a simple web database.</mark>
+        csvbase is a <mark>simple website for sharing table data</mark> &mdash; with a REST API
       </div>
     </div>
   </div>
@@ -27,11 +27,18 @@
       <img class="img-fluid rounded" src="{{ url_for('static', filename='table-screenshot.png') }}">
     </div>
     <div class="col-lg-6 my-3">
-      <h2>Easy web interface</h2>
+      <h2>Full multi-format support</h2>
       <ul>
-        <li>View, add, edit and delete rows from a browser</li>
-        <li>Export to CSV, XLSX, Parquet, etc</li>
-        <li>(Coming soon) comment on specific rows</li>
+        <li>All tables are available in <a href="{{ url_for('faq.faq_entry', slug='formats') }}">multiple formats</a> as a simple download, including:
+          <ul>
+            <li>Apache Parquet</li>
+            <li>Microsoft Excel</li>
+            <li>JSON (and "JSON lines")</li>
+            <li>and of course, CSV</li>
+          </ul>
+        </li>
+        <li>Just add ".parquet", ".xlsx", ".csv" to any table url<ul><li>or use the dropdown on the table page</li></ul></li>
+        <li>csvbase can act as a <a href="{{ url_for('faq.faq_entry', slug='excel') }}">data source for Microsoft Excel</a><ul><li>and many other tools</li></ul></li>
       </ul>
     </div>
   </div>
@@ -41,53 +48,31 @@
       <img class="img-fluid rounded" src="{{ url_for('static', filename='duckdb-screenshot.png') }}">
     </div>
     <div class="col-lg-6 order-lg-1 my-3">
-      <h2>The World&apos;s Easiest API</h2>
+      <h2>Easy API</h2>
       <ul>
-        <li>Each table has a single URL, RESTfully accessed by HTTP verb
+        <li>csvbase&apos;s REST API follows the design of the website<ul><li>each table url is also an API url</li></ul></li>
+        <li>HTTP verbs are used
           <ul>
             <li><code>GET</code> to get the data</li>
             <li><code>PUT</code> to create/overwrite a table</li>
             <li><code>DELETE</code> to delete</li>
             <li><code>POST</code> to bulk add rows</li>
         </ul></li>
-        <li>Works out of the box with<ul>
-            <li>pandas</li>
-            <li>Apache Spark</li>
-            <li>R</li>
-            <li>DuckDB</li>
-            <li>And anything else that can do HTTP</li>
-          </ul>
-        </li>
+        <li>Authenticate via HTTP Basic Auth<ul><li>not required for reading public tables</li></ul></li>
       </ul>
     </div>
   </div>
 
   <div class="row my-3">
-    <div class="col-lg-6">
-        <video autoplay loop muted id="pasting-video" style="width: 100%" class="rounded">
-            <source src="https://csvbase.com/blog-static/pasting.webm" type="video/webm">
-        </video>
-    </div>
-    <div class="col-lg-6 my-3">
-      <h2>Upload via paste from Excel</h2>
-      <ul>
-        <li>Create a table from any CSV file</li>
-        <li>Or paste cells directly from Microsoft Excel</li>
-        <li>Each table gets it&apos;s own API</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="row my-3">
-    <div class="col-lg-6 order-lg-2">
+    <div class="col-lg-6 order-lg-1">
       <img class="img-fluid rounded" src="{{ url_for('static', filename='github-screenshot.png') }}">
     </div>
-    <div class="col-lg-6 order-lg-1 my-3">
-      <h2>Completely open source</h2>
+    <div class="col-lg-6 order-lg-2 my-3">
+      <h2>Open source, free to use</h2>
       <ul>
-        <li>Full source code on <a href="https://github.com/calpaterson/csvbase">github</a></li>
-        <li>Fully possible to host it yourself (some assembly required)</li>
-        <li>And completely free for open data</li>
+        <li>No registration required</li>
+        <li>csvbase is open source (on <a href="https://github.com/calpaterson/csvbase">github</a>) under the AGPLv3 or later</li>
+        <li>Supporters <a href="{{ url_for('billing.pricing') }}">(€3/month)</a> can also create private tables</li>
       </ul>
     </div>
   </div>
