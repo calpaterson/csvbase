@@ -2,7 +2,7 @@ import re
 import importlib_resources
 from datetime import datetime, timedelta
 from dataclasses import dataclass
-from typing import Iterable, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import toml
 from flask import Blueprint, make_response, render_template, current_app
@@ -63,7 +63,7 @@ def get_entry(slug: str) -> FAQEntry:
         created=metadata["created"],
         updated=metadata["updated"],
         category=metadata.get("category", None),
-        order=metadata.get("order", 1000)
+        order=metadata.get("order", 1000),
     )
 
     return faq_entry
