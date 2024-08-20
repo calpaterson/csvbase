@@ -5,6 +5,13 @@
 
 {% import 'other_macros.html' as other_macros %}
 
+{% block head %}
+  {{ super() }}
+  {% if turnstile_site_key %}
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  {% endif %}
+{% endblock %}
+
 {% block main %}
   <div class="container">
     <div class="row">
@@ -22,6 +29,10 @@
           {{ other_macros.password_form_field() }}
 
           {{ other_macros.mailing_list_form_field() }}
+
+          {% if turnstile_site_key %}
+            <div class="cf-turnstile" data-sitekey="{{turnstile_site_key}}"></div>
+          {% endif %}
 
           <input class="btn btn-success" type="submit" value="Register">
         </form>

@@ -150,6 +150,10 @@ def init_app() -> Flask:
     app.jinja_env.globals["blueprints"] = app.blueprints.keys()
     app.jinja_env.globals["ContentType"] = ContentType
     app.jinja_env.globals["schemaorg"] = schemaorg
+
+    if config.turnstile_site_key is not None:
+        app.jinja_env.globals["turnstile_site_key"] = config.turnstile_site_key
+
     app.jinja_env.filters["snake_case"] = snake_case
     app.jinja_env.filters["ppjson"] = ppjson
     app.jinja_env.filters["timedeltaformat"] = format_timedelta
