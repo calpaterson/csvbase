@@ -32,6 +32,7 @@ class FAQEntry:
     markdown: str
     created: datetime
     updated: datetime
+    order: Optional[int]
 
 
 METADATA_REGEX = re.compile(r"^<!\--(.*)-->", re.MULTILINE | re.DOTALL)
@@ -62,16 +63,20 @@ def get_entry(slug: str) -> FAQEntry:
         created=metadata["created"],
         updated=metadata["updated"],
         category=metadata.get("category", None),
+        order=metadata.get("order", 1000)
     )
 
     return faq_entry
 
 
-def get_entries() -> Iterable[FAQEntry]:
+def get_entries() -> List[FAQEntry]:
+    entries = []
     for trav in importlib_resources.files("csvbase.web.faq.entries").iterdir():
         if trav.is_file() and trav.name.endswith(".md"):
             slug = trav.name[:-3]
-            yield get_entry(slug)
+            entries.append(get_entry(slug))
+
+    return sorted(entries, key=lambda e: (e.order or 100, e.slug))
 
 
 def get_entries_by_category() -> Dict[str, List[FAQEntry]]:

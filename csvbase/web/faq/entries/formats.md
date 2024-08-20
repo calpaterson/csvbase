@@ -5,6 +5,7 @@ draft = false
 created = 2024-05-21
 updated = 2024-05-21
 category = "basics"
+order = 3
 -->
 
 csvbase supports the following formats:
