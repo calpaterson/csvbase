@@ -4,7 +4,7 @@
 
 # csvbase
 
-A simple web database.
+A simple website for sharing table data.
 
 ![screenshot](https://raw.githubusercontent.com/calpaterson/csvbase/main/csvbase/web/static/table-screenshot.png)
 
