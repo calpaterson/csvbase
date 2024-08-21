@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional, Iterable, Mapping, Generator
-from datetime import datetime
+from datetime import datetime, timezone
 import random
 import string
 from os import path
@@ -12,10 +12,11 @@ from pathlib import Path
 from urllib.parse import quote_plus
 from logging import getLogger
 from uuid import UUID, uuid4
+import contextlib
 
+import requests_mock
 from lxml import etree
 from lxml.cssselect import CSSSelector
-
 from sqlalchemy.orm import Session
 import pandas as pd
 from werkzeug.datastructures import MultiDict
@@ -260,3 +261,17 @@ def local_only_gitsource(local_repo_root: Path) -> Generator[None, None, None]:
 
     with mock.patch.object(GitSource, "clone", clone_passthrough):
         yield
+
+
+HAPPY_TURNSTILE_RESPONSE = {"success": True, "error_codes": [], "hostname": "localhost"}
+
+
+@contextlib.contextmanager
+def mock_turnstile(requests_mocker, response_dict=HAPPY_TURNSTILE_RESPONSE):
+    """Handy utility to mock Cloudflare Turnstile."""
+    resp_json = {"challenge_ts": datetime.now(timezone.utc).isoformat()}
+    resp_json.update(response_dict)
+
+    requests_mocker.post(
+        "https://challenges.cloudflare.com/turnstile/v0/siteverify", json=response_dict
+    )

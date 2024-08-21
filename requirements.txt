@@ -24,6 +24,7 @@ platformdirs==4.2.0
 psycopg2==2.9.9
 pyarrow==17.0.0
 pydantic==2.7.0
+requests==2.32.3
 sentry-sdk[flask]==1.45.0
 sqlalchemy==1.4.52
 stripe==10.7.0

@@ -25,6 +25,7 @@ from flask_babel import get_locale, dates
 
 from .. import exc, sentry, svc
 from ..value_objs import User, Table
+from .turnstile import get_turnstile_token_from_form, validate_turnstile_token
 
 logger = getLogger(__name__)
 
@@ -169,6 +170,9 @@ def safe_redirect(to_raw: str) -> Response:
 def register_and_sign_in_new_user(sesh: Session) -> User:
     """Registers a new user and signs them in if the registration succeeds."""
     form = request.form
+
+    validate_turnstile_token(get_turnstile_token_from_form(form))
+
     new_user = svc.create_user(
         sesh,
         current_app.config["CRYPT_CONTEXT"],
