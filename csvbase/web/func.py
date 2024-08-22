@@ -24,6 +24,7 @@ from flask import (
 from flask_babel import get_locale, dates
 
 from .. import exc, sentry, svc
+from ..config import get_config
 from ..value_objs import User, Table
 from .turnstile import get_turnstile_token_from_form, validate_turnstile_token
 
@@ -171,7 +172,13 @@ def register_and_sign_in_new_user(sesh: Session) -> User:
     """Registers a new user and signs them in if the registration succeeds."""
     form = request.form
 
-    validate_turnstile_token(get_turnstile_token_from_form(form))
+    # if the turnstile key is not set, the captcha verification is disabled.
+    # This is both for cases where it's not being used and also to allow it to
+    # be disabled in an emergency
+    if get_config().turnstile_secret_key is None:
+        logger.warning("turnstile_secret_key not set, skipping validation of captcha")
+    else:
+        validate_turnstile_token(get_turnstile_token_from_form(form))
 
     new_user = svc.create_user(
         sesh,

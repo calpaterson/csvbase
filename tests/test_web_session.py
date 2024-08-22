@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from csvbase import svc, exc
+from csvbase.config import get_config
 from csvbase.web import func
 from csvbase.value_objs import ContentType
 from .utils import random_string, current_user, mock_turnstile
@@ -30,7 +31,23 @@ def test_registering__no_whence(client, requests_mocker):
     assert get_resp.status_code == 200
 
 
-def test_registering__captcha_failure(client):
+def test_registering__captcha_disabled(client):
+    """Check that if the config key is not set, that the captcha verification is skipped."""
+    username = random_string()
+
+    with patch.object(get_config(), "turnstile_secret_key", None):
+        response = client.post(
+            "/register",
+            data={
+                "username": username,
+                "password": "password",
+                "email": "",
+            },
+        )
+    assert response.status_code == 302
+
+
+def test_registering__captcha_failure(client, requests_mocker):
     username = random_string()
 
     with patch.object(
