@@ -33,7 +33,9 @@ def test_registering__no_whence(client, requests_mocker):
 def test_registering__captcha_failure(client):
     username = random_string()
 
-    with patch.object(func, "validate_turnstile_token", side_effect=exc.CaptchaFailureException):
+    with patch.object(
+        func, "validate_turnstile_token", side_effect=exc.CaptchaFailureException
+    ):
         response = client.post(
             "/register",
             data={
@@ -65,9 +67,7 @@ def test_registering___username_is_taken(client, sesh, app, requests_mocker):
     assert resp.json == {"error": "that username is taken"}
 
 
-def test_registering__username_differs_only_by_case(
-    client, sesh, app, requests_mocker
-):
+def test_registering__username_differs_only_by_case(client, sesh, app, requests_mocker):
     username = random_string()
 
     svc.create_user(sesh, app.config["CRYPT_CONTEXT"], username, "password")

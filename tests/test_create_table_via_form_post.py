@@ -10,7 +10,6 @@ from flask import url_for
 import pytest
 from csvbase.web import main
 from csvbase.value_objs import ColumnType, Encoding
-from csvbase import svc
 
 from .conftest import ROMAN_NUMERALS
 from .utils import random_string, get_df_as_csv, subscribe_user, current_user

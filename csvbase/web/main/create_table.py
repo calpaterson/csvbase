@@ -14,7 +14,7 @@ from flask.views import MethodView
 from flask import Blueprint, redirect, render_template, url_for, request
 from werkzeug.wrappers.response import Response
 
-from ..func import get_current_user_or_401, register_and_sign_in_new_user
+from ..func import get_current_user_or_401
 from ... import exc, svc, streams, table_io, temp
 from ...sesh import get_sesh
 from ...userdata import PGUserdataAdapter

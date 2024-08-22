@@ -47,9 +47,7 @@ def validate_turnstile_token(turnstile_token: str) -> None:
     logger.info("got response doc %s", response_doc)
     if not response_doc.get("success", False):
         error_codes = response_doc.get("error-codes")
-        logger.error(
-            "captcha check failed for reasons: '%s'", error_codes
-        )
+        logger.error("captcha check failed for reasons: '%s'", error_codes)
         if (
             "invalid-input-response" in error_codes
             or "timeout-or-duplicate" in error_codes
