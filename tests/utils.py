@@ -12,9 +12,7 @@ from pathlib import Path
 from urllib.parse import quote_plus
 from logging import getLogger
 from uuid import UUID, uuid4
-import contextlib
 
-import requests_mock
 from lxml import etree
 from lxml.cssselect import CSSSelector
 from sqlalchemy.orm import Session
@@ -264,6 +262,7 @@ def local_only_gitsource(local_repo_root: Path) -> Generator[None, None, None]:
 
 
 HAPPY_TURNSTILE_RESPONSE = {"success": True, "error_codes": [], "hostname": "localhost"}
+TURNSTILE_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 
 @contextlib.contextmanager
@@ -272,6 +271,4 @@ def mock_turnstile(requests_mocker, response_dict=HAPPY_TURNSTILE_RESPONSE):
     resp_json = {"challenge_ts": datetime.now(timezone.utc).isoformat()}
     resp_json.update(response_dict)
 
-    requests_mocker.post(
-        "https://challenges.cloudflare.com/turnstile/v0/siteverify", json=response_dict
-    )
+    requests_mocker.post(TURNSTILE_URL, json=response_dict)

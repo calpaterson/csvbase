@@ -2,8 +2,6 @@
 
 from logging import getLogger
 
-import requests
-import flask
 import werkzeug
 
 from csvbase import exc
@@ -16,13 +14,6 @@ VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 TIMEOUT = (6.1, 24)
 
 logger = getLogger(__name__)
-
-
-def get_client_ip() -> str:
-    # FIXME: this needs fleshing out
-    client_ip = flask.request.headers.get("CF-Connecting-IP", flask.request.remote_addr)
-    logger.info("client_ip = %s", client_ip)
-    return client_ip
 
 
 def get_turnstile_token_from_form(form: werkzeug.datastructures.MultiDict) -> str:
@@ -44,17 +35,25 @@ def validate_turnstile_token(turnstile_token: str) -> None:
         logger.warning("turnstile key not set, not checking token")
         return
 
-    remote_ip = get_client_ip()
     resp = http_sesh.post(
         VERIFY_URL,
         data={
             "secret": secret_key,
             "response": turnstile_token,
-            "remoteip": remote_ip,
         },
         timeout=TIMEOUT,
     )
     response_doc = resp.json()
     logger.info("got response doc %s", response_doc)
     if not response_doc.get("success", False):
-        raise RuntimeError("didn't work")
+        error_codes = response_doc.get("error-codes")
+        logger.error(
+            "captcha check failed for reasons: '%s'", error_codes
+        )
+        if (
+            "invalid-input-response" in error_codes
+            or "timeout-or-duplicate" in error_codes
+        ):
+            raise exc.CaptchaFailureException()
+        else:
+            raise RuntimeError(f"Cloudflare turnstile error: {error_codes}")
