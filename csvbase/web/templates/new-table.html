@@ -107,21 +107,14 @@
               <div class="row">
                 <div class="mx-auto">
                   <div class="alert alert-info">
-                    <span>Register at the same time:</span>
+                    <span>You need to <a href="{{ url_for('csvbase.register') }}">register</a> first</span>
                     <span class="float-end">(If you already have an account, <a href="{{ url_for('csvbase.sign_in') }}">sign in</a>.)</span>
                   </div>
                 </div>
               </div>
-
-              {{ other_macros.username_form_field() }}
-
-              {{ other_macros.email_form_field() }}
-
-              {{ other_macros.password_form_field() }}
-
               <div class="row">
                 <div class="mb-3">
-                  <input type="submit" class="btn btn-success" value="Register & create table">
+                  <input disabled type="submit" class="btn btn-success" value="Create table">
                 </div>
               </div>
             {% else %}

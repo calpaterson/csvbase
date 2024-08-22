@@ -757,10 +757,7 @@ class CopyView(MethodView):
     def post(self, username: str, table_name: str) -> Response:
         sesh = get_sesh()
 
-        if "username" in request.form:
-            current_user = register_and_sign_in_new_user(sesh)
-        else:
-            current_user = get_current_user_or_401()
+        current_user = get_current_user_or_401()
 
         # FIXME: again, this is copied
         quota = billing_svc.get_quota(sesh, current_user.user_uuid)
