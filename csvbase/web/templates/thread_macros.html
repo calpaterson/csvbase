@@ -1,0 +1,23 @@
+{# -*- mode: jinja2 -*- #}
+
+{% import 'value_macros.html' as value_macros %}
+
+{%- macro render_comment_page(comment_page) %}
+  <h1>{{comment_page.thread.title}}</h1>
+  {% for comment in comment_page.comments %}
+    {{ render_comment(comment) }}
+  {% endfor %}
+{% endmacro %}
+
+{%- macro render_comment(comment) %}
+  <div class="comment">
+    <div class="card">
+      <div class="card-header">
+        <a href="{{ url_for('csvbase.user', username=comment.user.username) }}">{{comment.user.username}}</a> - <a href="#">{{ value_macros.render_human_datetime(comment.created) }} ago</a>
+      </div>
+      <div class="card-body">
+        {{comment.markdown}}
+      </div>
+    </div>
+  </div>
+{% endmacro %}
