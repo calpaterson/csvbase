@@ -606,3 +606,20 @@ class TableRepresentation:
     offered: bool
     size: int
     size_is_estimate: bool
+
+
+@dataclass
+class Comment:
+    comment_id: int
+    user: User
+    created: datetime
+    updated: datetime
+    markdown: str
+
+
+@dataclass
+class Thread:
+    slug: str
+    title: str
+    created: datetime
+    updated: datetime

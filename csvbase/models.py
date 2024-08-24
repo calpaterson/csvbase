@@ -379,6 +379,7 @@ class Thread(Base):
     )
     user_uuid = Column(PGUUID, ForeignKey("metadata.users.user_uuid"), nullable=False)
     thread_title = Column(satypes.String, nullable=False)
+    # thread_slug = Column(satypes.String, nullable=False, index=True)
 
 
 class Comment(Base):
@@ -407,6 +408,28 @@ class Comment(Base):
         satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
     )
     comment_markdown = Column(satypes.String, nullable=False)
+
+
+# class BlogThread(Base):
+#     __tablename__ = "blog_threads"
+
+#     __table_args__ = (
+#         METADATA_SCHEMA_TABLE_ARG,
+#     )
+
+#     thread_id = Column(
+#         satypes.BigInteger,
+#         ForeignKey("metadata.threads.thread_id"),
+#         nullable=False,
+#         index=True,
+#     )
+
+#     # this is not a foreign key because the csvbase-blog table is userdata
+#     blogpost_id = Column(
+#         satypes.BigInteger,
+#         nullable=False,
+#         index=True,
+#     )
 
 
 # class CommentReference(Base):

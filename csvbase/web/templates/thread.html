@@ -1,0 +1,10 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "app_base.html" %}
+
+{% import 'thread_macros.html' as thread_macros %}
+
+{% block main %}
+  <div class="container">
+    {{ thread_macros.render_comment_page(comment_page) }}
+  </div>
+{% endblock main %}

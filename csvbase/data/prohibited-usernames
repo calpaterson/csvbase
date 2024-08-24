@@ -10,6 +10,7 @@ blog
 blog-static
 column
 column-type
+comment
 content
 content-type
 conversion
@@ -23,6 +24,7 @@ dataset
 docs
 download
 export
+faq
 feed
 fk
 foreign
@@ -61,6 +63,7 @@ system
 table
 tableset
 test
+thread
 trigger
 type
 user
