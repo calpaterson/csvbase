@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "csvbase"
-dynamic = ["version", "dependencies"]
+dynamic = ["version", "dependencies", "optional-dependencies"]
 
 [project.scripts]
 csvbase-make-tables = "csvbase.cli:make_tables"
@@ -20,3 +20,4 @@ include = ["csvbase"]
 [tool.setuptools.dynamic]
 version = {file = "csvbase/VERSION"}
 dependencies = {file = ["requirements.txt"]}
+optional-dependencies.tests = {file = ["requirements-test.txt"]}
