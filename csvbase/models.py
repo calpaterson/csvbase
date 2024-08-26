@@ -379,7 +379,7 @@ class Thread(Base):
     )
     user_uuid = Column(PGUUID, ForeignKey("metadata.users.user_uuid"), nullable=False)
     thread_title = Column(satypes.String, nullable=False)
-    # thread_slug = Column(satypes.String, nullable=False, index=True)
+    thread_slug = Column(satypes.String, nullable=False, unique=True)
 
 
 class Comment(Base):
@@ -391,7 +391,7 @@ class Comment(Base):
         METADATA_SCHEMA_TABLE_ARG,
     )
 
-    comment_id = Column(satypes.BigInteger, Identity(), primary_key=True)
+    comment_id = Column(satypes.BigInteger, primary_key=True)
     user_uuid = Column(
         PGUUID, ForeignKey("metadata.users.user_uuid"), nullable=False, index=True
     )
@@ -400,6 +400,7 @@ class Comment(Base):
         ForeignKey("metadata.threads.thread_id"),
         nullable=False,
         index=True,
+        primary_key=True,
     )
     comment_created = Column(
         satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True

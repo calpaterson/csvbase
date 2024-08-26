@@ -609,17 +609,25 @@ class TableRepresentation:
 
 
 @dataclass
-class Comment:
-    comment_id: int
-    user: User
-    created: datetime
-    updated: datetime
-    markdown: str
-
-
-@dataclass
 class Thread:
     slug: str
     title: str
     created: datetime
     updated: datetime
+
+
+@dataclass
+class Comment:
+    thread: Thread
+    comment_id: int
+    user: User
+    created: datetime
+    updated: datetime
+    markdown: str
+    referenced_by: List[int]
+
+
+    def render_markdown(self) -> str:
+        # FIXME: no coupling from here to there
+        from .markdown import render_markdown
+        return render_markdown(self.markdown)

@@ -10,14 +10,23 @@
 {% endmacro %}
 
 {%- macro render_comment(comment) %}
-  <div class="comment">
+  <div class="comment my-2">
     <div class="card">
       <div class="card-header">
-        <a href="{{ url_for('csvbase.user', username=comment.user.username) }}">{{comment.user.username}}</a> - <a href="#">{{ value_macros.render_human_datetime(comment.created) }} ago</a>
+        <a href="{{ url_for('csvbase.user', username=comment.user.username) }}">{{comment.user.username}}</a> commented <a href="#">{{ value_macros.render_human_datetime(comment.created) }}</a> ago <button class="btn btn-secondary btn-sm" href="#">reply</button>
       </div>
       <div class="card-body">
-        {{comment.markdown}}
+        {{comment.render_markdown()|safe}}
       </div>
+      {% if comment.referenced_by %}
+        <div class="card-footer">
+          Replies: {% for r in comment.referenced_by %} <a href="#{r}">#{{r}}</a>{% endfor %}
+        </div>
+      {% elif comment.comment_id == 2 %}
+        <div class="card-footer">
+          References: <a href="#">Row 3</a>
+        </div>
+      {% endif %}
     </div>
   </div>
 {% endmacro %}
