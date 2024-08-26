@@ -614,6 +614,11 @@ class Thread:
     title: str
     created: datetime
     updated: datetime
+    creator: User
+
+    # this is used internally for connecting tables, not to be shown to the
+    # user
+    internal_thread_id: int
 
 
 @dataclass

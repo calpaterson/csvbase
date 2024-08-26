@@ -87,6 +87,7 @@ from ..billing import svc as billing_svc
 from ...repcache import RepCache
 from ...config import get_config
 from csvbase.bgwork import task_registry
+from .comments_views import init_comments_views
 
 logger = getLogger(__name__)
 
@@ -105,6 +106,7 @@ CORS(
     },
 )
 
+init_comments_views(bp)
 
 @bp.get("/")
 def index() -> Response:

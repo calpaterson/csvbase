@@ -2,18 +2,24 @@
 
 {% import 'value_macros.html' as value_macros %}
 
-{%- macro render_comment_page(comment_page) %}
+{%- macro render_comment_page(comment_page, current_user) %}
   <h1>{{comment_page.thread.title}}</h1>
   {% for comment in comment_page.comments %}
-    {{ render_comment(comment) }}
+    {% set for_owner = current_user == comment.user %}
+    {{ render_comment(comment, for_owner=for_owner) }}
   {% endfor %}
 {% endmacro %}
 
-{%- macro render_comment(comment) %}
+{%- macro render_comment(comment, for_owner=False) %}
   <div class="comment my-2">
     <div class="card">
-      <div class="card-header">
-        <a href="{{ url_for('csvbase.user', username=comment.user.username) }}">{{comment.user.username}}</a> commented <a href="#">{{ value_macros.render_human_datetime(comment.created) }}</a> ago <button class="btn btn-secondary btn-sm" href="#">reply</button>
+      <div class="card-header d-flex">
+        <span><a href="{{url_for('csvbase.thread_view', thread_slug=comment.thread.slug, comment_id=comment.comment_id)}}">#{{comment.comment_id}}</a> <a href="{{ url_for('csvbase.user', username=comment.user.username) }}">{{comment.user.username}}</a> <span class="text-body-secondary">{{ value_macros.render_human_datetime(comment.created) }} ago</span></span>
+        {% if for_owner %}
+          <span class="ms-auto"><button class="btn btn-warning btn-sm" href="#">edit</button></span>
+        {% else %}
+          <span class="ms-auto"><button class="btn btn-secondary btn-sm" href="#">reply</button></span>
+        {% endif %}
       </div>
       <div class="card-body">
         {{comment.markdown|render_markdown|safe}}

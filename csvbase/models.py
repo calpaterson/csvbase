@@ -120,8 +120,13 @@ class TableBackend(Base):
     backend_name = Column(satypes.String, nullable=False)
 
 
-def _last_changed_default(context) -> datetime:
-    """Set last_changed to the same value as created by default."""
+def _created_default(context) -> datetime:
+    """Returns value of 'created' attr.
+
+    Useful when models have a created and an updated and upon creation they
+    should match.
+
+    """
     return context.get_current_parameters()["created"]
 
 
@@ -161,7 +166,7 @@ class Table(Base):
 
     last_changed = Column(
         satypes.DateTime(timezone=True),
-        default=_last_changed_default,
+        default=_created_default,
         nullable=False,
         index=True,
     )
@@ -371,15 +376,26 @@ class Thread(Base):
     )
 
     thread_id = Column(satypes.BigInteger, Identity(), primary_key=True)
-    thread_created = Column(
-        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    # FIXME: rename underlying columns + use _created_default
+    created = Column(
+        "thread_created",
+        satypes.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
     )
-    thread_updated = Column(
-        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    updated = Column(
+        "thread_updated",
+        satypes.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
     )
     user_uuid = Column(PGUUID, ForeignKey("metadata.users.user_uuid"), nullable=False)
     thread_title = Column(satypes.String, nullable=False)
     thread_slug = Column(satypes.String, nullable=False, unique=True)
+
+    # FIXME: missing relationship obj back to user
 
 
 class Comment(Base):
@@ -402,11 +418,20 @@ class Comment(Base):
         index=True,
         primary_key=True,
     )
-    comment_created = Column(
-        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    # FIXME: rename underlying columns + use _created_default
+    created = Column(
+        "comment_created",
+        satypes.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
     )
-    comment_updated = Column(
-        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    updated = Column(
+        "comment_updated",
+        satypes.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
     )
     comment_markdown = Column(satypes.String, nullable=False)
 
