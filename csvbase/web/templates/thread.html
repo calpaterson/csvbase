@@ -5,6 +5,25 @@
 
 {% block main %}
   <div class="container">
-    {{ thread_macros.render_comment_page(comment_page) }}
+    <div class="row col-md-8 offset-md-2">
+      {{ thread_macros.render_comment_page(comment_page) }}
+    </div>
+
+    <div class="row col-md-8 offset-md-2">
+      <div class="reply-form my-2">
+        <div class="card">
+          <div class="card-body">
+            <form>
+              <div class="py-1">
+                <textarea class="form-control"></textarea>
+              </div>
+              <div class="py-1">
+                <button type="submit" class="btn btn-primary">Add comment</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 {% endblock main %}

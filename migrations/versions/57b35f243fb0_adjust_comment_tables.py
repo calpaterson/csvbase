@@ -42,7 +42,7 @@ def downgrade():
         "comments",
         "comment_id",
         existing_type=sa.BIGINT(),
-        server_default=sa.Identity(
+        server_default=sa.Identity(  # type: ignore
             always=False,
             start=1,
             increment=1,

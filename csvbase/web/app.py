@@ -43,12 +43,14 @@ from ..db import db, get_db_url
 from ..logging import configure_logging
 from .. import sentry, datadog
 from ..sesh import get_sesh
+from ..markdown import render_markdown
 from .func import is_browser, is_url, get_current_user
 from .billing import bp as billing_bp
 from .main.bp import bp as main_bp
 from .main.create_table import bp as create_table_bp
 from ..value_objs import ContentType, ROW_ID_COLUMN
 from ..bgwork.core import initialise_celery
+
 
 logger = getLogger(__name__)
 
@@ -158,6 +160,7 @@ def init_app() -> Flask:
     app.jinja_env.filters["snake_case"] = snake_case
     app.jinja_env.filters["ppjson"] = ppjson
     app.jinja_env.filters["timedeltaformat"] = format_timedelta
+    app.jinja_env.filters["render_markdown"] = render_markdown
 
     @app.context_processor
     def inject_user():

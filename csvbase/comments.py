@@ -47,9 +47,11 @@ def get_comment_page(sesh: Session, thread_slug: str) -> CommentPage:
             user=svc.user_by_name(sesh, "calpaterson"),
             created=datetime.now(timezone.utc),
             updated=datetime.now(timezone.utc),
-            markdown=f"hello, this is comment {n}",
+            markdown=f"""hello, this is comment {n}""",
+            thread=thread,
+            referenced_by=[2, 3] if n == 1 else [],
         )
-        for n in range(3)
+        for n in range(1, 4)
     ]
     return CommentPage(thread=thread, comments=comments)
 
