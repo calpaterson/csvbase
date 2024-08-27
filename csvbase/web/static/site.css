@@ -85,6 +85,13 @@
     font-style: oblique;
 }
 
+blockquote {
+    margin: 1em;
+    border-left: 0.2em solid grey;
+    padding-left: 1em;
+    font-style: oblique;
+}
+
 .blog-rss {
     font-style: oblique;
 }
