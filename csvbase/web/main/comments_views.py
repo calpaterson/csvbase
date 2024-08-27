@@ -2,7 +2,8 @@ from flask import make_response, render_template, request, redirect, url_for, Bl
 from flask.views import MethodView
 from werkzeug.wrappers.response import Response
 
-from csvbase import comments_svc
+from csvbase import comments_svc, markdown
+from csvbase.value_objs import Comment
 from ..func import get_current_user_or_401
 from ...sesh import get_sesh
 
@@ -12,11 +13,25 @@ class ThreadView(MethodView):
         """Get a thread by slug"""
         sesh = get_sesh()
         comment_page = comments_svc.get_comment_page(sesh, thread_slug)
+
+        reply_to = request.args.get("replyto", default=None, type=int)
+        if reply_to is not None:
+            comment: Comment = comment_page.comment_by_id(
+                reply_to
+            ) or comments_svc.get_comment(sesh, comment_page.thread, reply_to)
+            comment_markdown = markdown.quote_markdown(comment.markdown) + "\n\n"
+        else:
+            comment_markdown = ""
+
+        comment_lines = len(comment_markdown.splitlines())
+
         return make_response(
             render_template(
                 "thread.html",
                 comment_page=comment_page,
                 page_title=comment_page.thread.title,
+                comment_markdown=comment_markdown,
+                comment_box_lines=comment_lines + 2,
             )
         )
 

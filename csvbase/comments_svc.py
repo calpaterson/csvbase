@@ -1,8 +1,7 @@
 import re
 import secrets
 from dataclasses import dataclass
-from typing import Sequence
-from uuid import UUID
+from typing import Sequence, Optional
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -16,6 +15,14 @@ from .value_objs import Comment, Thread, User
 class CommentPage:
     thread: Thread
     comments: Sequence[Comment]
+    has_more: int
+    has_less: int
+
+    def comment_by_id(self, comment_id: int) -> Optional[Comment]:
+        for comment in self.comments:
+            if comment.comment_id == comment_id:
+                return comment
+        return None
 
 
 SLUG_PREFIX_REGEX = re.compile(r"[^a-z09]")
@@ -74,14 +81,33 @@ def get_comment_page(
             models.Comment.comment_id >= start,
         )
         .order_by(models.Comment.comment_id)
-        .limit(count)
+        .limit(count + 1)
+        .all()
     )
+    if len(comment_objs) > count:
+        has_more = True
+        del comment_objs[-1]
+    else:
+        has_more = False
     comments = [
         _comment_obj_to_comment(sesh, thread, comment_obj)
         for comment_obj in comment_objs
     ]
 
-    return CommentPage(thread=thread, comments=comments)
+    return CommentPage(thread=thread, comments=comments, has_more=has_more, has_less=start>1)
+
+
+def get_comment(sesh: Session, thread: Thread, comment_id: int) -> Comment:
+    # FIXME: error handling
+    comment = (
+        sesh.query(models.Comment)
+        .filter(
+            models.Comment.thread_id == thread.internal_thread_id,
+            models.Comment.comment_id == comment_id,
+        )
+        .one()
+    )
+    return _comment_obj_to_comment(sesh, thread, comment)
 
 
 def create_thread_with_opening_comment(

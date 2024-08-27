@@ -20,7 +20,7 @@
             <button class="btn btn-warning btn-sm" href="#">edit</button>
             <button class="btn btn-danger btn-sm" href="#">delete</button>
           {% endif %}
-        <button class="btn btn-secondary btn-sm" href="#">reply</button>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('csvbase.thread_view', thread_slug=comment.thread.slug, replyto=comment.comment_id) }}">reply</a>
       </div>
       <div class="card-body">
         {{comment.markdown|render_markdown|safe}}

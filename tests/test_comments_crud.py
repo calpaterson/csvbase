@@ -1,5 +1,5 @@
 import pytest
-from csvbase.value_objs import Thread, Comment
+from csvbase.value_objs import Thread
 from csvbase import comments_svc
 
 from . import utils

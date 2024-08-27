@@ -18,7 +18,12 @@
               action="{{ url_for('csvbase.thread_view', thread_slug=comment_page.thread.slug)}}"
               >
               <div class="py-1">
-                <textarea name="comment-markdown" class="form-control"></textarea>
+                <textarea
+                  name="comment-markdown"
+                  class="form-control"
+                  rows="{{comment_box_lines}}"
+                  {% if comment_markdown %}autofocus{% endif %}
+                  >{{comment_markdown}}</textarea>
               </div>
               <div class="py-1">
                 <button type="submit" class="btn btn-primary">Add comment</button>
