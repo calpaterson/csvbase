@@ -15,11 +15,12 @@
     <div class="card">
       <div class="card-header d-flex">
         <span><a href="{{url_for('csvbase.thread_view', thread_slug=comment.thread.slug, comment_id=comment.comment_id)}}">#{{comment.comment_id}}</a> <a href="{{ url_for('csvbase.user', username=comment.user.username) }}">{{comment.user.username}}</a> <span class="text-body-secondary">{{ value_macros.render_human_datetime(comment.created) }} ago</span></span>
-        {% if for_owner %}
-          <span class="ms-auto"><button class="btn btn-warning btn-sm" href="#">edit</button></span>
-        {% else %}
-          <span class="ms-auto"><button class="btn btn-secondary btn-sm" href="#">reply</button></span>
-        {% endif %}
+        <span class="ms-auto">
+          {% if for_owner %}
+            <button class="btn btn-warning btn-sm" href="#">edit</button>
+            <button class="btn btn-danger btn-sm" href="#">delete</button>
+          {% endif %}
+        <button class="btn btn-secondary btn-sm" href="#">reply</button>
       </div>
       <div class="card-body">
         {{comment.markdown|render_markdown|safe}}
