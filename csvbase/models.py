@@ -388,6 +388,11 @@ class Thread(Base):
         nullable=False,
         index=True,
     )
+    deleted = Column(
+        satypes.DateTime(timezone=True),
+        default=None,
+        nullable=True,
+    )
     user_uuid = Column(PGUUID, ForeignKey("metadata.users.user_uuid"), nullable=False)
     thread_title = Column(satypes.String, nullable=False)
     thread_slug = Column(satypes.String, nullable=False, unique=True)
@@ -426,6 +431,11 @@ class Comment(Base):
         default=_created_default,
         nullable=False,
         index=True,
+    )
+    deleted = Column(
+        satypes.DateTime(timezone=True),
+        default=None,
+        nullable=True,
     )
     comment_markdown = Column(satypes.String, nullable=False)
 
