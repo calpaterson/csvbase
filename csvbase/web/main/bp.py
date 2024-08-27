@@ -108,6 +108,7 @@ CORS(
 
 init_comments_views(bp)
 
+
 @bp.get("/")
 def index() -> Response:
     sesh = get_sesh()

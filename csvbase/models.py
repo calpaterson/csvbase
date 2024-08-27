@@ -376,18 +376,15 @@ class Thread(Base):
     )
 
     thread_id = Column(satypes.BigInteger, Identity(), primary_key=True)
-    # FIXME: rename underlying columns + use _created_default
     created = Column(
-        "thread_created",
         satypes.DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
         index=True,
     )
     updated = Column(
-        "thread_updated",
         satypes.DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=_created_default,
         nullable=False,
         index=True,
     )
@@ -418,18 +415,15 @@ class Comment(Base):
         index=True,
         primary_key=True,
     )
-    # FIXME: rename underlying columns + use _created_default
     created = Column(
-        "comment_created",
         satypes.DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
         index=True,
     )
     updated = Column(
-        "comment_updated",
         satypes.DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=_created_default,
         nullable=False,
         index=True,
     )
