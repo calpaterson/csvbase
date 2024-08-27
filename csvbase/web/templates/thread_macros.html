@@ -2,8 +2,24 @@
 
 {% import 'value_macros.html' as value_macros %}
 
+{%- macro render_pagination(thread_slug, current_page, max_page) %}
+  <ul class="pagination">
+    {% for page_number in range(1, max_page+1) %}
+      <li class="page-item {% if page_number == current_page %}active{% endif %}"
+          ><a
+          class="page-link"
+          {% if page_number == 1 %}
+            href="{{ url_for('csvbase.thread_view', thread_slug=thread_slug) }}"
+          {% else %}
+            href="{{ url_for('csvbase.thread_view', thread_slug=thread_slug, page=page_number) }}"
+          {% endif %}
+          >{{ page_number }}</a></li>
+    {% endfor %}
+  </ul>
+{% endmacro %}
+
+
 {%- macro render_comment_page(comment_page, current_user) %}
-  <h1>{{comment_page.thread.title}}</h1>
   {% for comment in comment_page.comments %}
     {% set for_owner = current_user == comment.user %}
     {{ render_comment(comment, for_owner=for_owner) }}

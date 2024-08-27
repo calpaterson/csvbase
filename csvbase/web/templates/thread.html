@@ -6,6 +6,11 @@
 {% block main %}
   <div class="container">
     <div class="row col-md-8 offset-md-2">
+      <h1>{{comment_page.thread.title}}</h1>
+      <div class="alert alert-warning">
+        Threads are an experimental feature!
+      </div>
+      {{ thread_macros.render_pagination(comment_page.thread.slug, current_page, max_page) }}
       {{ thread_macros.render_comment_page(comment_page, current_user) }}
     </div>
 

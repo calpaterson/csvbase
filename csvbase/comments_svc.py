@@ -24,6 +24,19 @@ class CommentPage:
                 return comment
         return None
 
+    def page_number(self) -> int:
+        if len(self.comments) == 0:
+            return 1
+        else:
+            return comment_id_to_page_number(self.comments[0].comment_id)
+
+
+def comment_id_to_page_number(comment_id: int) -> int:
+    return ((comment_id - 1) // 10) + 1
+
+def page_number_to_first_comment_id(page_number: int) -> int:
+    return (page_number * 10) - 9
+
 
 SLUG_PREFIX_REGEX = re.compile(r"[^a-z09]")
 
@@ -108,6 +121,17 @@ def get_comment(sesh: Session, thread: Thread, comment_id: int) -> Comment:
         .one()
     )
     return _comment_obj_to_comment(sesh, thread, comment)
+
+
+def get_max_comment_id(sesh: Session, thread_slug: str) -> Optional[int]:
+    return (
+        sesh.query(func.max(models.Comment.comment_id))
+        .join(models.Thread, models.Thread.thread_id == models.Comment.thread_id)
+        .filter(models.Thread.thread_slug==thread_slug)
+        .scalar()
+    )
+
+
 
 
 def create_thread_with_opening_comment(

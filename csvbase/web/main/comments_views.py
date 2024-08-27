@@ -12,7 +12,15 @@ class ThreadView(MethodView):
     def get(self, thread_slug: str) -> Response:
         """Get a thread by slug"""
         sesh = get_sesh()
-        comment_page = comments_svc.get_comment_page(sesh, thread_slug)
+        page = request.args.get("page", default=1, type=int)
+        max_comment_id = comments_svc.get_max_comment_id(sesh, thread_slug)
+        start = comments_svc.page_number_to_first_comment_id(page)
+        comment_page = comments_svc.get_comment_page(sesh, thread_slug, start=start)
+
+        if max_comment_id is None:
+            max_page = 1
+        else:
+            max_page = comments_svc.comment_id_to_page_number(max_comment_id)
 
         reply_to = request.args.get("replyto", default=None, type=int)
         if reply_to is not None:
@@ -32,6 +40,8 @@ class ThreadView(MethodView):
                 page_title=comment_page.thread.title,
                 comment_markdown=comment_markdown,
                 comment_box_lines=comment_lines + 2,
+                current_page=page,
+                max_page=max_page
             )
         )
 
@@ -40,11 +50,15 @@ class ThreadView(MethodView):
         poster = get_current_user_or_401()
         sesh = get_sesh()
         thread = comments_svc.get_thread_by_slug(sesh, thread_slug)
-        comments_svc.create_comment(
+        comment = comments_svc.create_comment(
             sesh, poster, thread, request.form["comment-markdown"]
         )
         sesh.commit()
-        return redirect(url_for("csvbase.thread_view", thread_slug=thread_slug))
+        url_for_args = {"thread_slug": thread_slug}
+        page_number = comments_svc.comment_id_to_page_number(comment.comment_id)
+        if page_number != 1:
+            url_for_args["page"] = page_number
+        return redirect(url_for("csvbase.thread_view", **url_for_args))
 
 
 class CommentView(MethodView):
