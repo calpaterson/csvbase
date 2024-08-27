@@ -27,16 +27,16 @@
 {% endmacro %}
 
 {%- macro render_comment(comment, for_owner=False) %}
-  <div class="comment my-2">
+  <div id="comment-{{comment.comment_id}}" class="comment my-2">
     <div class="card">
       <div class="card-header d-flex">
-        <span><a href="{{url_for('csvbase.thread_view', thread_slug=comment.thread.slug, comment_id=comment.comment_id)}}">#{{comment.comment_id}}</a> <a href="{{ url_for('csvbase.user', username=comment.user.username) }}">{{comment.user.username}}</a> <span class="text-body-secondary">{{ value_macros.render_human_datetime(comment.created) }} ago</span></span>
+        <span><a href="{{url_for('csvbase.thread_view', thread_slug=comment.thread.slug, page=comment.page_number(), _anchor='comment-' ~ comment.comment_id)}}">#{{comment.comment_id}}</a> <a href="{{ url_for('csvbase.user', username=comment.user.username) }}">{{comment.user.username}}</a> <span class="text-body-secondary">{{ value_macros.render_human_datetime(comment.created) }} ago</span></span>
         <span class="ms-auto">
           {% if for_owner %}
-            <button class="btn btn-warning btn-sm" href="#">edit</button>
+            <a class="btn btn-warning btn-sm" href="{{ url_for('csvbase.comment_edit_form', thread_slug=comment.thread.slug, comment_id=comment.comment_id) }}">edit</a>
             <button class="btn btn-danger btn-sm" href="#">delete</button>
           {% endif %}
-        <a class="btn btn-secondary btn-sm" href="{{ url_for('csvbase.thread_view', thread_slug=comment.thread.slug, replyto=comment.comment_id) }}">reply</a>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('csvbase.thread_view', thread_slug=comment.thread.slug, page=comment.page_number(), replyto=comment.comment_id) }}">reply</a>
       </div>
       <div class="card-body">
         {{comment.markdown|render_markdown|safe}}

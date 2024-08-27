@@ -1,0 +1,41 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "app_base.html" %}
+
+{% import 'thread_macros.html' as thread_macros %}
+
+{% block main %}
+  <div class="container">
+    <div class="row col-md-8 offset-md-2">
+      <h1>Editing comment #{{comment.comment_id}}</h1>
+      {{ thread_macros.render_comment(comment, for_owner=True) }}
+    </div>
+
+    <div class="row col-md-8 offset-md-2">
+      <div class="reply-form my-2">
+        <div class="card">
+          <div class="card-body">
+            <form
+              method="POST"
+              action="{{ url_for('csvbase.comment_edit_form', thread_slug=comment.thread.slug, comment_id=comment.comment_id)}}"
+              >
+              <div class="py-1">
+                <textarea
+                  name="comment-markdown"
+                  class="form-control"
+                  rows="{{(comment_markdown.splitlines()|length) * 2}}"
+                  {% if comment_markdown %}autofocus{% endif %}
+                  >{{comment_markdown}}</textarea>
+              </div>
+              <div class="py-1">
+                <button type="submit" class="btn btn-primary">Save changes</button>
+                <a
+                  href="{{ url_for('csvbase.thread_view', thread_slug=comment.thread.slug, page=page_number, _anchor='comment-' ~ comment.comment_id) }}"
+                  class="btn btn-danger">Back to thread</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock main %}

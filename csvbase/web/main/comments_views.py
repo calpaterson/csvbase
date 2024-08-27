@@ -57,8 +57,8 @@ class ThreadView(MethodView):
         url_for_args = {"thread_slug": thread_slug}
         page_number = comments_svc.comment_id_to_page_number(comment.comment_id)
         if page_number != 1:
-            url_for_args["page"] = page_number
-        return redirect(url_for("csvbase.thread_view", **url_for_args))
+            url_for_args["page"] = str(page_number)
+        return redirect(url_for("csvbase.thread_view", **url_for_args))  # type: ignore
 
 
 class CommentView(MethodView):
@@ -81,7 +81,17 @@ def delete_comment_for_browsers(thread_slug: str, comment_id: int) -> Response:
     return CommentView().delete(thread_slug, comment_id)
 
 
-def comment_edit_form(thread_slug: str, comment_id: int) -> Response: ...  # type: ignore
+def comment_edit_form(thread_slug: str, comment_id: int) -> Response:
+    sesh = get_sesh()
+    thread = comments_svc.get_thread_by_slug(sesh, thread_slug)
+    comment = comments_svc.get_comment(sesh, thread, comment_id)
+    return make_response(render_template(
+        "comment-edit.html",
+        page_title=f"Editing comment #{comment.comment_id}",
+        comment=comment,
+        comment_markdown=comment.markdown,
+        page_number=comments_svc.comment_id_to_page_number(comment.comment_id),
+    ))
 
 
 def init_comments_views(bp: Blueprint) -> None:

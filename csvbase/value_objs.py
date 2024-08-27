@@ -630,3 +630,7 @@ class Comment:
     updated: datetime
     markdown: str
     referenced_by: List[int]
+
+    def page_number(self) -> int:
+        # FIXME: this is duplicated
+        return ((self.comment_id - 1) // 10) + 1
