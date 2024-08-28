@@ -275,9 +275,10 @@ def init_app() -> Flask:
         # Prevent sniffing
         response.headers["X-Content-Type-Options"] = "nosniff"
 
-        # Basic starter CSP
+        # Basic starter CSP.  Default to only allowing our source, ban objects
+        # (eg Flash) and allow external images/audio/video
         response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; object-src 'none'"
+            "default-src 'self'; object-src 'none'; img-src *; media-src *;"
         )
 
         return response

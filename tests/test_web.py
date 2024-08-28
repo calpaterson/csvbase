@@ -151,5 +151,5 @@ def test_security_headers(client):
 
     assert (
         resp.headers["Content-Security-Policy"]
-        == "default-src 'self'; object-src 'none'"
+        == "default-src 'self'; object-src 'none'; img-src *; media-src *;"
     )
