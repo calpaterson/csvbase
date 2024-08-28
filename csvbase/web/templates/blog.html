@@ -63,6 +63,6 @@
 
 {% macro render_post(post) %}
   <p><a href="{{ url_for('blog.post', post_id=post.id) }}">{{ post.title }}</a>
-    <span style="float: right">{{ post.render_posted() }}</span>
+    <span class="blog-post-date">{{ post.render_posted() }}</span>
   </p>
 {% endmacro %}

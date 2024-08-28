@@ -97,7 +97,7 @@ blockquote {
     font-style: oblique;
 }
 
-.csv-paste-textarea {
+textarea {
     resize: both;
 }
 
@@ -119,6 +119,10 @@ blockquote {
     margin: auto;
 }
 
+.blog-post-date {
+    float: right;
+}
+
 .blog-post-2 pre {
     white-space: pre-wrap;
 }
@@ -136,9 +140,17 @@ input.table-pastable {
     max-width: 100%;
 }
 
+.hidden-praise-form {
+    display: none;
+}
+
 #praise-button > img {
     max-height: 1.2em;
     max-width: 1.2em;
+}
+
+.footer-logo {
+    margin: auto;
 }
 
 /* Tweaks for threads */
