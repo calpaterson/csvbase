@@ -267,6 +267,21 @@ def init_app() -> Flask:
             cc.no_store = True
         return response
 
+    @app.after_request
+    def set_security_headers(response: FlaskResponse) -> FlaskResponse:
+        # Prevent clickjacking
+        response.headers["X-Frame-Options"] = "DENY"
+
+        # Prevent sniffing
+        response.headers["X-Content-Type-Options"] = "nosniff"
+
+        # Basic starter CSP
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; object-src 'none'"
+        )
+
+        return response
+
     return app
 
 
