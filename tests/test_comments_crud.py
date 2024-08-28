@@ -1,4 +1,10 @@
+from typing import Dict
+
+
+from lxml import etree
+from lxml.cssselect import CSSSelector
 import pytest
+
 from csvbase.value_objs import Thread
 from csvbase import comments_svc
 
@@ -20,6 +26,46 @@ def test_thread(module_sesh, test_user) -> Thread:
     return thread
 
 
+@pytest.mark.parametrize(
+    "comment_id, expected_page_number",
+    [
+        (1, 1),
+        (9, 1),
+        (10, 1),
+        (11, 2),
+        (19, 2),
+        (20, 2),
+        (21, 3),
+    ],
+)
+def test_comment_id_to_page_number(comment_id, expected_page_number):
+    actual_page_number = comments_svc.comment_id_to_page_number(comment_id)
+    assert expected_page_number == actual_page_number
+
+
+@pytest.mark.parametrize(
+    "page_number, expected_first_comment_id",
+    [
+        (1, 1),
+        (2, 11),
+        (3, 21),
+    ],
+)
+def test_page_number_to_first_comment_id(page_number, expected_first_comment_id):
+    actual_first_comment_id = comments_svc.page_number_to_first_comment_id(page_number)
+    assert actual_first_comment_id == expected_first_comment_id
+
+
+# def extract_comments(resp) -> Dict[int, str]:
+#     comment_div_sel = CSSSelector(".comment")
+#     markdown_sel = CSSSelector(".card-body")
+#     html_parser = etree.HTMLParser()
+#     root = etree.fromstring(resp.data, html_parser)
+#     for comment_div in comment_div_sel(root):
+#         breakpoint()
+#         id = root.id
+
+
 def test_comment__create(sesh, client, test_thread, test_user):
     with utils.current_user(test_user):
         resp = client.post(
@@ -34,25 +80,16 @@ def test_comment__create(sesh, client, test_thread, test_user):
     assert len(thread_page.comments) == 2
 
 
-@pytest.mark.parametrize("comment_id, expected_page_number", [
-    (1, 1),
-    (9, 1),
-    (10, 1),
-    (11, 2),
-    (19, 2),
-    (20, 2),
-    (21, 3),
-])
-def test_comment_id_to_page_number(comment_id, expected_page_number):
-    actual_page_number = comments_svc.comment_id_to_page_number(comment_id)
-    assert expected_page_number == actual_page_number
+# def test_comment__edit(sesh, client, test_thread, test_user):
+#     comment_text = utils.random_string()
+#     with utils.current_user(test_user):
+#         edit_form_resp = client.get(f"/threads/{test_thread.slug}/1/edit-form")
+#         assert edit_form_resp.status_code == 200
 
-
-@pytest.mark.parametrize("page_number, expected_first_comment_id", [
-    (1, 1),
-    (2, 11),
-    (3, 21),
-])
-def test_page_number_to_first_comment_id(page_number, expected_first_comment_id):
-    actual_first_comment_id = comments_svc.page_number_to_first_comment_id(page_number)
-    assert actual_first_comment_id == expected_first_comment_id
+#         edit_resp = client.post(
+#             f"/threads/{test_thread.slug}", data={"comment-markdown": comment_text}
+#         )
+#     assert edit_resp.status_code == 302
+#     follow_resp = client.get(edit_resp["Location"])
+#     comments = extract_comments(follow_resp)
+#     assert comment_text in comments[1]

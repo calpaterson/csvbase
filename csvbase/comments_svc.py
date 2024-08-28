@@ -2,6 +2,7 @@ import re
 import secrets
 from dataclasses import dataclass
 from typing import Sequence, Optional
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -33,6 +34,7 @@ class CommentPage:
 
 def comment_id_to_page_number(comment_id: int) -> int:
     return ((comment_id - 1) // 10) + 1
+
 
 def page_number_to_first_comment_id(page_number: int) -> int:
     return (page_number * 10) - 9
@@ -107,7 +109,9 @@ def get_comment_page(
         for comment_obj in comment_objs
     ]
 
-    return CommentPage(thread=thread, comments=comments, has_more=has_more, has_less=start>1)
+    return CommentPage(
+        thread=thread, comments=comments, has_more=has_more, has_less=start > 1
+    )
 
 
 def get_comment(sesh: Session, thread: Thread, comment_id: int) -> Comment:
@@ -123,15 +127,20 @@ def get_comment(sesh: Session, thread: Thread, comment_id: int) -> Comment:
     return _comment_obj_to_comment(sesh, thread, comment)
 
 
+def edit_comment(sesh: Session, thread: Thread, comment_id: int, markdown: str) -> None:
+    sesh.query(models.Comment).filter(
+        models.Comment.thread_id == thread.internal_thread_id,
+        models.Comment.comment_id == comment_id,
+    ).update(dict(updated=datetime.now(timezone.utc), comment_markdown=markdown))
+
+
 def get_max_comment_id(sesh: Session, thread_slug: str) -> Optional[int]:
     return (
         sesh.query(func.max(models.Comment.comment_id))
         .join(models.Thread, models.Thread.thread_id == models.Comment.thread_id)
-        .filter(models.Thread.thread_slug==thread_slug)
+        .filter(models.Thread.thread_slug == thread_slug)
         .scalar()
     )
-
-
 
 
 def create_thread_with_opening_comment(

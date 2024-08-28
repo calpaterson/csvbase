@@ -31,17 +31,14 @@ class ThreadView(MethodView):
         else:
             comment_markdown = ""
 
-        comment_lines = len(comment_markdown.splitlines())
-
         return make_response(
             render_template(
                 "thread.html",
                 comment_page=comment_page,
                 page_title=comment_page.thread.title,
                 comment_markdown=comment_markdown,
-                comment_box_lines=comment_lines + 2,
                 current_page=page,
-                max_page=max_page
+                max_page=max_page,
             )
         )
 
@@ -65,8 +62,26 @@ class CommentView(MethodView):
     def get(self, thread_slug: str, comment_id: int) -> Response:  # type: ignore
         """Get an individual comment"""
 
-    def post(self, thread_slug: str, comment_id: int) -> Response:  # type: ignore
+    def post(self, thread_slug: str, comment_id: int) -> Response:
         """Edit a comment"""
+        sesh = get_sesh()
+
+        thread = comments_svc.get_thread_by_slug(sesh, thread_slug)
+        comment = comments_svc.get_comment(sesh, thread, comment_id)
+        # FIXME: assert am user
+
+        new_markdown = request.form["comment-markdown"]
+
+        comments_svc.edit_comment(sesh, thread, comment_id, new_markdown)
+        sesh.commit()
+        return redirect(
+            url_for(
+                "csvbase.thread_view",
+                thread_slug=thread_slug,
+                page=comment.page_number(),
+                _anchor=f"comment-{comment_id}",
+            )
+        )
 
     def delete(self, thread_slug: str, comment_id: int) -> Response:  # type: ignore
         """Delete a comment.
@@ -85,18 +100,24 @@ def comment_edit_form(thread_slug: str, comment_id: int) -> Response:
     sesh = get_sesh()
     thread = comments_svc.get_thread_by_slug(sesh, thread_slug)
     comment = comments_svc.get_comment(sesh, thread, comment_id)
-    return make_response(render_template(
-        "comment-edit.html",
-        page_title=f"Editing comment #{comment.comment_id}",
-        comment=comment,
-        comment_markdown=comment.markdown,
-        page_number=comments_svc.comment_id_to_page_number(comment.comment_id),
-    ))
+    return make_response(
+        render_template(
+            "comment-edit.html",
+            page_title=f"Editing comment #{comment.comment_id}",
+            comment=comment,
+            comment_markdown=comment.markdown,
+            page_number=comments_svc.comment_id_to_page_number(comment.comment_id),
+        )
+    )
 
 
 def init_comments_views(bp: Blueprint) -> None:
     bp.add_url_rule(
         "/threads/<thread_slug>", view_func=ThreadView.as_view("thread_view")
+    )
+    bp.add_url_rule(
+        "/threads/<thread_slug>/<comment_id>",
+        view_func=CommentView.as_view("comment_view"),
     )
     bp.add_url_rule(
         "/threads/<thread_slug>/<int:comment_id>/edit-form",

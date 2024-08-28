@@ -3,7 +3,7 @@
 {% import 'value_macros.html' as value_macros %}
 
 {%- macro render_pagination(thread_slug, current_page, max_page) %}
-  <ul class="pagination">
+  <ul class="pagination justify-content-center">
     {% for page_number in range(1, max_page+1) %}
       <li class="page-item {% if page_number == current_page %}active{% endif %}"
           ><a
@@ -34,7 +34,6 @@
         <span class="ms-auto">
           {% if for_owner %}
             <a class="btn btn-warning btn-sm" href="{{ url_for('csvbase.comment_edit_form', thread_slug=comment.thread.slug, comment_id=comment.comment_id) }}">edit</a>
-            <button class="btn btn-danger btn-sm" href="#">delete</button>
           {% endif %}
         <a class="btn btn-secondary btn-sm" href="{{ url_for('csvbase.thread_view', thread_slug=comment.thread.slug, page=comment.page_number(), replyto=comment.comment_id) }}">reply</a>
       </div>

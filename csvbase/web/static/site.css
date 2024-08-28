@@ -78,6 +78,7 @@
     text-align: center;
 }
 
+/* FIXME: remove this from wherever it is used */
 .blog-post-blockquote {
     margin: 1em;
     border-left: 0.2em solid grey;
@@ -138,4 +139,9 @@ input.table-pastable {
 #praise-button > img {
     max-height: 1.2em;
     max-width: 1.2em;
+}
+
+/* Tweaks for threads */
+.comment img {
+    max-width: 100%;
 }

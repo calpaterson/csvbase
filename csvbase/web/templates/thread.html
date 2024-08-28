@@ -1,7 +1,12 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "app_base.html" %}
 
-{% import 'thread_macros.html' as thread_macros %}
+{% import 'comment_macros.html' as comment_macros %}
+
+{% block head %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='comments.js') }}"></script>
+{% endblock %}
 
 {% block main %}
   <div class="container">
@@ -10,8 +15,8 @@
       <div class="alert alert-warning">
         Threads are an experimental feature!
       </div>
-      {{ thread_macros.render_pagination(comment_page.thread.slug, current_page, max_page) }}
-      {{ thread_macros.render_comment_page(comment_page, current_user) }}
+      {{ comment_macros.render_pagination(comment_page.thread.slug, current_page, max_page) }}
+      {{ comment_macros.render_comment_page(comment_page, current_user) }}
     </div>
 
     <div class="row col-md-8 offset-md-2">
@@ -25,8 +30,7 @@
               <div class="py-1">
                 <textarea
                   name="comment-markdown"
-                  class="form-control"
-                  rows="{{comment_box_lines}}"
+                  class="form-control comment-textarea"
                   {% if comment_markdown %}autofocus{% endif %}
                   >{{comment_markdown}}</textarea>
               </div>
