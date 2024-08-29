@@ -58,7 +58,9 @@ class ThreadView(MethodView):
         # This is both for cases where it's not being used and also to allow it to
         # be disabled in an emergency
         if get_config().turnstile_secret_key is None:
-            logger.warning("turnstile_secret_key not set, skipping validation of captcha")
+            logger.warning(
+                "turnstile_secret_key not set, skipping validation of captcha"
+            )
         else:
             validate_turnstile_token(get_turnstile_token_from_form(request.form))
 

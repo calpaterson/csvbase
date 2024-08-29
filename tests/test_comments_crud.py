@@ -1,8 +1,5 @@
-from typing import Dict
 
 
-from lxml import etree
-from lxml.cssselect import CSSSelector
 import pytest
 
 from csvbase.value_objs import Thread
