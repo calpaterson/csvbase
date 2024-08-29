@@ -18,7 +18,7 @@
     <div class="row col-md-8 offset-md-2">
       <h1>{{comment_page.thread.title}}</h1>
       <div class="alert alert-warning">
-        Threads are an experimental feature!
+        Threads are alpha.  They might be a bit wonky.
       </div>
       {{ comment_macros.render_pagination(comment_page.thread.slug, current_page, max_page) }}
       {{ comment_macros.render_comment_page(comment_page, current_user) }}
@@ -32,6 +32,11 @@
               method="POST"
               action="{{ url_for('csvbase.thread_view', thread_slug=comment_page.thread.slug)}}"
               >
+              {% if not current_user %}
+                <div class="alert alert-warning" role="alert">
+                  Please <a href="{{ url_for('csvbase.register') }}">register</a> (or <a href="{{ url_for('csvbase.sign_in') }}">sign in</a>) to leave a comment.
+                </div>
+              {% endif %}
               <div class="py-1">
                 <textarea
                   name="comment-markdown"
