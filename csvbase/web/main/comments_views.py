@@ -1,12 +1,18 @@
+from logging import getLogger
+
 from flask import make_response, render_template, request, redirect, url_for, Blueprint
 from flask.views import MethodView
 from werkzeug.wrappers.response import Response
 
+from ..turnstile import get_turnstile_token_from_form, validate_turnstile_token
 from csvbase import comments_svc, markdown
 from csvbase.config import get_config
 from csvbase.value_objs import Comment
 from ..func import get_current_user_or_401
 from ...sesh import get_sesh
+
+
+logger = getLogger(__name__)
 
 
 class ThreadView(MethodView):
@@ -54,7 +60,7 @@ class ThreadView(MethodView):
         if get_config().turnstile_secret_key is None:
             logger.warning("turnstile_secret_key not set, skipping validation of captcha")
         else:
-            validate_turnstile_token(get_turnstile_token_from_form(form))
+            validate_turnstile_token(get_turnstile_token_from_form(request.form))
 
         sesh = get_sesh()
         thread = comments_svc.get_thread_by_slug(sesh, thread_slug)
