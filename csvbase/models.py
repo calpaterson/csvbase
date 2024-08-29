@@ -397,7 +397,7 @@ class Thread(Base):
     thread_title = mapped_column(satypes.String, nullable=False)
     thread_slug = mapped_column(satypes.String, nullable=False, unique=True)
 
-    # FIXME: missing relationship obj back to user
+    user_obj = relationship("User", uselist=False)
 
 
 class Comment(Base):
@@ -440,7 +440,8 @@ class Comment(Base):
     )
     comment_markdown = mapped_column(satypes.String, nullable=False)
 
-    # FIXME: missing relationship objs back to thread
+    user_obj = relationship("User", uselist=False)
+    thread_obj = relationship("Thread", uselist=False)
 
 
 # class CommentReference(Base):
