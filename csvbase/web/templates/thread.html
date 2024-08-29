@@ -5,7 +5,8 @@
 
 {% block head %}
   {{ super() }}
-  <script src="{{ url_for('static', filename='comments.js') }}"></script>
+  <script async src="{{ url_for('static', filename='comments.js') }}"></script>
+
   {# No need to actually load this if user not logged in #}
   {% if current_user %}
     {{ captcha_macros.turnstile_script_tag() }}
