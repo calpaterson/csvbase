@@ -439,6 +439,15 @@ class Comment(Base):
     )
     comment_markdown = Column(satypes.String, nullable=False)
 
+    # FIXME: missing relationship objs back to thread
+
+
+# class CommentReference(Base):
+#     thread_id
+#     comment_id
+#     referenced_thread_id
+#     referenced_comment_id
+
 
 # class BlogThread(Base):
 #     __tablename__ = "blog_threads"
