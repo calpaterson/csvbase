@@ -21,7 +21,7 @@ def upgrade():
     op.create_table(
         "praise",
         sa.Column(
-            "praise_id", sa.BigInteger(), sa.Identity(always=False), nullable=False  # type: ignore
+            "praise_id", sa.BigInteger(), sa.Identity(always=False), nullable=False
         ),
         sa.Column("table_uuid", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("user_uuid", postgresql.UUID(as_uuid=True), nullable=False),

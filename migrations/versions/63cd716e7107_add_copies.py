@@ -21,7 +21,7 @@ def upgrade():
     op.create_table(
         "copies",
         sa.Column(
-            "copy_id", sa.BigInteger(), sa.Identity(always=False), nullable=False  # type: ignore
+            "copy_id", sa.BigInteger(), sa.Identity(always=False), nullable=False
         ),
         sa.Column("from_uuid", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("to_uuid", postgresql.UUID(as_uuid=True), nullable=False),

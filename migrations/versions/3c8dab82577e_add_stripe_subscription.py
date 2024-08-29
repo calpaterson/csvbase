@@ -17,7 +17,7 @@ down_revision = "878b845f7368"
 branch_labels = None
 depends_on = None
 
-subscription_statuses_table = table(  # type: ignore
+subscription_statuses_table = table(
     "stripe_subscription_statuses",
     column("stripe_subscription_status_id", sa.SmallInteger),
     column("stripe_subscription_status", sa.String),

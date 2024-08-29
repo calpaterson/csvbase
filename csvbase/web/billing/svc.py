@@ -54,7 +54,7 @@ def insert_stripe_customer_id(
     This is necessary to be defensive if users reload the success url.
 
     """
-    insert_stmt = insert(StripeCustomer.__table__).values(
+    insert_stmt = insert(StripeCustomer).values(
         user_uuid=user_uuid, stripe_customer_id=stripe_customer_id
     )
     if_not_exists_stmt = insert_stmt.on_conflict_do_nothing(

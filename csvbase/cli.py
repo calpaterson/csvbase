@@ -27,11 +27,11 @@ def load_prohibited_usernames():
 @click.command(
     help="Make the tables in the database (from the models, without using alembic)"
 )
-def make_tables():
+def make_tables() -> None:
     with init_app().app_context():
         sesh = get_sesh()
-        sesh.execute("CREATE SCHEMA IF NOT EXISTS metadata")
-        sesh.execute("CREATE SCHEMA IF NOT EXISTS userdata")
+        sesh.execute(text("CREATE SCHEMA IF NOT EXISTS metadata"))
+        sesh.execute(text("CREATE SCHEMA IF NOT EXISTS userdata"))
         Base.metadata.create_all(bind=sesh.connection(), checkfirst=True)
 
         dl_insert = text(
@@ -42,9 +42,9 @@ def make_tables():
             DO NOTHING
         """
         )
-        with sesh.begin() as conn:
-            conn.execute("CREATE SCHEMA IF NOT EXISTS metadata")
-            conn.execute(
+        with sesh.begin():
+            sesh.execute(text("CREATE SCHEMA IF NOT EXISTS metadata"))
+            sesh.execute(
                 dl_insert,
                 [{"licence_id": e.value, "licence_name": e.name} for e in DataLicence],
             )
@@ -57,15 +57,17 @@ def make_tables():
             ADD CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num);
         """
 
-        with sesh.begin() as conn:
-            conn.execute(alembic_version_ddl)
-            conn.execute(
-                """
+        with sesh.begin():
+            sesh.execute(text(alembic_version_ddl))
+            sesh.execute(
+                text(
+                    """
         INSERT INTO alembic_version (version_num)
             VALUES ('created by make_tables')
         ON CONFLICT
            DO NOTHING;
         """
+                )
             )
 
 

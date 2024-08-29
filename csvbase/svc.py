@@ -18,6 +18,7 @@ from sqlalchemy import (
     text,
     or_,
     tuple_ as satuple,
+    delete,
 )
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy.sql import exists
@@ -346,7 +347,7 @@ def update_upstream(sesh: Session, table: Table) -> None:
 
 
 def set_version(sesh: Session, table_uuid: UUID, version: UpstreamVersion) -> None:
-    sesh.query(models.GitUpstream).where(  # type: ignore
+    sesh.query(models.GitUpstream).where(
         models.GitUpstream.table_uuid == table_uuid
     ).update(
         {
@@ -363,7 +364,9 @@ def update_table_metadata(
     caption: str,
     licence: DataLicence,
 ) -> None:
-    table_obj = sesh.get(models.Table, table_uuid)  # type: ignore
+    # If we have a table uuid, the table must exist
+    table_obj = cast(models.Table, sesh.get(models.Table, table_uuid))
+
     table_obj.public = is_public
     table_obj.caption = caption
     table_obj.licence_id = licence.value
@@ -809,7 +812,7 @@ def praise(
             praiser_uuid=praiser_uuid,
         ),
     )
-    return rp.scalar()
+    return cast(int, rp.scalar())
 
 
 def is_praised(sesh: Session, user_uuid: UUID, table_uuid: UUID) -> Optional[int]:
@@ -826,10 +829,8 @@ def is_praised(sesh: Session, user_uuid: UUID, table_uuid: UUID) -> Optional[int
 
 
 def unpraise(sesh: Session, praise_id: int) -> None:
-    rp = sesh.execute(
-        text("DELETE FROM metadata.praise where praise_id = :praise_id"),
-        dict(praise_id=praise_id),
-    )
+    stmt = delete(models.Praise).where(models.Praise.praise_id == praise_id)
+    rp = sesh.execute(stmt)
     if rp.rowcount != 1:
         logger.error("praise could not be removed: %s", praise_id)
         raise RuntimeError("could not unpraise")
@@ -901,7 +902,7 @@ RETURNING
 
 def mark_table_changed(sesh: Session, table_uuid: UUID) -> None:
     sesh.execute(
-        update(models.Table)  # type: ignore
+        update(models.Table)
         .where(models.Table.table_uuid == table_uuid)
         .values(last_changed=func.now())
     )

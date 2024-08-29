@@ -1,10 +1,10 @@
 from typing import (
-    TYPE_CHECKING,
     Iterable,
     List,
     Optional,
     Sequence,
     Tuple,
+    cast,
 )
 from uuid import UUID, uuid4
 
@@ -16,10 +16,11 @@ from sqlalchemy import (
     tuple_ as satuple,
     delete,
     and_,
+    ColumnClause,
 )
 from sqlalchemy.orm import Session
 from sqlalchemy.schema import Column as SAColumn, DDLElement
-from sqlalchemy.schema import CreateTable, DropTable, MetaData, Identity  # type: ignore
+from sqlalchemy.schema import CreateTable, DropTable, MetaData, Identity
 from sqlalchemy.schema import Table as SATable
 from sqlalchemy.sql.expression import (
     TableClause,
@@ -29,6 +30,7 @@ from sqlalchemy.sql.expression import (
     Executable,
     ClauseElement,
 )
+from sqlalchemy.sql.dml import ReturningInsert
 from sqlalchemy.ext.compiler import compiles
 
 from ..value_objs import (
@@ -42,9 +44,6 @@ from ..value_objs import (
     Table,
     ROW_ID_COLUMN,
 )
-
-if TYPE_CHECKING:
-    from sqlalchemy.engine import RowProxy
 
 
 class PGUserdataAdapter:
@@ -61,7 +60,7 @@ class PGUserdataAdapter:
     def _get_tableclause(
         self, table_name: str, columns: Sequence[Column], schema: Optional[str] = None
     ) -> TableClause:
-        return satable(  # type: ignore
+        return satable(
             table_name,
             *[sacolumn(c.name, type_=c.type_.sqla_type()) for c in columns],
             schema=schema,
@@ -85,7 +84,7 @@ class PGUserdataAdapter:
         This should be done after inserts that raise the csvbase_row_id.
 
         """
-        fullname = tableclause.fullname  # type: ignore
+        fullname = tableclause.fullname
 
         stmt = select(
             func.setval(
@@ -109,8 +108,13 @@ class PGUserdataAdapter:
     def count(self, table_uuid: UUID) -> RowCount:
         """Count the rows."""
         # we don't need the columns here, just a table
-        tableclause = satable(self._make_userdata_table_name(table_uuid), *[], schema="userdata")  # type: ignore
-        exact, approx = self.sesh.execute(RowCountStatement(tableclause)).fetchone()
+        tableclause = satable(
+            self._make_userdata_table_name(table_uuid), *[], schema="userdata"
+        )
+        exact, approx = cast(
+            Tuple[Optional[int], int],
+            self.sesh.execute(RowCountStatement(tableclause)).fetchone(),
+        )
         return RowCount(exact, approx)
 
     def get_columns(self, table_uuid: UUID) -> List["Column"]:
@@ -147,17 +151,14 @@ class PGUserdataAdapter:
     def min_row_id(self, table_uuid: UUID) -> int:
         """Returns the lowest row id in the table, or if there are no rows, 0."""
         table_clause = self._get_userdata_tableclause(table_uuid)
-        stmt = (
-            select([table_clause.c.csvbase_row_id])
-            .order_by(table_clause.c.csvbase_row_id)
-            .limit(1)
-        )
+        row_id: ColumnClause[int] = table_clause.c.csvbase_row_id
+        stmt = select(row_id).order_by(row_id).limit(1)
         cursor = self.sesh.execute(stmt)
-        row_id: Optional[int] = cursor.scalar()
-        if row_id is None:
+        min_rid: Optional[int] = cursor.scalar()
+        if min_rid is None:
             return 0
         else:
-            return row_id
+            return min_rid
 
     def row_id_bounds(self, table_uuid: UUID) -> Tuple[Optional[int], Optional[int]]:
         """Returns the min and max row id.
@@ -173,7 +174,7 @@ class PGUserdataAdapter:
             func.max(table_clause.c.csvbase_row_id),
         )
         cursor = self.sesh.execute(stmt)
-        return cursor.fetchone()
+        return cast(Tuple[Optional[int], Optional[int]], cursor.fetchone())
 
     def get_a_sample_row(self, table_uuid: UUID) -> Row:
         """Returns a sample row from the table (the lowest row id).
@@ -195,9 +196,10 @@ class PGUserdataAdapter:
     def insert_row(self, table_uuid: UUID, row: Row) -> int:
         table = self._get_userdata_tableclause(table_uuid)
         values = {c.name: v for c, v in row.items()}
-        return self.sesh.execute(
+        stmt: ReturningInsert[Tuple[int]] = (
             table.insert().values(values).returning(table.c.csvbase_row_id)
-        ).scalar()
+        )
+        return cast(int, self.sesh.execute(stmt).scalar())
 
     def update_row(
         self,
@@ -241,10 +243,10 @@ class PGUserdataAdapter:
         else:
             # if we're going backwards we need to reverse the order via a subquery
             keyset_page = keyset_page.order_by(table_vals.desc())
-            keyset_sub = select(keyset_page.alias())  # type: ignore
+            keyset_sub = select(keyset_page.alias())
             keyset_page = keyset_sub.order_by(*key_names)
 
-        row_tuples: List[RowProxy] = list(self.sesh.execute(keyset_page))
+        row_tuples = list(self.sesh.execute(keyset_page))
 
         if len(row_tuples) > 1:
             first_row = row_tuples[0]
@@ -254,25 +256,25 @@ class PGUserdataAdapter:
                 *[getattr(last_row, colname) for colname in key_names]
             )
             has_more_q = (
-                table_clause.select().where(table_vals > has_more_vals).exists()  # type: ignore
+                table_clause.select().where(table_vals > has_more_vals).exists()
             )
             has_more = self.sesh.query(has_more_q).scalar()
             has_less_vals = satuple(
                 *[getattr(first_row, colname) for colname in key_names]
             )
             has_less_q = (
-                table_clause.select().where(table_vals < has_less_vals).exists()  # type: ignore
+                table_clause.select().where(table_vals < has_less_vals).exists()
             )
             has_less = self.sesh.query(has_less_q).scalar()
         else:
             if keyset.op == "greater_than":
                 has_more = False
                 has_less = self.sesh.query(
-                    table_clause.select().where(table_vals < keyset_vals).exists()  # type: ignore
+                    table_clause.select().where(table_vals < keyset_vals).exists()
                 ).scalar()
             else:
                 has_more = self.sesh.query(
-                    table_clause.select().where(table_vals > keyset_vals).exists()  # type: ignore
+                    table_clause.select().where(table_vals > keyset_vals).exists()
                 ).scalar()
                 has_less = False
 
@@ -334,7 +336,7 @@ class PGUserdataAdapter:
             column_names,
             select(*add_stmt_select_columns)
             .select_from(temp_tableclause)
-            .where(temp_tableclause.c.csvbase_row_id.is_not(None)),  # type: ignore
+            .where(temp_tableclause.c.csvbase_row_id.is_not(None)),
         )
 
         reset_serial_stmt = select(
@@ -374,7 +376,7 @@ class PGUserdataAdapter:
 
         """
         main_tableclause = self._get_userdata_tableclause(table.table_uuid)
-        main_fullname = main_tableclause.fullname  # type: ignore
+        main_fullname = main_tableclause.fullname
         # FIXME: should consider DELETE if table is small - that's faster in
         # that case
         truncate_stmt = text(f"TRUNCATE {main_fullname};")
@@ -422,7 +424,9 @@ class PGUserdataAdapter:
     def copy_table_data(self, from_table_uuid: UUID, to_table_uuid: UUID) -> None:
         from_tableclause = self._get_userdata_tableclause(from_table_uuid)
         to_tableclause = self._get_userdata_tableclause(to_table_uuid)
-        stmt = to_tableclause.insert().from_select(from_tableclause.c, from_tableclause)
+        stmt = to_tableclause.insert().from_select(
+            list(from_tableclause.c), from_tableclause
+        )
         self.sesh.execute(stmt)
         self._reset_pk_sequence(to_tableclause)
 
@@ -467,7 +471,7 @@ class PGUserdataAdapter:
 
         # 1. for removals
         ids_to_delete = (
-            select(main_tableclause.c.csvbase_row_id)  # type: ignore
+            select(main_tableclause.c.csvbase_row_id)
             .select_from(
                 main_tableclause.outerjoin(
                     temp_tableclause,
@@ -502,7 +506,7 @@ class PGUserdataAdapter:
         ]
         add_stmt_no_blanks = main_tableclause.insert().from_select(
             existing_column_names,
-            select(*add_stmt_select_columns)  # type: ignore
+            select(*add_stmt_select_columns)
             .select_from(
                 temp_tableclause.outerjoin(
                     main_tableclause,
@@ -512,7 +516,7 @@ class PGUserdataAdapter:
             )
             .where(
                 main_tableclause.c.csvbase_row_id.is_(None),
-                temp_tableclause.c.csvbase_row_id.is_not(None),  # type: ignore
+                temp_tableclause.c.csvbase_row_id.is_not(None),
             ),
         )
 
@@ -532,7 +536,7 @@ class PGUserdataAdapter:
         ]
         add_stmt_blanks = main_tableclause.insert().from_select(
             existing_column_names,
-            select(*select_columns)  # type: ignore
+            select(*select_columns)
             .select_from(
                 temp_tableclause.outerjoin(main_tableclause, and_(*join_clause))
             )
@@ -558,7 +562,7 @@ class PGUserdataAdapter:
                 "relname": self._make_userdata_table_name(table_uuid, with_schema=True)
             },
         )
-        return rs.scalar()
+        return cast(int, rs.scalar())
 
 
 class CreateTempTableLike(DDLElement):
