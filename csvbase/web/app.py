@@ -273,8 +273,9 @@ def init_app() -> Flask:
         # Prevent sniffing
         response.headers["X-Content-Type-Options"] = "nosniff"
 
-        # Basic starter CSP.  Default to only allowing our source, ban objects
-        # (eg Flash) and allow external images/audio/video
+        # Basic starter CSP.  Default to only allowing our source (plus
+        # Cloudflare turnstile), ban objects (eg Flash) and allow external
+        # images/audio/video
         response.headers["Content-Security-Policy"] = (
             "default-src 'self' https://challenges.cloudflare.com; object-src 'none'; img-src * data:; media-src *;"
         )
