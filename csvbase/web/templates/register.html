@@ -2,14 +2,12 @@
 {% extends "base.html" %}
 
 {% from 'value_macros.html' import id_input_validation_attrs %}
-
 {% import 'other_macros.html' as other_macros %}
+{% import 'captcha_macros.html' as captcha_macros %}
 
 {% block head %}
   {{ super() }}
-  {% if turnstile_site_key %}
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-  {% endif %}
+  {{ captcha_macros.turnstile_script_tag(turnstile_site_key) }}
 {% endblock %}
 
 {% block main %}
@@ -30,9 +28,7 @@
 
           {{ other_macros.mailing_list_form_field() }}
 
-          {% if turnstile_site_key %}
-            <div class="cf-turnstile" data-sitekey="{{turnstile_site_key}}"></div>
-          {% endif %}
+          {{ captcha_macros.turnstile_magic_div(turnstile_site_key) }}
 
           <input class="btn btn-success" type="submit" value="Register">
         </form>
