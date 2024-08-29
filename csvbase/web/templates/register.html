@@ -7,7 +7,7 @@
 
 {% block head %}
   {{ super() }}
-  {{ captcha_macros.turnstile_script_tag(turnstile_site_key) }}
+  {{ captcha_macros.turnstile_script_tag() }}
 {% endblock %}
 
 {% block main %}
@@ -28,7 +28,7 @@
 
           {{ other_macros.mailing_list_form_field() }}
 
-          {{ captcha_macros.turnstile_magic_div(turnstile_site_key) }}
+          {{ captcha_macros.turnstile_magic_div() }}
 
           <input class="btn btn-success" type="submit" value="Register">
         </form>
