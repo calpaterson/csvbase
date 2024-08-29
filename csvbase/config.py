@@ -26,6 +26,11 @@ class Config:
     stripe_price_id: Optional[str]
     enable_datadog: bool
     x_accel_redirect: bool
+
+    # configuration for Cloudflare turnstile (a captcha tool)
+    turnstile_site_key: Optional[str]
+    turnstile_secret_key: Optional[str]
+
     celery_broker_url: Optional[str] = "redis://localhost/3"
 
 
@@ -55,6 +60,8 @@ def load_config(config_file: Path) -> Config:
         stripe_api_key=as_dict.get("stripe_api_key"),
         enable_datadog=as_dict.get("enable_datadog", False),
         x_accel_redirect=as_dict.get("x_accel_redirect", False),
+        turnstile_site_key=as_dict.get("turnstile_site_key"),
+        turnstile_secret_key=as_dict.get("turnstile_secret_key"),
     )
 
 

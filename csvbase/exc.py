@@ -95,6 +95,12 @@ class UsernameAlreadyExistsException(CSVBaseException):
         self.username = username
 
 
+class CaptchaFailureException(CSVBaseException):
+    """Represents a captcha check failing where it's the users fault (ie: not an internal error)"""
+
+    pass
+
+
 class UsernameAlreadyExistsInDifferentCaseException(UsernameAlreadyExistsException):
     pass
 

@@ -1,6 +1,7 @@
 from lxml import etree
 from datetime import datetime
 
+from csvbase import svc
 from csvbase.web import schemaorg
 from csvbase.web.main.bp import get_table_reps
 from .utils import test_data_path
@@ -34,11 +35,21 @@ def test_sitemap(client):
 
 
 def test_schemaorg_dataset(sesh, ten_rows):
+    readme_md = "Ten rows, all about something or other"
+    svc.set_readme_markdown(sesh, ten_rows.table_uuid, readme_md)
+
+    expected_description = f"""{ten_rows.caption}
+---
+{readme_md}"""
+
     expected = {
-        "@context": "https://schema.org",
+        "@context": [
+            "https://schema.org",
+            {"csvw": "https://www.w3.org/ns/csvw#"},
+        ],
         "@type": "Dataset",
         "name": ten_rows.table_name,
-        "description": ten_rows.caption,
+        "description": expected_description,
         "url": f"http://localhost/{ten_rows.username}/{ten_rows.table_name}",
         "isAccessibleForFree": True,
         "distribution": [
@@ -74,9 +85,36 @@ def test_schemaorg_dataset(sesh, ten_rows):
             "name": ten_rows.username,
             "url": f"http://localhost/{ten_rows.username}",
         },
+        "mainEntity": {
+            "@type": "csvw:Table",
+            "csvw:tableSchema": {
+                "csvw:columns": [
+                    {
+                        "csvw:name": "csvbase_row_id",
+                        "csvw:datatype": "integer",
+                    },
+                    {
+                        "csvw:name": "roman_numeral",
+                        "csvw:datatype": "string",
+                    },
+                    {
+                        "csvw:name": "is_even",
+                        "csvw:datatype": "boolean",
+                    },
+                    {
+                        "csvw:name": "as_date",
+                        "csvw:datatype": "date",
+                    },
+                    {
+                        "csvw:name": "as_float",
+                        "csvw:datatype": "double",
+                    },
+                ]
+            },
+        },
     }
     reps = get_table_reps(sesh, ten_rows)
-    actual = schemaorg.to_dataset(ten_rows, reps)
+    actual = schemaorg.to_dataset(ten_rows, readme_md, reps)
 
     def key(d):
         return d["encodingFormat"]

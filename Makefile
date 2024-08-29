@@ -11,7 +11,7 @@ static-deps: csvbase/web/static/codehilite.css csvbase/web/static/codehilite-dar
 
 .venv: .venv/touchfile
 
-.venv/touchfile: setup.py requirements.txt
+.venv/touchfile: pyproject.toml requirements.txt
 	test -d .venv || python3 -m venv .venv
 	. .venv/bin/activate; python -m pip install .
 	touch $@

@@ -1,14 +1,23 @@
-from typing import Dict, Any, Collection
+"""Functions for producing JSON-LD documents from value objects.
+
+These functions are all in the web tier and can rely on the Flask app context
+being pushed.
+
+"""
+
+from typing import Dict, Any, Collection, Optional
 
 from flask import url_for
 
-from csvbase.value_objs import Table, TableRepresentation
+from csvbase.value_objs import Table, TableRepresentation, ColumnType
 
 
-def to_dataset(table: Table, reps: Collection[TableRepresentation]) -> Dict[str, Any]:
+def to_dataset(
+    table: Table, table_readme_md: str, reps: Collection[TableRepresentation]
+) -> Dict[str, Any]:
     """Produce a schema.org Dataset object from a Table."""
     obj = {
-        "@context": "https://schema.org",
+        "@context": ["https://schema.org", {"csvw": "https://www.w3.org/ns/csvw#"}],
         "@type": "Dataset",
         "name": table.table_name,
         "url": url_for(
@@ -23,9 +32,10 @@ def to_dataset(table: Table, reps: Collection[TableRepresentation]) -> Dict[str,
         "dateModified": table.last_changed.isoformat(),
         "publisher": make_organisation(),
         "maintainer": to_person(table.username),
+        # description is a mandatory field for most
+        "description": to_description(table.caption, table_readme_md),
+        "mainEntity": to_csvw_table(table),
     }
-    if table.has_caption():
-        obj["description"] = table.caption
 
     # Mark up all the reps we hold
     distribution = []
@@ -34,6 +44,22 @@ def to_dataset(table: Table, reps: Collection[TableRepresentation]) -> Dict[str,
     obj["distribution"] = distribution
 
     return obj
+
+
+def to_description(caption: Optional[str], readme_md: Optional[str]) -> str:
+    """Produce a 'description'.
+
+    Consumers tend to want a longer block of text for this than just our
+    caption, so we selectively combine the caption and the readme to produce
+    something.
+
+    """
+    if caption is None and readme_md is None:
+        return "No description"
+    elif caption is not None and readme_md is None:
+        return caption
+    else:
+        return f"""{caption}\n---\n{readme_md}"""
 
 
 def to_datadownload(table: Table, rep: TableRepresentation) -> Dict[str, str]:
@@ -71,4 +97,26 @@ def to_person(username: str) -> Dict[str, str]:
         "@type": "Person",
         "name": username,
         "url": url_for("csvbase.user", username=username, _external=True),
+    }
+
+
+CSVW_TYPE_MAP = {
+    ColumnType.TEXT: "string",
+    ColumnType.INTEGER: "integer",
+    ColumnType.FLOAT: "double",
+    ColumnType.BOOLEAN: "boolean",
+    ColumnType.DATE: "date",
+}
+
+
+def to_csvw_table(table: Table) -> Dict[str, Any]:
+    """Produce CSVW ("CSV on the Web") Table from our table."""
+    return {
+        "@type": "csvw:Table",
+        "csvw:tableSchema": {
+            "csvw:columns": [
+                {"csvw:name": column.name, "csvw:datatype": CSVW_TYPE_MAP[column.type_]}
+                for column in table.columns
+            ]
+        },
     }

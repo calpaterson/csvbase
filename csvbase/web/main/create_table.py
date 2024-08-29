@@ -14,7 +14,7 @@ from flask.views import MethodView
 from flask import Blueprint, redirect, render_template, url_for, request
 from werkzeug.wrappers.response import Response
 
-from ..func import get_current_user_or_401, register_and_sign_in_new_user
+from ..func import get_current_user_or_401
 from ... import exc, svc, streams, table_io, temp
 from ...sesh import get_sesh
 from ...userdata import PGUserdataAdapter
@@ -233,10 +233,7 @@ bp.add_url_rule(
 @bp.post("/new-table")
 def new_table_form_submission() -> Response:
     sesh = get_sesh()
-    if "username" in request.form:
-        current_user = register_and_sign_in_new_user(sesh)
-    else:
-        current_user = get_current_user_or_401()
+    current_user = get_current_user_or_401()
 
     quota = billing_svc.get_quota(sesh, current_user.user_uuid)
     usage = svc.get_usage(sesh, current_user.user_uuid)
@@ -341,10 +338,7 @@ def blank_table() -> str:
 @bp.post("/new-table/blank")
 def blank_table_form_post() -> Response:
     sesh = get_sesh()
-    if "username" in request.form:
-        current_user = register_and_sign_in_new_user(sesh)
-    else:
-        current_user = get_current_user_or_401()
+    current_user = get_current_user_or_401()
 
     quota = billing_svc.get_quota(sesh, current_user.user_uuid)
     usage = svc.get_usage(sesh, current_user.user_uuid)

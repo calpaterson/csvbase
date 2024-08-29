@@ -1,0 +1,54 @@
+{# -*- mode: jinja2 -*- #}
+
+{% import 'value_macros.html' as value_macros %}
+
+{%- macro render_pagination(thread_slug, current_page, max_page) %}
+  <ul class="pagination justify-content-center">
+    {% for page_number in range(1, max_page+1) %}
+      <li class="page-item {% if page_number == current_page %}active{% endif %}"
+          ><a
+          class="page-link"
+          {% if page_number == 1 %}
+            href="{{ url_for('csvbase.thread_view', thread_slug=thread_slug) }}"
+          {% else %}
+            href="{{ url_for('csvbase.thread_view', thread_slug=thread_slug, page=page_number) }}"
+          {% endif %}
+          >{{ page_number }}</a></li>
+    {% endfor %}
+  </ul>
+{% endmacro %}
+
+
+{%- macro render_comment_page(comment_page, current_user) %}
+  {% for comment in comment_page.comments %}
+    {% set for_owner = current_user == comment.user %}
+    {{ render_comment(comment, for_owner=for_owner) }}
+  {% endfor %}
+{% endmacro %}
+
+{%- macro render_comment(comment, for_owner=False) %}
+  <div id="comment-{{comment.comment_id}}" class="comment my-2">
+    <div class="card">
+      <div class="card-header d-flex">
+        <span><a href="{{url_for('csvbase.thread_view', thread_slug=comment.thread.slug, page=comment.page_number(), _anchor='comment-' ~ comment.comment_id)}}">#{{comment.comment_id}}</a> <a href="{{ url_for('csvbase.user', username=comment.user.username) }}">{{comment.user.username}}</a> <span class="text-body-secondary">{{ value_macros.render_human_datetime(comment.created) }} ago</span></span>
+        <span class="ms-auto">
+          {% if for_owner %}
+            <a class="btn btn-warning btn-sm" href="{{ url_for('csvbase.comment_edit_form', thread_slug=comment.thread.slug, comment_id=comment.comment_id) }}">edit</a>
+          {% endif %}
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('csvbase.thread_view', thread_slug=comment.thread.slug, page=comment.page_number(), replyto=comment.comment_id) }}">reply</a>
+      </div>
+      <div class="card-body">
+        {{comment.markdown|render_markdown|safe}}
+      </div>
+      {% if comment.referenced_by %}
+        <div class="card-footer">
+          Replies: {% for r in comment.referenced_by %} <a href="#{r}">#{{r}}</a>{% endfor %}
+        </div>
+      {% elif comment.comment_id == 2 %}
+        <div class="card-footer">
+          References: <a href="#">Row 3</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}

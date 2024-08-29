@@ -54,7 +54,12 @@ def get_posts(sesh: Session) -> Sequence[Post]:
     backend = PGUserdataAdapter(sesh)
     page = backend.table_page(
         table,
-        KeySet([Column("csvbase_row_id", ColumnType.INTEGER)], (0,), op="greater_than"),
+        KeySet(
+            [Column("csvbase_row_id", ColumnType.INTEGER)],
+            (0,),
+            op="greater_than",
+            size=20,
+        ),
     )
     posts = []
     for row in page.rows:

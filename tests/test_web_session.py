@@ -1,18 +1,28 @@
 """Tests for authentication (the "web session")."""
 
 from base64 import b64encode
+from unittest.mock import patch
 
 import pytest
 
-from csvbase import svc
+from csvbase import svc, exc
+from csvbase.config import get_config
+from csvbase.web import func
 from csvbase.value_objs import ContentType
-from .utils import random_string, current_user
+from .utils import random_string, current_user, mock_turnstile
 
 
-def test_registering_no_whence(client):
+def test_registering__no_whence(client, requests_mocker):
     username = random_string()
+    mock_turnstile(requests_mocker)
     response = client.post(
-        "/register", data=dict(username=username, password="password", email="")
+        "/register",
+        data={
+            "username": username,
+            "password": "password",
+            "email": "",
+            "cf-turnstile-response": random_string(),
+        },
     )
     assert response.status_code == 302
     assert response.headers["Location"] == f"/{username}"
@@ -21,34 +31,88 @@ def test_registering_no_whence(client):
     assert get_resp.status_code == 200
 
 
-def test_registering_a_username_thats_taken(client, sesh, app):
+def test_registering__captcha_disabled(client):
+    """Check that if the config key is not set, that the captcha verification is skipped."""
+    username = random_string()
+
+    with patch.object(get_config(), "turnstile_secret_key", None):
+        response = client.post(
+            "/register",
+            data={
+                "username": username,
+                "password": "password",
+                "email": "",
+            },
+        )
+    assert response.status_code == 302
+
+
+def test_registering__captcha_failure(client, requests_mocker):
+    username = random_string()
+
+    with patch.object(
+        func, "validate_turnstile_token", side_effect=exc.CaptchaFailureException
+    ):
+        response = client.post(
+            "/register",
+            data={
+                "username": username,
+                "password": "password",
+                "email": "",
+                "cf-turnstile-response": random_string(),
+            },
+        )
+    assert response.status_code == 403
+
+
+def test_registering___username_is_taken(client, sesh, app, requests_mocker):
     username = random_string()
 
     svc.create_user(sesh, app.config["CRYPT_CONTEXT"], username, "password")
     sesh.commit()
 
-    resp = client.post("/register", data=dict(username=username, password="password"))
+    mock_turnstile(requests_mocker)
+    resp = client.post(
+        "/register",
+        data={
+            "username": username,
+            "password": "password",
+            "cf-turnstile-response": random_string(),
+        },
+    )
     assert resp.status_code == 400, resp.data
     assert resp.json == {"error": "that username is taken"}
 
 
-def test_registering_a_username_that_differs_only_by_case(client, sesh, app):
+def test_registering__username_differs_only_by_case(client, sesh, app, requests_mocker):
     username = random_string()
 
     svc.create_user(sesh, app.config["CRYPT_CONTEXT"], username, "password")
     sesh.commit()
 
+    mock_turnstile(requests_mocker)
     resp = client.post(
-        "/register", data=dict(username=username.capitalize(), password="password")
+        "/register",
+        data={
+            "username": username.capitalize(),
+            "password": "password",
+            "cf-turnstile-response": random_string(),
+        },
     )
     assert resp.status_code == 400, resp.data
     assert resp.json == {"error": "that username is taken (in a different case)"}
 
 
 @pytest.mark.parametrize("banned_username", ["api", "API", "Api"])
-def test_registering_a_banned_username(client, banned_username):
+def test_registering__banned_username(client, banned_username, requests_mocker):
+    mock_turnstile(requests_mocker)
     resp = client.post(
-        "/register", data=dict(username=banned_username, password="password")
+        "/register",
+        data={
+            "username": banned_username,
+            "password": "password",
+            "cf-turnstile-response": random_string(),
+        },
     )
     assert resp.status_code == 400, resp.data
     assert resp.json == {"error": "that username is not allowed"}
@@ -64,9 +128,15 @@ def test_registering_a_banned_username(client, banned_username):
         pytest.param("f" * 300, id="too long"),
     ],
 )
-def test_registering_an_invalid_username(client, invalid_username):
+def test_registering__invalid_username(client, invalid_username, requests_mocker):
+    mock_turnstile(requests_mocker)
     resp = client.post(
-        "/register", data=dict(username=invalid_username, password="password")
+        "/register",
+        data={
+            "username": invalid_username,
+            "password": "password",
+            "cf-turnstile-response": random_string(),
+        },
     )
     assert resp.status_code == 400, resp.data
     assert resp.json == {"error": "that username is invalid"}

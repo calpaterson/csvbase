@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "csvbase"
+dynamic = ["version", "dependencies", "optional-dependencies"]
+
+[project.scripts]
+csvbase-make-tables = "csvbase.cli:make_tables"
+csvbase-make-blog-table = "csvbase.web.blog.cli:make_blog_table"
+csvbase-load-prohibited-usernames = "csvbase.cli:load_prohibited_usernames"
+csvbase-config = "csvbase.cli:config_cli"
+csvbase-update-stripe-subscriptions = "csvbase.cli:update_stripe_subscriptions"
+csvbase-repcache-populate = "csvbase.cli:repcache_populate"
+
+[tool.setuptools.packages.find]
+include = ["csvbase"]
+
+[tool.setuptools.dynamic]
+version = {file = "csvbase/VERSION"}
+dependencies = {file = ["requirements.txt"]}
+optional-dependencies.tests = {file = ["requirements-test.txt"]}

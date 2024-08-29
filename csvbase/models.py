@@ -116,8 +116,13 @@ class TableBackend(Base):
     backend_name = mapped_column(satypes.String, nullable=False)
 
 
-def _last_changed_default(context) -> datetime:
-    """Set last_changed to the same value as created by default."""
+def _created_default(context) -> datetime:
+    """Returns value of 'created' attr.
+
+    Useful when models have a created and an updated and upon creation they
+    should match.
+
+    """
     return context.get_current_parameters()["created"]
 
 
@@ -159,7 +164,7 @@ class Table(Base):
 
     last_changed = mapped_column(
         satypes.DateTime(timezone=True),
-        default=_last_changed_default,
+        default=_created_default,
         nullable=False,
         index=True,
     )
@@ -369,16 +374,30 @@ class Thread(Base):
     )
 
     thread_id = mapped_column(satypes.BigInteger, Identity(), primary_key=True)
-    thread_created = mapped_column(
-        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    created = mapped_column(
+        satypes.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
     )
-    thread_updated = mapped_column(
-        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    updated = mapped_column(
+        satypes.DateTime(timezone=True),
+        default=_created_default,
+        nullable=False,
+        index=True,
+    )
+    deleted = mapped_column(
+        satypes.DateTime(timezone=True),
+        default=None,
+        nullable=True,
     )
     user_uuid = mapped_column(
         PGUUID, ForeignKey("metadata.users.user_uuid"), nullable=False
     )
     thread_title = mapped_column(satypes.String, nullable=False)
+    thread_slug = mapped_column(satypes.String, nullable=False, unique=True)
+
+    # FIXME: missing relationship obj back to user
 
 
 class Comment(Base):
@@ -390,7 +409,7 @@ class Comment(Base):
         METADATA_SCHEMA_TABLE_ARG,
     )
 
-    comment_id = mapped_column(satypes.BigInteger, Identity(), primary_key=True)
+    comment_id = mapped_column(satypes.BigInteger, primary_key=True)
     user_uuid = mapped_column(
         PGUUID, ForeignKey("metadata.users.user_uuid"), nullable=False, index=True
     )
@@ -399,14 +418,58 @@ class Comment(Base):
         ForeignKey("metadata.threads.thread_id"),
         nullable=False,
         index=True,
+        primary_key=True,
     )
-    comment_created = mapped_column(
-        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+
+    created = mapped_column(
+        satypes.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
     )
-    comment_updated = mapped_column(
-        satypes.DateTime(timezone=True), default=func.now(), nullable=False, index=True
+    updated = mapped_column(
+        satypes.DateTime(timezone=True),
+        default=_created_default,
+        nullable=False,
+        index=True,
+    )
+    deleted = mapped_column(
+        satypes.DateTime(timezone=True),
+        default=None,
+        nullable=True,
     )
     comment_markdown = mapped_column(satypes.String, nullable=False)
+
+    # FIXME: missing relationship objs back to thread
+
+
+# class CommentReference(Base):
+#     thread_id
+#     comment_id
+#     referenced_thread_id
+#     referenced_comment_id
+
+
+# class BlogThread(Base):
+#     __tablename__ = "blog_threads"
+
+#     __table_args__ = (
+#         METADATA_SCHEMA_TABLE_ARG,
+#     )
+
+#     thread_id = Column(
+#         satypes.BigInteger,
+#         ForeignKey("metadata.threads.thread_id"),
+#         nullable=False,
+#         index=True,
+#     )
+
+#     # this is not a foreign key because the csvbase-blog table is userdata
+#     blogpost_id = Column(
+#         satypes.BigInteger,
+#         nullable=False,
+#         index=True,
+#     )
 
 
 # class CommentReference(Base):

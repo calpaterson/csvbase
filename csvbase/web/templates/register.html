@@ -2,8 +2,13 @@
 {% extends "base.html" %}
 
 {% from 'value_macros.html' import id_input_validation_attrs %}
-
 {% import 'other_macros.html' as other_macros %}
+{% import 'captcha_macros.html' as captcha_macros %}
+
+{% block head %}
+  {{ super() }}
+  {{ captcha_macros.turnstile_script_tag() }}
+{% endblock %}
 
 {% block main %}
   <div class="container">
@@ -22,6 +27,8 @@
           {{ other_macros.password_form_field() }}
 
           {{ other_macros.mailing_list_form_field() }}
+
+          {{ captcha_macros.turnstile_magic_div() }}
 
           <input class="btn btn-success" type="submit" value="Register">
         </form>

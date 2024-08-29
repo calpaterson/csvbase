@@ -141,3 +141,15 @@ def test_404_for_unknown_absent_urls(client):
     response = client.get("/index.php")
     assert response.status_code == 404
     assert response.json == {"error": "that page does not exist"}
+
+
+def test_security_headers(client):
+    resp = client.get("/")
+    assert resp.headers["X-Frame-Options"] == "DENY"
+
+    assert resp.headers["X-Content-Type-Options"] == "nosniff"
+
+    assert (
+        resp.headers["Content-Security-Policy"]
+        == "default-src 'self' https://challenges.cloudflare.com; object-src 'none'; img-src * data:; media-src *;"
+    )

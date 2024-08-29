@@ -6,4 +6,5 @@ include requirements.txt
 include requirements-test.txt
 include csvbase/VERSION
 include csvbase/data/prohibited-usernames
+include csvbase/data/spdx-licences.csv
 global-exclude *.pyc

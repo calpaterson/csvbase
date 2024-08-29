@@ -16,6 +16,8 @@ def test_config_file_not_exist(tmpdir):
         stripe_price_id=None,
         enable_datadog=False,
         x_accel_redirect=False,
+        turnstile_site_key=None,
+        turnstile_secret_key=None,
     )
 
 
@@ -35,4 +37,6 @@ def test_config_file_basic(tmpdir):
         stripe_price_id=None,
         enable_datadog=False,
         x_accel_redirect=False,
+        turnstile_site_key=None,
+        turnstile_secret_key=None,
     )

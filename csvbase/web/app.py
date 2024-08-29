@@ -43,12 +43,14 @@ from ..db import db, get_db_url
 from ..logging import configure_logging
 from .. import sentry, datadog
 from ..sesh import get_sesh
+from ..markdown import render_markdown
 from .func import is_browser, is_url, get_current_user
 from .billing import bp as billing_bp
 from .main.bp import bp as main_bp
 from .main.create_table import bp as create_table_bp
 from ..value_objs import ContentType, ROW_ID_COLUMN
 from ..bgwork.core import initialise_celery
+
 
 logger = getLogger(__name__)
 
@@ -96,6 +98,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
     exc.ReadOnlyException: ("that table is read-only", 400),
     exc.FAQEntryDoesNotExistException: ("that FAQ entry does not exist", 404),
     exc.TableAlreadyExists: ("that table already exists", 409),
+    exc.CaptchaFailureException: ("you failed the captcha", 403),
 }
 
 
@@ -150,9 +153,12 @@ def init_app() -> Flask:
     app.jinja_env.globals["blueprints"] = app.blueprints.keys()
     app.jinja_env.globals["ContentType"] = ContentType
     app.jinja_env.globals["schemaorg"] = schemaorg
+    app.jinja_env.globals["turnstile_site_key"] = config.turnstile_site_key
+
     app.jinja_env.filters["snake_case"] = snake_case
     app.jinja_env.filters["ppjson"] = ppjson
     app.jinja_env.filters["timedeltaformat"] = format_timedelta
+    app.jinja_env.filters["render_markdown"] = render_markdown
 
     @app.context_processor
     def inject_user():
@@ -257,6 +263,23 @@ def init_app() -> Flask:
         if len(cc.values()) == 0:
             # nothing specific has been set, so set the default
             cc.no_store = True
+        return response
+
+    @app.after_request
+    def set_security_headers(response: FlaskResponse) -> FlaskResponse:
+        # Prevent clickjacking
+        response.headers["X-Frame-Options"] = "DENY"
+
+        # Prevent sniffing
+        response.headers["X-Content-Type-Options"] = "nosniff"
+
+        # Basic starter CSP.  Default to only allowing our source (plus
+        # Cloudflare turnstile), ban objects (eg Flash) and allow external
+        # images/audio/video
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self' https://challenges.cloudflare.com; object-src 'none'; img-src * data:; media-src *;"
+        )
+
         return response
 
     return app

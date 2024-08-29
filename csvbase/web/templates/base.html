@@ -18,13 +18,7 @@ app_base. #}
     <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='logo/192x192.png') }}">
     <link rel="canonical" href="{{ canonical_url or request.base_url }}">
     <title>{{page_title or "csvbase"}}</title>
-    <script>
-      // FIXME: really should not need javascript for this
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
-          document.querySelector('html').setAttribute('data-bs-theme', 'dark');
-          document.getElementById('codehilite-stylesheet').href = "{{ url_for('static', filename='codehilite-dark.css' ) }}";
-      }
-    </script>
+    <script async src="{{ url_for('static', filename='dark-mode-hack.js')}}"></script>
     {% endblock %}
   </head>
   <body class="d-flex flex-column min-vh-100">
@@ -92,8 +86,8 @@ app_base. #}
             <div class="container">
               <div class="row">
                 <div class="text-center">
-                  <p>csvbase is a <a href="/faq/what-is-it">simple web database</a>.
-                    Please <a href="https://discord.gg/uqu4BkNP5G">join the committee to keep csv evil</a>.</p>
+                  <p>csvbase is a simple <a href="/about">website for sharing table data</a>.
+                    Join <a href="https://discord.gg/uqu4BkNP5G">the discord</a>.</p>
                 </div>
               </div>
             </div>
@@ -124,7 +118,7 @@ app_base. #}
         <div class="row">
           <div class="offset-md-5 col-md-2">
             <a href="/" class="d-flex align-items-center mb-3 mb-md-0 link-dark text-decoration-none">
-              <img src="/static/logo/192x192.png" alt=" " width="32" height="32" class="d-inline-block align-text" style="margin: auto">
+              <img class="footer-logo" src="/static/logo/192x192.png" alt=" " width="32" height="32" class="d-inline-block align-text">
             </a>
           </div>
           <div class="col-md-4 text-md-end">

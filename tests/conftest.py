@@ -3,6 +3,7 @@ from datetime import date
 from unittest.mock import patch
 from pathlib import Path
 
+import requests_mock
 import pytest
 from passlib.context import CryptContext
 from sqlalchemy.orm import sessionmaker
@@ -124,3 +125,9 @@ def local_repos_path(tmpdir):
     local_repos.mkdir()
     with local_only_gitsource(local_repos):
         yield local_repos
+
+
+@pytest.fixture(scope="function", autouse=True)
+def requests_mocker():
+    with requests_mock.Mocker() as mocker:
+        yield mocker

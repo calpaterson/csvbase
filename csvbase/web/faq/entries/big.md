@@ -4,7 +4,6 @@ description = "What counts as 'big'?  What is different about big tables?"
 draft = false
 created = 2024-07-02
 updated = 2024-07-02
-category = "basics"
 -->
 
 ## When is a table considered big on csvbase?

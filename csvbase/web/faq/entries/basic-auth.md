@@ -1,10 +1,11 @@
 <!--
-title = "Do I use an API key?  How do I authenticate?"
+title = "Where do I find my API key?  How do I authenticate?"
 description = "HTTP Basic Auth and .netrc"
 draft = false
 created = 2024-08-09
-updated = 2024-08-09
+updated = 2024-08-20
 category = "basics"
+order = 5
 -->
 
 ## When an API key is needed and when it one not
@@ -19,7 +20,7 @@ If you are doing write operations - eg `PUT` (create/overwrite), `POST`
 
 If the table is *private* then even `GET` requests require an API key.
 
-## Your API key
+## Where to find your API key
 
 Your API key is on your user page - `https://csvbase.com/<your-username>` (but visible only to you).
 

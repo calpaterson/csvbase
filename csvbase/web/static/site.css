@@ -78,7 +78,15 @@
     text-align: center;
 }
 
+/* FIXME: remove this from wherever it is used */
 .blog-post-blockquote {
+    margin: 1em;
+    border-left: 0.2em solid grey;
+    padding-left: 1em;
+    font-style: oblique;
+}
+
+blockquote {
     margin: 1em;
     border-left: 0.2em solid grey;
     padding-left: 1em;
@@ -89,7 +97,7 @@
     font-style: oblique;
 }
 
-.csv-paste-textarea {
+textarea {
     resize: both;
 }
 
@@ -111,6 +119,10 @@
     margin: auto;
 }
 
+.blog-post-date {
+    float: right;
+}
+
 .blog-post-2 pre {
     white-space: pre-wrap;
 }
@@ -128,7 +140,20 @@ input.table-pastable {
     max-width: 100%;
 }
 
+.hidden-praise-form {
+    display: none;
+}
+
 #praise-button > img {
     max-height: 1.2em;
     max-width: 1.2em;
+}
+
+.footer-logo {
+    margin: auto;
+}
+
+/* Tweaks for threads */
+.comment img {
+    max-width: 100%;
 }

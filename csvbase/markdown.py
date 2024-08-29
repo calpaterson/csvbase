@@ -1,3 +1,4 @@
+import re
 import functools
 
 from marko import Markdown
@@ -49,3 +50,11 @@ def get_markdown():
 @functools.lru_cache
 def render_markdown(md_str: str) -> str:
     return get_markdown().convert(md_str)
+
+
+QUOTE_REGEX = re.compile(r"^(.*)", re.MULTILINE)
+
+
+@functools.lru_cache
+def quote_markdown(md_str: str) -> str:
+    return re.sub(QUOTE_REGEX, r"> \1", md_str)

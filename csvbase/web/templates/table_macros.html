@@ -11,7 +11,7 @@
     id="praise-form-{{table.table_uuid}}"
     method="POST"
     action="{{ url_for('csvbase.praise_table', username=table.username, table_name=table.table_name)}}"
-    style="display: none"
+    class="hidden-praise-form"
 >
     <input type="hidden" name="whence" value="{{ request.url }}">
     {% if praise_id %}

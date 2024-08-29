@@ -13,14 +13,20 @@ from typing import (
     cast,
     Any,
     IO,
+    Iterable,
 )
 from typing_extensions import Literal
 from uuid import UUID
 from datetime import datetime, date, timedelta, timezone
-from dataclasses import dataclass, asdict as dataclass_as_dict
+from dataclasses import (
+    dataclass,
+    asdict as dataclass_as_dict,
+)
 import enum
 import binascii
 import encodings.aliases
+import importlib_resources
+import csv
 
 import giturlparse
 from dateutil.tz import gettz
@@ -161,6 +167,10 @@ class Table:
     def ref(self) -> str:
         return f"{self.username}/{self.table_name}"
 
+    @property
+    def licence(self) -> Optional["Licence"]:
+        return Licence.from_data_licence(self.data_licence)
+
 
 @dataclass
 class GitUpstream:
@@ -228,6 +238,7 @@ class UpstreamFile:
 
 @enum.unique
 class DataLicence(enum.Enum):
+    # Deprecated enum - only able to represent a limited number of licences
     UNKNOWN = 0
     ALL_RIGHTS_RESERVED = 1
     PDDL = 2
@@ -244,6 +255,43 @@ class DataLicence(enum.Enum):
     def is_free(self) -> bool:
         return self.value > 1
 
+
+@dataclass(frozen=True, eq=True)  # FIXME: set slots=True when 3.10+
+class Licence:
+    """Represents a licence."""
+
+    spdx_id: str
+    name: str
+    osi_approved: bool
+
+    @staticmethod
+    def from_data_licence(data_licence: DataLicence) -> Optional["Licence"]:
+        return _DATA_LICENCE_TO_LICENCE_MAP.get(data_licence, None)
+
+
+def build_licence_map() -> Iterable[Tuple[str, Licence]]:
+    with importlib_resources.files("csvbase").joinpath("data/spdx-licences.csv").open(
+        "r"
+    ) as spdx_licences_f:
+        reader = csv.DictReader(spdx_licences_f)
+        for row in reader:
+            licence = Licence(
+                spdx_id=row["licenseId"],
+                name=row["name"],
+                osi_approved=True if row["isOsiApproved"] == "True" else False,
+            )
+            yield licence.spdx_id, licence
+
+
+LICENCE_MAP: Mapping[str, Licence] = dict(build_licence_map())
+
+
+_DATA_LICENCE_TO_LICENCE_MAP = {
+    DataLicence.PDDL: LICENCE_MAP["PDDL-1.0"],
+    DataLicence.ODC_BY: LICENCE_MAP["ODC-By-1.0"],
+    DataLicence.ODBL: LICENCE_MAP["ODbL-1.0"],
+    DataLicence.OGL: LICENCE_MAP["OGL-UK-3.0"],
+}
 
 _DATA_LICENCE_PP_MAP = {
     DataLicence.UNKNOWN: "Unknown",
@@ -558,3 +606,31 @@ class TableRepresentation:
     offered: bool
     size: int
     size_is_estimate: bool
+
+
+@dataclass
+class Thread:
+    slug: str
+    title: str
+    created: datetime
+    updated: datetime
+    creator: User
+
+    # this is used internally for connecting tables, not to be shown to the
+    # user
+    internal_thread_id: int
+
+
+@dataclass
+class Comment:
+    thread: Thread
+    comment_id: int
+    user: User
+    created: datetime
+    updated: datetime
+    markdown: str
+    referenced_by: List[int]
+
+    def page_number(self) -> int:
+        # FIXME: this is duplicated
+        return ((self.comment_id - 1) // 10) + 1

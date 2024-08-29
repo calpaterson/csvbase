@@ -955,7 +955,7 @@ def delete_mode(request):
 
 def test_delete__has_readme(sesh, client, test_user, ten_rows, delete_mode):
     url_template, verb = delete_mode
-    svc.set_readme_markdown(sesh, test_user.user_uuid, ten_rows.table_name, "something")
+    svc.set_readme_markdown(sesh, ten_rows.table_uuid, "something")
     sesh.commit()
     with current_user(test_user):
         resp = client.open(
