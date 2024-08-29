@@ -1,11 +1,15 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "app_base.html" %}
-
 {% import 'comment_macros.html' as comment_macros %}
+{% import 'captcha_macros.html' as captcha_macros %}
 
 {% block head %}
   {{ super() }}
   <script src="{{ url_for('static', filename='comments.js') }}"></script>
+  {# No need to actually load this if user not logged in #}
+  {% if current_user %}
+    {{ captcha_macros.turnstile_script_tag() }}
+  {% endif %}
 {% endblock %}
 
 {% block main %}
@@ -34,8 +38,12 @@
                   {% if comment_markdown %}autofocus{% endif %}
                   >{{comment_markdown}}</textarea>
               </div>
+              {% if current_user %}
+                {{ captcha_macros.turnstile_magic_div() }}
+              {% endif %}
+
               <div class="py-1">
-                <button type="submit" class="btn btn-primary">Add comment</button>
+                <button {% if not current_user %}disabled{% endif %} type="submit" class="btn btn-primary">Add comment</button>
               </div>
             </form>
           </div>

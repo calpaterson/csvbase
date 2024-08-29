@@ -3,6 +3,7 @@ from flask.views import MethodView
 from werkzeug.wrappers.response import Response
 
 from csvbase import comments_svc, markdown
+from csvbase.config import get_config
 from csvbase.value_objs import Comment
 from ..func import get_current_user_or_401
 from ...sesh import get_sesh
@@ -45,6 +46,16 @@ class ThreadView(MethodView):
     def post(self, thread_slug: str) -> Response:
         """Add a comment to a thread"""
         poster = get_current_user_or_401()
+
+        # FIXME: duplicated
+        # if the turnstile key is not set, the captcha verification is disabled.
+        # This is both for cases where it's not being used and also to allow it to
+        # be disabled in an emergency
+        if get_config().turnstile_secret_key is None:
+            logger.warning("turnstile_secret_key not set, skipping validation of captcha")
+        else:
+            validate_turnstile_token(get_turnstile_token_from_form(form))
+
         sesh = get_sesh()
         thread = comments_svc.get_thread_by_slug(sesh, thread_slug)
         comment = comments_svc.create_comment(
