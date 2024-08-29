@@ -1,5 +1,3 @@
-
-
 import pytest
 
 from csvbase.value_objs import Thread
@@ -63,12 +61,14 @@ def test_page_number_to_first_comment_id(page_number, expected_first_comment_id)
 #         id = root.id
 
 
-def test_comment__create(sesh, client, test_thread, test_user):
+def test_comment__create(sesh, client, test_thread, test_user, requests_mocker):
+    utils.mock_turnstile(requests_mocker)
     with utils.current_user(test_user):
         resp = client.post(
             f"/threads/{test_thread.slug}",
             data={
                 "comment-markdown": "hello",
+                "cf-turnstile-response": utils.random_string(),
             },
         )
     assert resp.status_code == 302
