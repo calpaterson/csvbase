@@ -58,3 +58,19 @@ QUOTE_REGEX = re.compile(r"^(.*)", re.MULTILINE)
 @functools.lru_cache
 def quote_markdown(md_str: str) -> str:
     return re.sub(QUOTE_REGEX, r"> \1", md_str)
+
+REFERENCES_REGEX = re.compile(r"[^, ]+")
+
+def pop_references(md_str: str) -> tuple[list[str], str]:
+    """Pulls references out of the markdown."""
+    prefix = "References:"
+    if md_str.startswith(prefix):
+        lines = md_str.splitlines()
+
+        reference_header = lines[0]
+        references = re.findall(REFERENCES_REGEX, reference_header[len(prefix):])
+
+        md_str = "\n".join(lines[1:])
+    else:
+        references = []
+    return references, md_str
