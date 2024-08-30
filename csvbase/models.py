@@ -2,7 +2,13 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Mapping
 from uuid import UUID
 
-from sqlalchemy import types as satypes, ForeignKey, UniqueConstraint, func
+from sqlalchemy import (
+    types as satypes,
+    ForeignKey,
+    UniqueConstraint,
+    func,
+    ForeignKeyConstraint,
+)
 from sqlalchemy.orm import mapped_column, DeclarativeBase, relationship
 from sqlalchemy.dialects.postgresql import BYTEA, UUID as _PGUUID
 from sqlalchemy.schema import CheckConstraint, Identity, MetaData
@@ -444,11 +450,92 @@ class Comment(Base):
     thread_obj = relationship("Thread", uselist=False)
 
 
-# class CommentReference(Base):
-#     thread_id
-#     comment_id
-#     referenced_thread_id
-#     referenced_comment_id
+class CommentReference(Base):
+    __tablename__ = "comment_references"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["thread_id", "comment_id"],
+            ["metadata.comments.thread_id", "metadata.comments.comment_id"],
+        ),
+        ForeignKeyConstraint(
+            ["referenced_thread_id", "referenced_comment_id"],
+            ["metadata.comments.thread_id", "metadata.comments.comment_id"],
+        ),
+        METADATA_SCHEMA_TABLE_ARG,
+    )
+
+    thread_id = mapped_column(
+        satypes.BigInteger,
+        # ForeignKey("metadata.threads.thread_id"),
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+    comment_id = mapped_column(
+        satypes.BigInteger,
+        # ForeignKey("metadata.comments.comment_id"),
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+    referenced_thread_id = mapped_column(
+        satypes.BigInteger,
+        # ForeignKey("metadata.threads.thread_id"),
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+    referenced_comment_id = mapped_column(
+        satypes.BigInteger,
+        # ForeignKey("metadata.comments.comment_id"),
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    comment_obj = relationship("Comment", foreign_keys=[thread_id, comment_id])
+    referenced_comment_obj = relationship(
+        "Comment", foreign_keys=[referenced_thread_id, referenced_comment_id]
+    )
+
+
+class RowReference(Base):
+    __tablename__ = "row_references"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["thread_id", "comment_id"],
+            ["metadata.comments.thread_id", "metadata.comments.comment_id"],
+        ),
+        METADATA_SCHEMA_TABLE_ARG,
+    )
+
+    thread_id = mapped_column(
+        satypes.BigInteger,
+        # ForeignKey("metadata.threads.thread_id"),
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+    comment_id = mapped_column(
+        satypes.BigInteger,
+        # ForeignKey("metadata.comments.comment_id"),
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+    referenced_table_uuid = mapped_column(
+        PGUUID,
+        ForeignKey("metadata.tables.table_uuid"),
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+    referenced_csvbase_row_id = mapped_column(
+        satypes.BigInteger, nullable=False, index=True, primary_key=True
+    )
+
+    comment_obj = relationship("Comment", foreign_keys=[thread_id, comment_id])
+    table_obj = relationship("Table")
 
 
 # class BlogThread(Base):
