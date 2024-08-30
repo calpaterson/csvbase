@@ -20,7 +20,7 @@ metadata = MetaData(naming_convention=naming_convention)
 
 
 class Base(DeclarativeBase):
-    pass
+    metadata = metadata
 
 
 # https://github.com/dropbox/sqlalchemy-stubs/issues/94
