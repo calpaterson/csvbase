@@ -1,7 +1,7 @@
 import pytest
 
 from csvbase.value_objs import Thread
-from csvbase import comments_svc
+from csvbase import comments_svc, models
 
 from . import utils
 
@@ -90,3 +90,23 @@ def test_comment__create(sesh, client, test_thread, test_user, requests_mocker):
 #     follow_resp = client.get(edit_resp["Location"])
 #     comments = extract_comments(follow_resp)
 #     assert comment_text in comments[1]
+
+
+def test_set_references(sesh, test_thread, test_user):
+    def get_current_references(comment_id):
+        return {
+            x[0]
+            for x in sesh.query(models.CommentReference.referenced_comment_id).filter(
+                models.CommentReference.thread_id == test_thread.internal_thread_id,
+                models.CommentReference.comment_id == comment_id,
+            )
+        }
+
+    for n in range(3):
+        comments_svc.create_comment(sesh, test_user, test_thread, f"Test post #{n}")
+
+    comments_svc.set_references(sesh, test_thread, 4, ["#1", "#2", "#3"])
+    assert get_current_references(4) == {1, 2, 3}
+
+    comments_svc.set_references(sesh, test_thread, 4, ["#2", "#3", "#4"])
+    assert get_current_references(4) == {2, 3, 4}

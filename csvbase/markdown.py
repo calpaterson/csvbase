@@ -8,6 +8,7 @@ from marko.html_renderer import HTMLRenderer
 
 _md = None
 
+
 # FIXME: pasted yet again
 def comment_id_to_page_number(comment_id: int) -> int:
     return ((comment_id - 1) // 10) + 1
@@ -15,6 +16,7 @@ def comment_id_to_page_number(comment_id: int) -> int:
 
 class CommentReference(inline.InlineElement):
     """A comment referenced, eg '#10' for comment 10 in this thread."""
+
     pattern = r"#(\d+)"
     parse_children = False
     children = []
@@ -30,10 +32,12 @@ class CSVBaseRendererMixin:
         page_number = comment_id_to_page_number(element.comment_id)
         return f'<a href="?page={page_number}#comment-{element.comment_id}">#{element.comment_id}</a>'
 
+
 CSVBaseExtension = MarkoExtension(
     elements=[CommentReference],
     renderer_mixins=[CSVBaseRendererMixin],
 )
+
 
 class BootstrapRendererMixin(renderer.GFMRendererMixin):
     """Renderer that mainly inherits the original rendering code except
@@ -87,6 +91,7 @@ QUOTE_REGEX = re.compile(r"^(.*)", re.MULTILINE)
 def quote_markdown(md_str: str) -> str:
     """Prepend '> ' to each line of the input, a markdown blockquote."""
     return re.sub(QUOTE_REGEX, r"> \1", md_str)
+
 
 REFERENCES_REGEX = re.compile(r"#\d+")
 

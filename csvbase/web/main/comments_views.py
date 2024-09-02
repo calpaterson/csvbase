@@ -34,7 +34,9 @@ class ThreadView(MethodView):
             comment: Comment = comment_page.comment_by_id(
                 reply_to
             ) or comments_svc.get_comment(sesh, comment_page.thread, reply_to)
-            comment_markdown = "\n".join([f"#{reply_to}:", markdown.quote_markdown(comment.markdown), "\n"])
+            comment_markdown = "\n".join(
+                [f"#{reply_to}:", markdown.quote_markdown(comment.markdown), "\n"]
+            )
         else:
             comment_markdown = ""
 
@@ -68,9 +70,7 @@ class ThreadView(MethodView):
         thread = comments_svc.get_thread_by_slug(sesh, thread_slug)
         comment_markdown = request.form["comment-markdown"]
         references = markdown.extract_references(comment_markdown)
-        comment = comments_svc.create_comment(
-            sesh, poster, thread, comment_markdown
-        )
+        comment = comments_svc.create_comment(sesh, poster, thread, comment_markdown)
         comments_svc.set_references(sesh, thread, comment.comment_id, references)
         sesh.commit()
         url_for_args = {"thread_slug": thread_slug}
