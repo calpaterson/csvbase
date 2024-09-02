@@ -1,8 +1,6 @@
 from textwrap import dedent
 from csvbase import markdown
 
-import pytest
-
 
 def test_quote():
     input_string = dedent(

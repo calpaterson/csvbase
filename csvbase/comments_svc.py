@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from typing import Sequence, Optional
 from datetime import datetime, timezone
 
-from flask import url_for
 from sqlalchemy.orm import Session
 from sqlalchemy import func, delete
 from sqlalchemy.sql import exists
