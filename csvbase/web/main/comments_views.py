@@ -34,7 +34,7 @@ class ThreadView(MethodView):
             comment: Comment = comment_page.comment_by_id(
                 reply_to
             ) or comments_svc.get_comment(sesh, comment_page.thread, reply_to)
-            comment_markdown = markdown.quote_markdown(comment.markdown) + "\n\n"
+            comment_markdown = "\n".join([f"#{reply_to}:", markdown.quote_markdown(comment.markdown), "\n"])
         else:
             comment_markdown = ""
 
@@ -66,9 +66,12 @@ class ThreadView(MethodView):
 
         sesh = get_sesh()
         thread = comments_svc.get_thread_by_slug(sesh, thread_slug)
+        comment_markdown = request.form["comment-markdown"]
+        references = markdown.extract_references(comment_markdown)
         comment = comments_svc.create_comment(
-            sesh, poster, thread, request.form["comment-markdown"]
+            sesh, poster, thread, comment_markdown
         )
+        comments_svc.set_references(sesh, thread, comment.comment_id, references)
         sesh.commit()
         url_for_args = {"thread_slug": thread_slug}
         page_number = comments_svc.comment_id_to_page_number(comment.comment_id)
@@ -89,9 +92,10 @@ class CommentView(MethodView):
         comment = comments_svc.get_comment(sesh, thread, comment_id)
         # FIXME: assert am user
 
-        new_markdown = request.form["comment-markdown"]
-
-        comments_svc.edit_comment(sesh, thread, comment_id, new_markdown)
+        comment_markdown = request.form["comment-markdown"]
+        references = markdown.extract_references(comment_markdown)
+        comments_svc.edit_comment(sesh, thread, comment_id, comment_markdown)
+        comments_svc.set_references(sesh, thread, comment.comment_id, references)
         sesh.commit()
         return redirect(
             url_for(

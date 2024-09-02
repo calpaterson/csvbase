@@ -31,18 +31,17 @@ of quoting"""
         assert actual_line.strip() == expected_line.strip()
 
 
-def test_pop_references__no_reference():
-    assert markdown.pop_references("Hello, World!") == ([], "Hello, World!")
+def text_extract_references__no_reference():
+    assert markdown.extract_references("Hello, World!") == []
 
-@pytest.mark.parametrize("references_str, expected_references", [
-    pytest.param("3", ["3"], id="one reference"),
-    pytest.param("3 2", ["3", "2"], id="two references"),
-    pytest.param("3 stock-exchanges/rows/3", ["3", "stock-exchanges/rows/3"], id="rows"),
-])
-def test_pop_references__one_reference(references_str, expected_references):
-    inp = f"""References: {references_str}
-Hello, World!"""
 
-    references, md_str = markdown.pop_references(inp)
-    assert references == expected_references
-    assert md_str == "Hello, World!"
+def test_extract_references__simple_reference():
+    assert markdown.extract_references("Yeah, so about #8 - I think that") == ["#8"]
+
+
+def test_extract_references__multiple_references():
+    inp_markdown = """#8
+Yes you're right but what about #9
+"""
+
+    assert markdown.extract_references(inp_markdown) == ["#8", "#9"]

@@ -1,15 +1,30 @@
+"""The internal "service" for comments."""
 import re
 import secrets
 from dataclasses import dataclass
 from typing import Sequence, Optional
 from datetime import datetime, timezone
 
+from flask import url_for
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, delete
 from sqlalchemy.sql import exists
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.sql.expression import tuple_
 
 from . import svc, models
 from .value_objs import Comment, Thread, User
+
+@dataclass
+class CommentRef:
+    thread_slug: str
+    comment_id: int
+
+    @property
+    def page_number(self):
+        return comment_id_to_page_number(self.comment_id)
+
+
 
 
 @dataclass
@@ -68,11 +83,21 @@ def _create_thread_slug(sesh: Session, title: str) -> str:
         # is very wrong
         raise RuntimeError("unable to create slug!")
 
-
 def _comment_obj_to_comment(
     sesh, thread: Thread, comment_obj: models.Comment
 ) -> Comment:
-    # this isn't really workable, want to avoid double lookups of users
+    # FIXME: this isn't really workable, want to avoid double lookups of users
+    refs = sesh.query(models.CommentReference, models.Thread.thread_slug).join(
+        models.Thread, models.CommentReference.referenced_thread_id==models.Thread.thread_id).filter(
+        models.CommentReference.referenced_thread_id==thread.internal_thread_id,
+        models.CommentReference.referenced_comment_id==comment_obj.comment_id
+    )
+
+    referenced_by = [
+        CommentRef(thread_slug, ref.comment_id)
+        for ref, thread_slug in refs
+    ]
+
     return Comment(
         thread=thread,
         comment_id=comment_obj.comment_id,
@@ -80,7 +105,7 @@ def _comment_obj_to_comment(
         created=comment_obj.created,
         updated=comment_obj.updated,
         markdown=comment_obj.comment_markdown,
-        referenced_by=[],
+        referenced_by=referenced_by,
     )
 
 
@@ -133,6 +158,15 @@ def edit_comment(sesh: Session, thread: Thread, comment_id: int, markdown: str) 
         models.Comment.comment_id == comment_id,
     ).update(dict(updated=datetime.now(timezone.utc), comment_markdown=markdown))
 
+
+# COMMENT_REFERENCE_REGEX = re.compile("^\d+")
+
+# def set_references(sesh: Session, thread: Thread, comment_id: str, references: list[str]) -> None:
+#     pass
+
+# def _set_comment_references(sesh: Session, thread_id: int, comment_id: int, referenced_comment_id: int) -> None:
+    # insert on conflict do nothing
+    # delete where not matching
 
 def get_max_comment_id(sesh: Session, thread_slug: str) -> Optional[int]:
     return (
@@ -225,3 +259,30 @@ def _next_comment_id(sesh: Session, internal_thread_id: int) -> int:
         .filter(models.Comment.thread_id == internal_thread_id)
         .scalar()
     )
+
+def set_references(sesh: Session, thread: Thread, comment_id: int, references: list[str]) -> None:
+    """Set the references for the given thread & comment_id.
+
+    Currently only handles comment references (and not rows or tables).
+
+    """
+    referenced_comments = [(thread.internal_thread_id, int(r[1:])) for r in references]
+    values: list[dict[str, int]] = [
+        {
+            "thread_id": thread.internal_thread_id,
+            "comment_id": comment_id,
+            "referenced_thread_id": referenced_thread_id,
+            "referenced_comment_id": referenced_comment_id,
+        }
+        for referenced_thread_id, referenced_comment_id in referenced_comments
+    ]
+    insert_stmt = pg_insert(models.CommentReference).values(values).on_conflict_do_nothing(
+        index_elements=["thread_id", "comment_id", "referenced_thread_id", "referenced_comment_id"]
+    )
+    delete_stmt = delete(models.CommentReference).where(
+        models.CommentReference.thread_id==thread.internal_thread_id,
+        models.CommentReference.comment_id==comment_id,
+        tuple_(models.CommentReference.referenced_thread_id, models.CommentReference.referenced_comment_id).not_in(referenced_comments))
+    sesh.execute(insert_stmt)
+    sesh.execute(delete_stmt)
+

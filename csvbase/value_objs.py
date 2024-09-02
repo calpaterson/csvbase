@@ -629,7 +629,9 @@ class Comment:
     created: datetime
     updated: datetime
     markdown: str
-    referenced_by: List[int]
+
+    # This is a list of references but not type level support for that yet
+    referenced_by: List
 
     def page_number(self) -> int:
         # FIXME: this is duplicated
