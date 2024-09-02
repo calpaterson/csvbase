@@ -466,28 +466,24 @@ class CommentReference(Base):
 
     thread_id = mapped_column(
         satypes.BigInteger,
-        # ForeignKey("metadata.threads.thread_id"),
         nullable=False,
         index=True,
         primary_key=True,
     )
     comment_id = mapped_column(
         satypes.BigInteger,
-        # ForeignKey("metadata.comments.comment_id"),
         nullable=False,
         index=True,
         primary_key=True,
     )
     referenced_thread_id = mapped_column(
         satypes.BigInteger,
-        # ForeignKey("metadata.threads.thread_id"),
         nullable=False,
         index=True,
         primary_key=True,
     )
     referenced_comment_id = mapped_column(
         satypes.BigInteger,
-        # ForeignKey("metadata.comments.comment_id"),
         nullable=False,
         index=True,
         primary_key=True,
@@ -511,14 +507,12 @@ class RowReference(Base):
 
     thread_id = mapped_column(
         satypes.BigInteger,
-        # ForeignKey("metadata.threads.thread_id"),
         nullable=False,
         index=True,
         primary_key=True,
     )
     comment_id = mapped_column(
         satypes.BigInteger,
-        # ForeignKey("metadata.comments.comment_id"),
         nullable=False,
         index=True,
         primary_key=True,
