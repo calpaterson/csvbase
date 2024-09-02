@@ -266,6 +266,10 @@ def set_references(
     Currently only handles comment references (and not rows or tables).
 
     """
+    # early exit for no references
+    if len(references) == 0:
+        return
+
     referenced_comments = [(thread.internal_thread_id, int(r[1:])) for r in references]
     values: list[dict[str, int]] = [
         {
