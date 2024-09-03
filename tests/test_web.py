@@ -1,3 +1,4 @@
+import hashlib
 from uuid import UUID
 from datetime import date, datetime, timedelta
 import itertools
@@ -15,7 +16,7 @@ from csvbase.value_objs import (
     RowCount,
     KeySet,
 )
-from csvbase import exc
+from csvbase import exc, svc
 from .utils import assert_is_valid_etag
 
 
@@ -153,3 +154,25 @@ def test_security_headers(client):
         resp.headers["Content-Security-Policy"]
         == "default-src 'self' https://challenges.cloudflare.com; object-src 'none'; img-src * data:; media-src *;"
     )
+
+
+def test_avatar__using_a_gravatar(sesh, client, test_user, requests_mocker):
+    email = "example@example.com"
+    email_hash = hashlib.sha256(email.encode("utf-8")).hexdigest()
+    requests_mocker.get(
+        f"https://gravatar.com/avatar/{email_hash}", content=b"an image"
+    )
+
+    test_user.email = email
+    svc.update_user(sesh, test_user)
+    sesh.commit()
+
+    resp = client.get(f"/avatars/{test_user.username}")
+    assert resp.status_code == 200
+
+
+def test_avatar__no_email(sesh, client, test_user, requests_mocker):
+    requests_mocker.get("https://gravatar.com/avatar/", content=b"an image")
+
+    resp = client.get(f"/avatars/{test_user.username}")
+    assert resp.status_code == 200
