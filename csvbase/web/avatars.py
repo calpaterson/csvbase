@@ -14,7 +14,7 @@ from csvbase import svc
 
 logger = getLogger(__name__)
 
-bp = Blueprint("gravatar", __name__)
+bp = Blueprint("avatars", __name__)
 
 BASE_URL = "https://gravatar.com/avatar/"
 

@@ -157,3 +157,10 @@ input.table-pastable {
 .comment img {
     max-width: 100%;
 }
+
+.comment-avatar {
+    max-height: 2em;
+    border-radius: 10px;
+    margin-right: 0.3em;
+    margin-left: 0.3em;
+}
