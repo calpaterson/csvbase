@@ -2,8 +2,8 @@
 {% extends "base.html" %}
 
 {% from 'value_macros.html' import id_input_validation_attrs %}
-
 {% import 'other_macros.html' as other_macros %}
+{% import 'form_macros.html' as form_macros %}
 
 {% block main %}
   <div class="container">
@@ -11,6 +11,7 @@
       <div class="col-md-8 offset-md-2">
         <h1>Sign in to your account</h1>
         <form method="POST" class="mb-3">
+          {{ form_macros.show_firefox_mobile_warning(user_agent) }}
           {% if whence %}
             <input type="hidden" name="whence" value="{{ whence }}">
           {% endif %}

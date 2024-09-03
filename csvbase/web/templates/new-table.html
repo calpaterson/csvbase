@@ -2,8 +2,8 @@
 {% extends "app_base.html" %}
 
 {% from 'value_macros.html' import id_input_validation_attrs %}
-
 {% import 'other_macros.html' as other_macros %}
+{% import 'form_macros.html' as form_macros %}
 
 {% block main %}
   <div class="container">
@@ -37,6 +37,7 @@
           {% endblock %}
 
           <form action="{{ action_url }}" method="POST" enctype="multipart/form-data">
+            {{ form_macros.show_firefox_mobile_warning(user_agent) }}
             <div class="form-floating mb-3">
               <input type="text"
                      id="table-name"

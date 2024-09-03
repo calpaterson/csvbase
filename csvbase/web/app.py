@@ -27,6 +27,7 @@ from flask_babel import Babel
 from passlib.context import CryptContext
 from werkzeug.routing import BaseConverter
 from werkzeug.wrappers.response import Response
+import user_agents
 
 from .func import (
     set_current_user,
@@ -171,6 +172,11 @@ def init_app() -> Flask:
             if current_user is not None
             else {}
         )
+
+    @app.context_processor
+    def inject_ua() -> dict[str, Any]:
+        # UA is occasionally good to know in a template
+        return {"user_agent": user_agents.parse(request.headers.get("User-Agent", ""))}
 
     app.jinja_env.add_extension("jinja2_humanize_extension.HumanizeExtension")
 

@@ -1,0 +1,12 @@
+{# -*- mode: jinja2 -*- #}
+
+{% macro show_firefox_mobile_warning(user_agent) %}
+  {% if user_agent.browser.family == "Firefox Mobile" %}
+    <div class="alert alert-warning" role="alert">
+      You are using Firefox Mobile.  Beware - Firefox Mobile currently does not
+      show form validation errors due
+      to <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1510450">bug
+      1510450</a>.
+    </div>
+  {% endif %}
+{% endmacro %}
