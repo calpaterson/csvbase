@@ -29,6 +29,7 @@ def test_user_settings__cycle(sesh, client, test_user):
                 "email": new_email,
                 "mailing-list": "checked",
                 "about": new_about,
+                "use-gravatar": "checked",
             },
         )
         assert post_resp.status_code == 302, post_resp.data
@@ -40,6 +41,7 @@ def test_user_settings__cycle(sesh, client, test_user):
         "email": new_email,
         "mailing-list": "on",
         "about": new_about,
+        "use-gravatar": "on",
     }
 
     # finally, just double check it's in the db
@@ -47,6 +49,7 @@ def test_user_settings__cycle(sesh, client, test_user):
     assert new_user_obj.settings.timezone == new_timezone
     assert new_user_obj.email == new_email
     assert new_user_obj.settings.mailing_list
+    assert new_user_obj.settings.use_gravatar
 
     assert svc.get_user_bio_markdown(sesh, test_user.user_uuid) == new_about
 

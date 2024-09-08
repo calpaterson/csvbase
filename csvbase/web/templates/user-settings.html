@@ -54,6 +54,16 @@
         {{ other_macros.mailing_list_form_field(checked=user.settings.mailing_list) }}
       </div>
 
+      <div class="mb-3 row g-3">
+        <div class="form-check my-2">
+          <input class="form-check-input" type="checkbox" name="use-gravatar" id="use-gravatar-checkbox" {% if user.settings.use_gravatar %}checked{% endif %}>
+          <label class="form-check-label" for="use-gravatar-checkbox">
+            Use my Gravatar
+          </label>
+          <div class="form-text">Use the Gravatar associated with your email address as your site avatar.  (Off by default for privacy reasons.)</div>
+        </div>
+      </div>
+
       <button type="submit" class="btn btn-primary">Save Changes</button>
 
     </form>
