@@ -42,6 +42,7 @@ from .value_objs import (
     UpstreamVersion,
     ContentType,
     BinaryOp,
+    UserSettings,
 )
 from .constants import FAR_FUTURE, MAX_UUID
 from .follow.git import GitSource, get_repo_path
@@ -103,8 +104,7 @@ def user_by_name(sesh: Session, username: str) -> User:
             registered=registered,
             api_key=api_key,
             email=email,
-            timezone=timezone,
-            mailing_list=ml,
+            settings=UserSettings(timezone=timezone, mailing_list=ml, use_gravatar=False)
         )
 
 
@@ -134,8 +134,7 @@ def user_by_user_uuid(sesh, user_uuid: UUID) -> User:
             registered=registered,
             api_key=api_key,
             email=email,
-            timezone=timezone,
-            mailing_list=ml,
+            settings=UserSettings(timezone=timezone, mailing_list=ml, use_gravatar=False)
         )
 
 
@@ -143,9 +142,9 @@ def update_user(sesh, new_user: User) -> None:
     current_user = user_by_user_uuid(sesh, new_user.user_uuid)
     update_fields = {"timezone", "mailing_list"}
     update_arg = {
-        field: getattr(new_user, field)
+        field: getattr(new_user.settings, field)
         for field in update_fields
-        if getattr(new_user, field) != getattr(current_user, field)
+        if getattr(new_user.settings, field) != getattr(current_user.settings, field)
     }
     if len(update_arg) > 0:
         sesh.query(models.User).filter(
@@ -500,8 +499,7 @@ def create_user(
         registered=user.registered,
         api_key=user.api_key.api_key,
         email=email,
-        timezone="UTC",
-        mailing_list=mailing_list,
+        settings=UserSettings(timezone="UTC", mailing_list=mailing_list)
     )
 
 

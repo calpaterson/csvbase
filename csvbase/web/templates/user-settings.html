@@ -39,7 +39,7 @@
         <div class="col-auto">
           <select class="form-select" type="select" name="timezone">
             {% for timezone in timezones %}
-              <option value="{{ timezone }}" {% if timezone == user.timezone %} selected {% endif %}
+              <option value="{{ timezone }}" {% if timezone == user.settings.timezone %} selected {% endif %}
                       >{{ timezone }}</option>
             {% endfor %}
           </select>
@@ -51,7 +51,7 @@
       </div>
 
       <div class="mb-3 row g-3">
-        {{ other_macros.mailing_list_form_field(checked=user.mailing_list) }}
+        {{ other_macros.mailing_list_form_field(checked=user.settings.mailing_list) }}
       </div>
 
       <button type="submit" class="btn btn-primary">Save Changes</button>

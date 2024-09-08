@@ -44,9 +44,9 @@ def test_user_settings__cycle(sesh, client, test_user):
 
     # finally, just double check it's in the db
     new_user_obj = svc.user_by_name(sesh, test_user.username)
-    assert new_user_obj.timezone == new_timezone
+    assert new_user_obj.settings.timezone == new_timezone
     assert new_user_obj.email == new_email
-    assert new_user_obj.mailing_list
+    assert new_user_obj.settings.mailing_list
 
     assert svc.get_user_bio_markdown(sesh, test_user.user_uuid) == new_about
 
@@ -65,7 +65,7 @@ def test_user_settings__updating_delete_email(sesh, client, test_user):
     assert post_resp.status_code == 302, post_resp.data
 
     new_user_obj = svc.user_by_name(sesh, test_user.username)
-    assert new_user_obj.timezone == new_timezone
+    assert new_user_obj.settings.timezone == new_timezone
     assert new_user_obj.email is None
 
 
@@ -77,7 +77,7 @@ def test_nonsense_timezone(sesh, client, test_user):
     assert post_resp.status_code == 400, post_resp.data
 
     new_user_obj = svc.user_by_name(sesh, test_user.username)
-    assert new_user_obj.timezone != "MilkyWay/Moon"
+    assert new_user_obj.settings.timezone != "MilkyWay/Moon"
 
 
 def test_user_settings__not_authed(client, test_user):

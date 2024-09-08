@@ -91,7 +91,7 @@ def reverse_url_for(
 def user_timezone_or_utc() -> str:
     user = get_current_user()
     if user is not None:
-        return user.timezone
+        return user.settings.timezone
     else:
         return "UTC"
 

@@ -29,6 +29,7 @@ from csvbase.value_objs import (
     ROW_ID_COLUMN,
     ColumnType,
     Backend,
+    UserSettings
 )
 from csvbase.web.billing import svc as billing_svc
 from csvbase.web import func
@@ -75,8 +76,7 @@ def make_user(sesh: Session, crypt_context) -> ExtendedUser:
         registered=user.registered,
         api_key=user.api_key,
         email=user.email,
-        timezone=user.timezone,
-        mailing_list=user.mailing_list,
+        settings=user.settings
     )
 
 

@@ -46,8 +46,7 @@ class User:
     email: Optional[str]
     registered: datetime
     api_key: bytes
-    timezone: str
-    mailing_list: bool
+    settings: "UserSettings"
 
     def hex_api_key(self) -> str:
         return binascii.hexlify(self.api_key).decode("utf-8")
@@ -56,13 +55,20 @@ class User:
         """Returns the timezone "object" which you can pass as an argument into
         datetime.replace or datetime.now."""
         try:
-            return gettz(self.timezone)
+            return gettz(self.settings.timezone)
         except Exception:
             logger.exception("unable to load timezone for user, using UTC")
             return timezone.utc
 
     def email_for_web_templates(self) -> str:
         return self.email or ""
+
+
+@dataclass
+class UserSettings:
+    timezone: str = "UTC"
+    use_gravatar: bool = False
+    mailing_list: bool = False
 
 
 @dataclass
