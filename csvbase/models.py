@@ -10,7 +10,7 @@ from sqlalchemy import (
     ForeignKeyConstraint,
 )
 from sqlalchemy.orm import mapped_column, DeclarativeBase, relationship
-from sqlalchemy.dialects.postgresql import BYTEA, UUID as _PGUUID
+from sqlalchemy.dialects.postgresql import BYTEA, UUID as _PGUUID, JSONB
 from sqlalchemy.schema import CheckConstraint, Identity, MetaData
 
 naming_convention = {
@@ -54,9 +54,10 @@ class User(Base):
     user_uuid = mapped_column(PGUUID, primary_key=True)
     username = mapped_column(satypes.String, nullable=False, unique=True, index=True)
     password_hash = mapped_column(satypes.String, nullable=False)
-    timezone = mapped_column(satypes.String, nullable=False)
+    # timezone = mapped_column(satypes.String, nullable=False)
     registered = mapped_column(satypes.DateTime(timezone=True), nullable=False)
-    mailing_list = mapped_column(satypes.Boolean, nullable=False)
+    # mailing_list = mapped_column(satypes.Boolean, nullable=False)
+    settings = mapped_column(JSONB, nullable=False)
 
     email_obj = relationship("UserEmail", uselist=False, backref="user")
 

@@ -1295,7 +1295,9 @@ def user_settings(username: str) -> Response:
             raise exc.InvalidRequest()
         user.settings.timezone = timezone
         user.email = request.form.get("email")
-        user.settings.mailing_list = request.form.get("mailing-list", type=bool, default=False)
+        user.settings.mailing_list = request.form.get(
+            "mailing-list", type=bool, default=False
+        )
         svc.set_user_bio_markdown(
             sesh, user.user_uuid, request.form.get("about", default="")
         )

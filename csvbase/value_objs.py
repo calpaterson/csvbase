@@ -70,6 +70,13 @@ class UserSettings:
     use_gravatar: bool = False
     mailing_list: bool = False
 
+    @classmethod
+    def from_json(cls, json_dict) -> "UserSettings":
+        return cls(**json_dict)
+
+    def to_json(self) -> Dict:
+        return dataclass_as_dict(self)
+
 
 @dataclass
 class KeySet:

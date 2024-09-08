@@ -86,8 +86,7 @@ def user_by_name(sesh: Session, username: str) -> User:
             models.User.registered,
             models.APIKey.api_key,
             models.UserEmail.email_address,
-            models.User.timezone,
-            models.User.mailing_list,
+            models.User.settings,
         )
         .join(models.APIKey)
         .outerjoin(models.UserEmail)
@@ -97,14 +96,14 @@ def user_by_name(sesh: Session, username: str) -> User:
     if rp is None:
         raise exc.UserDoesNotExistException(username)
     else:
-        user_uuid, registered, api_key, email, timezone, ml = rp
+        user_uuid, registered, api_key, email, settings = rp
         return User(
             user_uuid=user_uuid,
             username=username,
             registered=registered,
             api_key=api_key,
             email=email,
-            settings=UserSettings(timezone=timezone, mailing_list=ml, use_gravatar=False)
+            settings=UserSettings.from_json(settings),
         )
 
 
@@ -116,8 +115,7 @@ def user_by_user_uuid(sesh, user_uuid: UUID) -> User:
             models.User.registered,
             models.APIKey.api_key,
             models.UserEmail.email_address,
-            models.User.timezone,
-            models.User.mailing_list,
+            models.User.settings,
         )
         .join(models.APIKey)
         .outerjoin(models.UserEmail)
@@ -127,30 +125,23 @@ def user_by_user_uuid(sesh, user_uuid: UUID) -> User:
     if rp is None:
         raise exc.UserDoesNotExistException(str(user_uuid))
     else:
-        username, registered, api_key, email, timezone, ml = rp
+        username, registered, api_key, email, settings = rp
         return User(
             user_uuid=user_uuid,
             username=username,
             registered=registered,
             api_key=api_key,
             email=email,
-            settings=UserSettings(timezone=timezone, mailing_list=ml, use_gravatar=False)
+            settings=UserSettings.from_json(settings),
         )
 
 
 def update_user(sesh, new_user: User) -> None:
     current_user = user_by_user_uuid(sesh, new_user.user_uuid)
-    update_fields = {"timezone", "mailing_list"}
-    update_arg = {
-        field: getattr(new_user.settings, field)
-        for field in update_fields
-        if getattr(new_user.settings, field) != getattr(current_user.settings, field)
-    }
-    if len(update_arg) > 0:
-        sesh.query(models.User).filter(
-            models.User.user_uuid == new_user.user_uuid
-        ).update(update_arg)
-        logger.info("updated %s for %s", update_arg, new_user.username)
+    sesh.query(models.User).filter(models.User.user_uuid == new_user.user_uuid).update(
+        {"settings": new_user.settings.to_json()}
+    )
+    logger.info("updated settings for %s", new_user.username)
     if new_user.email != current_user.email:
         update_user_email(sesh, new_user)
 
@@ -482,9 +473,8 @@ def create_user(
         user_uuid=user_uuid,
         username=username,
         password_hash=password_hashed,
-        timezone="UTC",
         registered=registered,
-        mailing_list=mailing_list,
+        settings={"timezone": "UTC", "mailing_list": mailing_list},
     )
     # HTML forms submit empty fields as blank strings.
     if email is not None and "@" in email:
@@ -499,7 +489,7 @@ def create_user(
         registered=user.registered,
         api_key=user.api_key.api_key,
         email=email,
-        settings=UserSettings(timezone="UTC", mailing_list=mailing_list)
+        settings=UserSettings(timezone="UTC", mailing_list=mailing_list),
     )
 
 
