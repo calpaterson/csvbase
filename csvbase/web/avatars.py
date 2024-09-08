@@ -21,9 +21,9 @@ BASE_URL = "https://gravatar.com/avatar/"
 
 def get_gravatar(user: User) -> requests.Response:
     """Makes a request to the gravatar REST API."""
-    if user.email is None:
+    if user.email is None or not user.settings.use_gravatar:
         # They serve the default gravatar for the base url
-        url = BASE_URL
+        url = BASE_URL[:-1]
     else:
         hashed_email = hashlib.sha256(user.email.lower().encode("utf-8")).hexdigest()
         url = urljoin(BASE_URL, hashed_email)

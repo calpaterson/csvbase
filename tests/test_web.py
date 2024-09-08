@@ -157,10 +157,13 @@ def test_security_headers(client):
 
 
 def test_avatar__using_a_gravatar(sesh, client, test_user, requests_mocker):
+    test_user.settings.use_gravatar = True
+    svc.update_user(sesh, test_user)
+
     email = "example@example.com"
     email_hash = hashlib.sha256(email.encode("utf-8")).hexdigest()
     requests_mocker.get(
-        f"https://gravatar.com/avatar/{email_hash}", content=b"an image"
+        f"https://gravatar.com/avatar/{email_hash}?d=mp", content=b"an image"
     )
 
     test_user.email = email
@@ -171,8 +174,16 @@ def test_avatar__using_a_gravatar(sesh, client, test_user, requests_mocker):
     assert resp.status_code == 200
 
 
+def test_avatar__not_using_a_gravatar(sesh, client, test_user, requests_mocker):
+    requests_mocker.get(
+        f"https://gravatar.com/avatar?d=mp", content=b"a default image"
+    )
+    resp = client.get(f"/avatars/{test_user.username}")
+    assert resp.status_code == 200
+
+
 def test_avatar__no_email(sesh, client, test_user, requests_mocker):
-    requests_mocker.get("https://gravatar.com/avatar/", content=b"an image")
+    requests_mocker.get("https://gravatar.com/avatar?d=mp", content=b"a default image")
 
     resp = client.get(f"/avatars/{test_user.username}")
     assert resp.status_code == 200
