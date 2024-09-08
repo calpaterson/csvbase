@@ -25,7 +25,7 @@ from flask_babel import get_locale, dates
 
 from .. import exc, sentry, svc
 from ..config import get_config
-from ..value_objs import User, Table
+from ..value_objs import User, Table, Comment
 from .turnstile import get_turnstile_token_from_form, validate_turnstile_token
 
 logger = getLogger(__name__)
@@ -227,6 +227,17 @@ def ensure_table_access(
             else:
                 raise exc.TableDoesNotExistException(table.username, table.table_name)
     return None
+
+
+def ensure_comment_access(
+    sesh: Session, comment: Comment, mode: Literal["write"]
+) -> None:
+    """Ensures that the current user can access (write) the particular comment."""
+    current_user = get_current_user()
+    if current_user is None:
+        raise exc.NotAuthenticatedException()
+    elif comment.user.user_uuid != current_user.user_uuid:
+        raise exc.NotAllowedException()
 
 
 def ensure_not_read_only(table: Table) -> None:

@@ -77,19 +77,29 @@ def test_comment__create(sesh, client, test_thread, test_user, requests_mocker):
     assert len(thread_page.comments) == 2
 
 
-# def test_comment__edit(sesh, client, test_thread, test_user):
-#     comment_text = utils.random_string()
-#     with utils.current_user(test_user):
-#         edit_form_resp = client.get(f"/threads/{test_thread.slug}/1/edit-form")
-#         assert edit_form_resp.status_code == 200
+def test_comment__edit(sesh, client, test_thread, test_user):
+    comment_text = utils.random_string()
+    with utils.current_user(test_user):
+        edit_form_resp = client.get(f"/threads/{test_thread.slug}/1/edit-form")
+        assert edit_form_resp.status_code == 200
 
-#         edit_resp = client.post(
-#             f"/threads/{test_thread.slug}", data={"comment-markdown": comment_text}
-#         )
-#     assert edit_resp.status_code == 302
-#     follow_resp = client.get(edit_resp["Location"])
-#     comments = extract_comments(follow_resp)
-#     assert comment_text in comments[1]
+        edit_resp = client.post(
+            f"/threads/{test_thread.slug}/1", data={"comment-markdown": comment_text}
+        )
+    assert edit_resp.status_code == 302
+    # follow_resp = client.get(edit_resp.headers["Location"])
+    # comments = extract_comments(follow_resp)
+    # assert comment_text in comments[1]
+
+
+def test_comment__edit__as_someone_else(sesh, client, test_thread, crypt_context):
+    new_text = utils.random_string()
+    other_user = utils.make_user(sesh, crypt_context)
+    with utils.current_user(other_user):
+        edit_resp = client.post(
+            f"/threads/{test_thread.slug}/1", data={"comment-markdown": new_text}
+        )
+    assert edit_resp.status_code == 403
 
 
 def test_set_references(sesh, test_thread, test_user):

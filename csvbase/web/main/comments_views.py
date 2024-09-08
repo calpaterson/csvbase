@@ -8,7 +8,7 @@ from ..turnstile import get_turnstile_token_from_form, validate_turnstile_token
 from csvbase import comments_svc, markdown
 from csvbase.config import get_config
 from csvbase.value_objs import Comment
-from ..func import get_current_user_or_401
+from ..func import get_current_user_or_401, ensure_comment_access
 from ...sesh import get_sesh
 
 
@@ -90,7 +90,7 @@ class CommentView(MethodView):
 
         thread = comments_svc.get_thread_by_slug(sesh, thread_slug)
         comment = comments_svc.get_comment(sesh, thread, comment_id)
-        # FIXME: assert am user
+        ensure_comment_access(sesh, comment, "write")
 
         comment_markdown = request.form["comment-markdown"]
         references = markdown.extract_references(comment_markdown)
