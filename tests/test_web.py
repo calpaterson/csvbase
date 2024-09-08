@@ -175,9 +175,7 @@ def test_avatar__using_a_gravatar(sesh, client, test_user, requests_mocker):
 
 
 def test_avatar__not_using_a_gravatar(sesh, client, test_user, requests_mocker):
-    requests_mocker.get(
-        f"https://gravatar.com/avatar?d=mp", content=b"a default image"
-    )
+    requests_mocker.get("https://gravatar.com/avatar?d=mp", content=b"a default image")
     resp = client.get(f"/avatars/{test_user.username}")
     assert resp.status_code == 200
 
