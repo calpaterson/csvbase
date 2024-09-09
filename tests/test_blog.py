@@ -1,5 +1,6 @@
 from unittest.mock import patch
 from uuid import uuid4
+from datetime import timedelta
 
 import feedparser
 import pytest
@@ -12,7 +13,7 @@ from csvbase.svc import create_table_metadata, get_table
 from csvbase.userdata import PGUserdataAdapter
 from csvbase.value_objs import Column, ColumnType, DataLicence, User, Backend
 
-from .utils import random_string
+from . import utils
 
 
 def make_post(**overrides):
@@ -32,7 +33,7 @@ def make_post(**overrides):
 
 @pytest.fixture(scope="function")
 def blog_table(sesh, test_user: User):
-    table_name = random_string()
+    table_name = utils.random_string()
     columns = [
         Column("title", ColumnType.TEXT),
         Column("uuid", ColumnType.TEXT),
@@ -95,7 +96,7 @@ def test_blog_with_draft_post(sesh, client, blog_table):
     assert_feed_header_is_present(root)
 
 
-def test_post(sesh, client, blog_table):
+def test_post__logged_out(sesh, client, blog_table):
     post = make_post()
     blog_svc.insert_post(sesh, post)
     sesh.commit()
@@ -104,6 +105,9 @@ def test_post(sesh, client, blog_table):
     html_parser = etree.HTMLParser()
     root = etree.fromstring(resp.data, html_parser)
     assert_feed_header_is_present(root)
+
+    assert resp.cache_control.max_age == int(timedelta(minutes=3).total_seconds())
+
     # FIXME: It would be great to have tests for all this stuff:
     # image
     # image alt
@@ -120,6 +124,19 @@ def test_post(sesh, client, blog_table):
     # description
 
 
+def test_post__logged_in(sesh, client, blog_table, test_user):
+    post = make_post()
+    blog_svc.insert_post(sesh, post)
+    sesh.commit()
+    with utils.current_user(test_user):
+        resp = client.get("/blog/1")
+    assert resp.status_code == 200
+
+    assert resp.cache_control.max_age == int(timedelta(minutes=3).total_seconds())
+    assert resp.cache_control.private
+
+
+
 def test_draft(client, sesh, blog_table):
     post = make_post(draft=True)
     blog_svc.insert_post(sesh, post)
@@ -134,6 +151,9 @@ def test_draft_with_uuid(client, sesh, blog_table):
     sesh.commit()
     resp = client.get(f"/blog/{post.id}?uuid={str(post.uuid)}")
     assert resp.status_code == 200
+
+    assert resp.cache_control.private
+    assert resp.cache_control.no_store
 
 
 def assert_feed_header_is_present(root):
@@ -167,3 +187,6 @@ def test_rss(client, sesh, blog_table):
     assert entry["link"] == f"http://localhost/blog/{post1.id}"
     assert entry["title"] == post1.title
     assert entry["summary"] == post1.description
+
+    # make sure it's cached for a day
+    assert resp.cache_control.max_age == int(timedelta(days=1).total_seconds())

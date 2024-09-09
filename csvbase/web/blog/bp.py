@@ -13,8 +13,8 @@ from csvbase.markdown import render_markdown
 
 bp = Blueprint("blog", __name__)
 
-# a shortish time initially, increase this once confidence grows
-CACHE_TTL = int(timedelta(hours=1).total_seconds())
+# Just enough to keep the req/s down
+CACHE_TTL = int(timedelta(minutes=3).total_seconds())
 
 
 @bp.get("/blog")
@@ -59,6 +59,7 @@ def post(post_id: int) -> Response:
     cc = response.cache_control
     if post_obj.draft:
         cc.no_store = True
+        cc.private = True
     else:
         cc.max_age = CACHE_TTL
     return response
@@ -71,6 +72,7 @@ def rss() -> Response:
     response = Response(feed, mimetype="application/rss+xml")
     cc = response.cache_control
     # RSS feed updates need to be picked up in reasonable period of time
+    cc.public = True
     cc.max_age = int(timedelta(days=1).total_seconds())
     return response
 

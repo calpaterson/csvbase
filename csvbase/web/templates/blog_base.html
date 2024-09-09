@@ -1,17 +1,8 @@
 {# -*- mode: jinja2 -*- #}
-{% extends "base.html" %}
+{% extends "app_base.html" %}
 
 {% block head %}
   {{ super() }}
   <link rel="alternate" type="application/rss+xml" title="csvbase blog"
         href="{{ url_for('blog.rss', _external=True) }}">
-{% endblock %}
-
-{% block navbar_elements %}
-  {{ super() }}
-  <ul class="navbar-nav ms-auto">
-    <li class="nav-item">
-      <a href="{{ url_for('csvbase.register') }}" class="btn btn-success">Register</a>
-    </li>
-  </ul>
 {% endblock %}

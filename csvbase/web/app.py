@@ -271,6 +271,9 @@ def init_app() -> Flask:
         if len(cc.values()) == 0:
             # nothing specific has been set, so set the default
             cc.no_store = True
+
+        if get_current_user() is not None and response.mimetype == ContentType.HTML.value:
+            cc.private = True
         return response
 
     @app.after_request
