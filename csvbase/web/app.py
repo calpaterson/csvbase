@@ -63,6 +63,7 @@ EXCEPTION_MESSAGE_CODE_MAP = {
     exc.RowDoesNotExistException: ("that row does not exist", 404),
     exc.PageDoesNotExistException: ("that page does not exist", 404),
     exc.TableDoesNotExistException: ("that table does not exist", 404),
+    exc.ThreadDoesNotExistException: ("that thread does not exist", 404),
     exc.TableUUIDDoesNotExistException: ("that table does not exist", 404),
     exc.NotAuthenticatedException: ("you need to sign in to do that", 401),
     exc.NotAllowedException: ("that's not allowed", 403),
@@ -272,7 +273,10 @@ def init_app() -> Flask:
             # nothing specific has been set, so set the default
             cc.no_store = True
 
-        if get_current_user() is not None and response.mimetype == ContentType.HTML.value:
+        if (
+            get_current_user() is not None
+            and response.mimetype == ContentType.HTML.value
+        ):
             cc.private = True
         return response
 

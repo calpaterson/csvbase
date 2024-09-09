@@ -136,7 +136,6 @@ def test_post__logged_in(sesh, client, blog_table, test_user):
     assert resp.cache_control.private
 
 
-
 def test_draft(client, sesh, blog_table):
     post = make_post(draft=True)
     blog_svc.insert_post(sesh, post)

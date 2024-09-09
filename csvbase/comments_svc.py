@@ -12,7 +12,7 @@ from sqlalchemy.sql import exists
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.sql.expression import tuple_
 
-from . import svc, models
+from . import svc, models, exc
 from .value_objs import Comment, Thread, User
 
 
@@ -226,8 +226,13 @@ def create_comment(
 
 def get_thread_by_slug(sesh: Session, thread_slug: str) -> Thread:
     thread_obj = (
-        sesh.query(models.Thread).filter(models.Thread.thread_slug == thread_slug).one()
+        sesh.query(models.Thread)
+        .filter(models.Thread.thread_slug == thread_slug)
+        .first()
     )
+
+    if thread_obj is None:
+        raise exc.ThreadDoesNotExistException()
 
     # this seems sub-optimal but they will very likely be sitting in cache:
     user = svc.user_by_user_uuid(sesh, thread_obj.user_uuid)

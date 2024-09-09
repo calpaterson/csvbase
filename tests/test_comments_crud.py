@@ -1,15 +1,11 @@
+from datetime import timedelta
+
 import pytest
 
 from csvbase.value_objs import Thread
 from csvbase import comments_svc, models
 
 from . import utils
-
-
-def test_create_slug(sesh):
-    title = "What does null mean in this context?"
-    slug = comments_svc._create_thread_slug(sesh, title)
-    assert slug.startswith("what-does-null")
 
 
 @pytest.fixture
@@ -19,6 +15,12 @@ def test_thread(module_sesh, test_user) -> Thread:
     )
     module_sesh.commit()
     return thread
+
+
+def test_create_slug(sesh):
+    title = "What does null mean in this context?"
+    slug = comments_svc._create_thread_slug(sesh, title)
+    assert slug.startswith("what-does-null")
 
 
 @pytest.mark.parametrize(
@@ -49,6 +51,30 @@ def test_comment_id_to_page_number(comment_id, expected_page_number):
 def test_page_number_to_first_comment_id(page_number, expected_first_comment_id):
     actual_first_comment_id = comments_svc.page_number_to_first_comment_id(page_number)
     assert actual_first_comment_id == expected_first_comment_id
+
+
+def test_thread__read_doesnt_exist(client):
+    resp = client.get(f"/threads/{utils.random_string()}")
+    assert resp.status_code == 404
+
+
+def test_thread__read_signed_out(client, test_thread):
+    """Check reading a thread while signed out"""
+    resp = client.get(f"/threads/{test_thread.slug}")
+    assert resp.status_code == 200
+
+    assert resp.cache_control.max_age == int(timedelta(minutes=3).total_seconds())
+
+
+def test_thread__read_signed_in(client, test_thread, test_user):
+    """Check reading a thread while signed in"""
+    with utils.current_user(test_user):
+        resp = client.get(f"/threads/{test_thread.slug}")
+    assert resp.status_code == 200
+
+    assert resp.cache_control.private
+    assert resp.cache_control.max_age == int(timedelta(minutes=3).total_seconds())
+    # FIXME: check Last-Modified
 
 
 # def extract_comments(resp) -> Dict[int, str]:

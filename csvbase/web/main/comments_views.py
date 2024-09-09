@@ -1,3 +1,4 @@
+from datetime import timedelta
 from logging import getLogger
 
 from flask import make_response, render_template, request, redirect, url_for, Blueprint
@@ -14,15 +15,23 @@ from ...sesh import get_sesh
 
 logger = getLogger(__name__)
 
+# Just enough to keep the req/s down
+CACHE_TTL = int(timedelta(minutes=3).total_seconds())
+
+
+def set_thread_cache_headers(response: Response) -> None:
+    response.cache_control.max_age = CACHE_TTL
+
 
 class ThreadView(MethodView):
     def get(self, thread_slug: str) -> Response:
         """Get a thread by slug"""
         sesh = get_sesh()
         page = request.args.get("page", default=1, type=int)
-        max_comment_id = comments_svc.get_max_comment_id(sesh, thread_slug)
+
         start = comments_svc.page_number_to_first_comment_id(page)
         comment_page = comments_svc.get_comment_page(sesh, thread_slug, start=start)
+        max_comment_id = comments_svc.get_max_comment_id(sesh, thread_slug)
 
         if max_comment_id is None:
             max_page = 1
@@ -40,7 +49,7 @@ class ThreadView(MethodView):
         else:
             comment_markdown = ""
 
-        return make_response(
+        response = make_response(
             render_template(
                 "thread.html",
                 comment_page=comment_page,
@@ -50,6 +59,8 @@ class ThreadView(MethodView):
                 max_page=max_page,
             )
         )
+        set_thread_cache_headers(response)
+        return response
 
     def post(self, thread_slug: str) -> Response:
         """Add a comment to a thread"""
