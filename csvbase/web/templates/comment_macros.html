@@ -30,8 +30,14 @@
   <div id="comment-{{comment.comment_id}}" class="comment my-2">
     <div class="card">
       <div class="card-header d-flex">
-        <span><a href="{{url_for('csvbase.thread_view', thread_slug=comment.thread.slug, page=comment.page_number(), _anchor='comment-' ~ comment.comment_id)}}">#{{comment.comment_id}}</a> <img src="{{ url_for('avatars.image', username=comment.user.username) }}" class="comment-avatar"> <a href="{{ url_for('csvbase.user', username=comment.user.username) }}">{{comment.user.username}}</a> <span class="text-body-secondary">{{ value_macros.render_human_datetime(comment.created) }} ago</span><span>{% for ref in comment.referenced_by %}{{ render_comment_ref(ref) }}{% endfor %}</span></span>
+        <span>
+          <a href="{{url_for('csvbase.thread_view', thread_slug=comment.thread.slug, page=comment.page_number(), _anchor='comment-' ~ comment.comment_id)}}">#{{comment.comment_id}}</a>
+          <img src="{{ url_for('avatars.image', username=comment.user.username) }}" class="comment-avatar">
+          <a href="{{ url_for('csvbase.user', username=comment.user.username) }}">{{comment.user.username}}</a>
+          <span class="text-body-secondary">{{ value_macros.render_human_datetime(comment.created) }} ago</span>
+        </span>
         <span class="ms-auto">
+          <span class="px-1">{% for ref in comment.referenced_by %}{{ render_comment_ref(ref) }}{% endfor %}</span>
           <div class="btn-group" role="group">
             {% if for_owner %}
               <a class="btn btn-warning btn-sm" href="{{ url_for('csvbase.comment_edit_form', thread_slug=comment.thread.slug, comment_id=comment.comment_id) }}">edit</a>
