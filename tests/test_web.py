@@ -172,12 +172,17 @@ def test_avatar__using_a_gravatar(sesh, client, test_user, requests_mocker):
 
     resp = client.get(f"/avatars/{test_user.username}")
     assert resp.status_code == 200
+    assert resp.cache_control.max_age == 300
+    assert "stale-while-revalidate=300" in resp.headers["Cache-Control"]
+    # assert resp.cache_control.stale_while_revalidate
 
 
 def test_avatar__not_using_a_gravatar(sesh, client, test_user, requests_mocker):
     requests_mocker.get("https://gravatar.com/avatar?d=mp", content=b"a default image")
     resp = client.get(f"/avatars/{test_user.username}")
     assert resp.status_code == 200
+    assert resp.cache_control.max_age == 300
+    assert "stale-while-revalidate=300" in resp.headers["Cache-Control"]
 
 
 def test_avatar__no_email(sesh, client, test_user, requests_mocker):

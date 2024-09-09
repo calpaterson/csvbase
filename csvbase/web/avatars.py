@@ -44,7 +44,7 @@ def image(username: str) -> FlaskResponse:
         gravatar_response.headers.get("Content-Type", "application/octet-stream"),
     )
 
-    # cache it
-    cc = response.cache_control
-    cc.max_age = int(timedelta(days=1).total_seconds())
+    # cache it for a few minutes, and get CDNs to coalesce reqs (no support for
+    # this in werkzeug yet)
+    response.headers.set("Cache-control", "max-age=300, stale-while-revalidate=300")
     return response
