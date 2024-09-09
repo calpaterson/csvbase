@@ -13,7 +13,7 @@
           {% else %}
             href="{{ url_for('csvbase.thread_view', thread_slug=thread_slug, page=page_number) }}"
           {% endif %}
-          >{{ page_number }}</a></li>
+          >{% if page_number == current_page %}Page {% endif %}{{ page_number }}</a></li>
     {% endfor %}
   </ul>
 {% endmacro %}

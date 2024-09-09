@@ -16,11 +16,10 @@
   <div class="container">
     <div class="row col-md-8 offset-md-2">
       <h1>{{comment_page.thread.title}}</h1>
-      <div class="alert alert-warning">
-        Threads are alpha.  They might be a bit wonky.
-      </div>
+
       {{ comment_macros.render_pagination(comment_page.thread.slug, current_page, max_page) }}
       {{ comment_macros.render_comment_page(comment_page, current_user) }}
+      {{ comment_macros.render_pagination(comment_page.thread.slug, current_page, max_page) }}
     </div>
 
     <div class="row col-md-8 offset-md-2">
@@ -38,8 +37,9 @@
               {% endif %}
               <div class="py-1">
                 <textarea
+                  id="comment-textarea"
                   name="comment-markdown"
-                  class="form-control comment-textarea"
+                  class="form-control"
                   {% if comment_markdown %}autofocus{% endif %}
                   >{{comment_markdown}}</textarea>
               </div>
@@ -55,5 +55,6 @@
         </div>
       </div>
     </div>
+
   </div>
 {% endblock main %}
