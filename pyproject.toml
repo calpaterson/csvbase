@@ -15,7 +15,7 @@ csvbase-update-stripe-subscriptions = "csvbase.cli:update_stripe_subscriptions"
 csvbase-repcache-populate = "csvbase.cli:repcache_populate"
 
 [tool.setuptools.packages.find]
-include = ["csvbase"]
+exclude = ["tests", "migrations"]
 
 [tool.setuptools.dynamic]
 version = {file = "csvbase/VERSION"}
