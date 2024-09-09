@@ -265,7 +265,7 @@ def set_references(
     Currently only handles comment references (and not rows or tables).
 
     """
-    max_comment_id = get_max_comment_id(sesh, thread.slug)
+    max_comment_id = get_max_comment_id(sesh, thread.slug) or 1
 
     referenced_comments = [
         (thread.internal_thread_id, comment_id)
