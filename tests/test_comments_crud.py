@@ -102,6 +102,21 @@ def test_comment__edit__as_someone_else(sesh, client, test_thread, crypt_context
     assert edit_resp.status_code == 403
 
 
+def test_comment__refer_to_comment_that_doesnt_exist(
+    sesh, client, test_thread, test_user, requests_mocker
+):
+    utils.mock_turnstile(requests_mocker)
+    with utils.current_user(test_user):
+        resp = client.post(
+            f"/threads/{test_thread.slug}",
+            data={
+                "comment-markdown": "about #3",
+                "cf-turnstile-response": utils.random_string(),
+            },
+        )
+    assert resp.status_code == 302
+
+
 def test_set_references(sesh, test_thread, test_user):
     def get_current_references(comment_id):
         return {

@@ -264,7 +264,6 @@ HAPPY_TURNSTILE_RESPONSE = {"success": True, "error_codes": [], "hostname": "loc
 TURNSTILE_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 
-@contextlib.contextmanager
 def mock_turnstile(requests_mocker, response_dict=HAPPY_TURNSTILE_RESPONSE):
     """Handy utility to mock Cloudflare Turnstile."""
     resp_json = {"challenge_ts": datetime.now(timezone.utc).isoformat()}

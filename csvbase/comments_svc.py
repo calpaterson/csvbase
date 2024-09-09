@@ -265,11 +265,18 @@ def set_references(
     Currently only handles comment references (and not rows or tables).
 
     """
-    # early exit for no references
-    if len(references) == 0:
+    max_comment_id = get_max_comment_id(sesh, thread.slug)
+
+    referenced_comments = [
+        (thread.internal_thread_id, comment_id)
+        for comment_id in (int(r[1:]) for r in references)
+        if comment_id <= max_comment_id
+    ]
+
+    # exit now, where no references
+    if len(referenced_comments) == 0:
         return
 
-    referenced_comments = [(thread.internal_thread_id, int(r[1:])) for r in references]
     values: list[dict[str, int]] = [
         {
             "thread_id": thread.internal_thread_id,
