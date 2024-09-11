@@ -35,6 +35,11 @@ app_base. #}
               csvbase
             </a>
 
+            {% if "billing" in blueprints %}
+              <a class="btn btn-primary d-sm-none"
+                 href="{{ url_for('billing.pricing') }}">Become a supporter</a>
+            {% endif %}
+
             <button class="navbar-toggler"
                     type="button"
                     data-bs-toggle="collapse"
@@ -70,7 +75,7 @@ app_base. #}
                   </li>
 
                   {% if "billing" in blueprints %}
-                    <li class="nav-item">
+                    <li class="nav-item d-none d-md-block">
                       <a class="btn btn-primary"
                          href="{{ url_for('billing.pricing') }}">Become a supporter</a>
                     </li>
