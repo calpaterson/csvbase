@@ -1533,7 +1533,7 @@ def keyset_from_request_args() -> KeySet:
         "greater_than" if request.args.get("op", default="gt") == "gt" else "less_than"
     )
     keyset = KeySet(
-        [Column("csvbase_row_id", ColumnType.INTEGER)], (n,), op=op, size=20
+        [Column("csvbase_row_id", ColumnType.INTEGER)], (n,), op=op, size=10
     )
     return keyset
 
