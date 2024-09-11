@@ -51,8 +51,9 @@ def post(post_id: int) -> Response:
         comment_page = comments_svc.get_comment_page(
             sesh, post_obj.thread_slug, start=1
         )
+        max_comment_id = comments_svc.get_max_comment_id(sesh, post_obj.thread_slug)
         max_comment_page_number = comments_svc.comment_id_to_page_number(
-            comments_svc.get_max_comment_id(sesh, post_obj.thread_slug) or 1
+            max_comment_id or 1
         )
     else:
         comment_page = None
@@ -68,6 +69,7 @@ def post(post_id: int) -> Response:
             canonical_url=post_url,
             comment_page=comment_page,
             max_comment_page_number=max_comment_page_number,
+            max_comment_id=max_comment_id,
         )
     )
     cc = response.cache_control

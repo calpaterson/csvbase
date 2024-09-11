@@ -24,34 +24,8 @@
 
     <div class="row col-md-8 offset-md-2">
       <div class="reply-form my-2">
-        <h2>Comment</h2>
-        <form
-          method="POST"
-          action="{{ url_for('csvbase.thread_view', thread_slug=comment_page.thread.slug)}}"
-          >
-          {% if not current_user %}
-            <div class="alert alert-warning" role="alert">
-              Please <a href="{{ url_for('csvbase.register') }}">register</a> (or <a href="{{ url_for('csvbase.sign_in') }}">sign in</a>) to leave a comment.
-            </div>
-          {% endif %}
-          <div class="py-1">
-            <textarea
-              id="comment-textarea"
-              name="comment-markdown"
-              class="form-control"
-              rows="5"
-              {% if comment_markdown %}autofocus{% endif %}
-              >{{comment_markdown}}</textarea>
-              <div class="form-text text-end"><a href="{{ url_for('faq.faq_entry', slug="markdown") }}">Markdown</a> is supported</div>
-          </div>
-          {% if current_user %}
-            {{ captcha_macros.turnstile_magic_div() }}
-          {% endif %}
-
-          <div class="py-1">
-            <button {% if not current_user %}disabled{% endif %} type="submit" class="btn btn-primary">Add comment</button>
-          </div>
-        </form>
+        <h2>Add comment</h2>
+        {{ comment_macros.render_submit_comment_form(comment_page.thread.slug, current_user, comment_markdown) }}
       </div>
     </div>
 

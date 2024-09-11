@@ -76,9 +76,18 @@
     <div class="row">
       <div class="col-lg-6 offset-lg-3">
         <h2>Comments</h2>
-        {{ comment_macros.render_pagination(comment_page.thread.slug, 1, max_comment_page_number) }}
-        {{ comment_macros.render_comment_page(comment_page, current_user) }}
-        {{ comment_macros.render_pagination(comment_page.thread.slug, 1, max_comment_page_number) }}
+        {% if max_comment_page_number > 1 %}
+          {{ comment_macros.render_pagination(comment_page.thread.slug, 1, max_comment_page_number) }}
+        {% endif %}
+        {% if max_comment_id == None %}
+          {{ comment_macros.render_no_comments_yet() }}
+        {% else %}
+          {{ comment_macros.render_comment_page(comment_page, current_user) }}
+        {% endif %}
+        {% if max_comment_page_number > 1 %}
+          {{ comment_macros.render_pagination(comment_page.thread.slug, 1, max_comment_page_number) }}
+        {% endif %}
+        {{ comment_macros.render_submit_comment_form(comment_page.thread.sllug, current_user, "") }}
       </div>
     </div>
     {% endif %}
