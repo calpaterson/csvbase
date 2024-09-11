@@ -58,7 +58,7 @@ def get_posts(sesh: Session) -> Sequence[Post]:
             [Column("csvbase_row_id", ColumnType.INTEGER)],
             (0,),
             op="greater_than",
-            size=20,
+            size=50,
         ),
     )
     posts = []
