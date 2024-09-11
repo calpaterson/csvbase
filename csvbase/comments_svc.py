@@ -54,7 +54,7 @@ def page_number_to_first_comment_id(page_number: int) -> int:
     return (page_number * 10) - 9
 
 
-SLUG_PREFIX_REGEX = re.compile(r"[^a-z09]")
+SLUG_PREFIX_REGEX = re.compile(r"[^A-Za-z0-9]")
 
 
 def _create_thread_slug(sesh: Session, title: str) -> str:
