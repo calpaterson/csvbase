@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from .value_objs import Post
 from . import svc as blog_svc
-from ... import exc
+from ... import exc, comments_svc
 from csvbase.sesh import get_sesh
 from csvbase.markdown import render_markdown
 
@@ -46,6 +46,18 @@ def post(post_id: int) -> Response:
     md = render_markdown(post_obj.markdown)
     post_url = url_for("blog.post", post_id=post_id, _external=True)
     ld_json = make_ld_json(post_obj, post_url)
+
+    if post_obj.thread_slug is not None:
+        comment_page = comments_svc.get_comment_page(
+            sesh, post_obj.thread_slug, start=1
+        )
+        max_comment_page_number = comments_svc.comment_id_to_page_number(
+            comments_svc.get_max_comment_id(sesh, post_obj.thread_slug) or 1
+        )
+    else:
+        comment_page = None
+        max_comment_page_number = None
+
     response = make_response(
         render_template(
             "post.html",
@@ -54,6 +66,8 @@ def post(post_id: int) -> Response:
             page_title=post_obj.title,
             ld_json=ld_json,
             canonical_url=post_url,
+            comment_page=comment_page,
+            max_comment_page_number=max_comment_page_number,
         )
     )
     cc = response.cache_control

@@ -131,9 +131,12 @@ def test_licence_from_data_licence(data_licence, expected_licence):
     assert Licence.from_data_licence(data_licence) == expected_licence
 
 
-@pytest.mark.parametrize("licence, recommended",[
-    (LICENCE_MAP["ODC-By-1.0"], True),
-    (LICENCE_MAP["AGPL-3.0-or-later"], False),
-])
+@pytest.mark.parametrize(
+    "licence, recommended",
+    [
+        (LICENCE_MAP["ODC-By-1.0"], True),
+        (LICENCE_MAP["AGPL-3.0-or-later"], False),
+    ],
+)
 def test_licence_okfn_recommended(licence, recommended):
     assert licence.okfn_recommended is recommended

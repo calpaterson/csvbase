@@ -268,14 +268,16 @@ class DataLicence(enum.Enum):
     def is_free(self) -> bool:
         return self.value > 1
 
+
 OKFN_RECOMMENDED = {
     "CC0-1.0",
     "PDDL-1.0",
     "CC-BY-4.0",
     "ODC-By-1.0",
     "CC-BY-SA-4.0",
-    "ODbL-1.0"
+    "ODbL-1.0",
 }
+
 
 @dataclass(frozen=True, eq=True)  # FIXME: set slots=True when 3.10+
 class Licence:

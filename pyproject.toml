@@ -13,6 +13,7 @@ csvbase-load-prohibited-usernames = "csvbase.cli:load_prohibited_usernames"
 csvbase-config = "csvbase.cli:config_cli"
 csvbase-update-stripe-subscriptions = "csvbase.cli:update_stripe_subscriptions"
 csvbase-repcache-populate = "csvbase.cli:repcache_populate"
+csvbase-create-thread = "csvbase.cli:create_thread"
 
 [tool.setuptools.packages.find]
 exclude = ["tests", "migrations"]

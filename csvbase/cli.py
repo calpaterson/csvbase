@@ -10,7 +10,7 @@ from .value_objs import DataLicence, ContentType
 from .models import Base
 from .logging import configure_logging
 from .config import load_config, default_config_file
-from csvbase import svc
+from csvbase import svc, comments_svc
 from .sesh import get_sesh
 from .web.app import init_app
 from .web.billing import svc as billing_svc
@@ -123,3 +123,16 @@ def repcache_populate(ref: str) -> None:
             ContentType.JSON_LINES,
         ]:
             svc.populate_repcache(sesh, table.table_uuid, content_type)
+
+
+@click.command("csvbase-create-thread")
+@click.argument("creator")
+@click.argument("title")
+def create_thread(creator: str, title: str) -> None:
+    sesh = get_sesh()
+    app = init_app()
+    with app.app_context():
+        creator_user = svc.user_by_name(sesh, creator)
+        thread = comments_svc.create_thread(sesh, creator_user, title)
+        sesh.commit()
+    logger.info("Created thread: '%s'", thread.slug)

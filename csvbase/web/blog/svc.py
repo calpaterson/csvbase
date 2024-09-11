@@ -20,6 +20,7 @@ BLOG_COLUMNS = [
     Column("cover_image_url", ColumnType.TEXT),
     Column("cover_image_alt", ColumnType.TEXT),
     Column("posted", ColumnType.DATE),
+    Column("thread_slug", ColumnType.TEXT),
 ]
 
 

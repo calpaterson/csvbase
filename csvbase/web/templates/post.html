@@ -1,6 +1,6 @@
 {# -*- mode: jinja2 -*- #}
 {% extends "blog_base.html" %}
-
+{% import 'comment_macros.html' as comment_macros %}
 {% import 'other_macros.html' as other_macros %}
 
 {% block head %}
@@ -44,6 +44,7 @@
     <div class="row">
       <div class="col-lg-6 offset-lg-3 text-center">
         <p class="blog-post-description">{{ post.description }}</p>
+      </div>
     </div>
     <div class="row">
       <div class="col-lg-6 offset-lg-3 text-center">
@@ -68,29 +69,47 @@
         {{ rendered|safe }}
       </div>
     </div>
+  </div>
 
+  <div class="container">
+    {% if comment_page %}
     <div class="row">
-      <div class="col-lg-8 offset-lg-2 ma-3">
-        <h2>Stay up to date</h2>
-        <p class="blog-rss">Get alerted about new posts via <a href="{{ url_for('blog.rss') }}">RSS</a>, or: quickly register an account and leave the checkbox ticked:</p>
+      <div class="col-lg-6 offset-lg-3">
+        <h2>Comments</h2>
+        {{ comment_macros.render_pagination(comment_page.thread.slug, 1, max_comment_page_number) }}
+        {{ comment_macros.render_comment_page(comment_page, current_user) }}
+        {{ comment_macros.render_pagination(comment_page.thread.slug, 1, max_comment_page_number) }}
       </div>
     </div>
+    {% endif %}
 
-    <form  method="POST" action="{{ url_for('csvbase.register') }}">
-      <div class="row mb-3">
-        <div class="col-lg-4 offset-lg-2">
-          {{ other_macros.username_form_field() }}
-        </div>
-        <div class="col-lg-4">
-          {{ other_macros.email_form_field() }}
-        </div>
-        <div class="col-lg-8 offset-lg-2">
-          {{ other_macros.password_form_field() }}
-          {{ other_macros.mailing_list_form_field(checked=True) }}
-          <input class="btn btn-success" type="submit" value="Register">
-        </div>
-      </div>
-    </form>
+
+    {# <div class="row"> #}
+    {#   <div class="col-lg-6 offset-lg-3 ma-3"> #}
+    {#     <h2>Stay up to date</h2> #}
+    {#     <p class="blog-rss">Get alerted about new posts via <a href="{{ url_for('blog.rss') }}">RSS</a>, or: quickly register an account and leave the checkbox ticked:</p> #}
+    {#   </div> #}
+    {# </div> #}
+
+    {# <form  method="POST" action="{{ url_for('csvbase.register') }}"> #}
+    {#   <div class="row mb-3"> #}
+    {#     <div class="col-lg-6 offset-lg-3"> #}
+    {#       {{ other_macros.username_form_field() }} #}
+    {#     </div> #}
+    {#   </div> #}
+    {#   <div class="row mb-3"> #}
+    {#     <div class="col-lg-6 offset-lg-3"> #}
+    {#       {{ other_macros.email_form_field() }} #}
+    {#     </div> #}
+    {#   </div> #}
+    {#   </div class="row"> #}
+    {#     <div class="col-lg-6 offset-lg-3"> #}
+    {#       {{ other_macros.password_form_field() }} #}
+    {#       {{ other_macros.mailing_list_form_field(checked=True) }} #}
+    {#       <input class="btn btn-success" type="submit" value="Register"> #}
+    {#     </div> #}
+    {#   </div> #}
+    {# </form> #}
 
   </div>
 {% endblock %}

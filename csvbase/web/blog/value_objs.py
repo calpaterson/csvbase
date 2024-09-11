@@ -15,6 +15,7 @@ class Post:
     cover_image_url: str
     cover_image_alt: str
     posted: Optional[date] = None
+    thread_slug: Optional[str] = None
 
     def render_posted(self) -> str:
         if self.posted is not None:
