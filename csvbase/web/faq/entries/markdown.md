@@ -1,5 +1,5 @@
 <!--
-title = "What Markdown is supported>"
+title = "What Markdown is supported?"
 description = "csvbase uses GFM - plus some other bits"
 draft = false
 created = 2024-09-09
