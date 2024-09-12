@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1.4
 FROM python:3.8-slim-bullseye as builder
+WORKDIR /app
 RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -15,6 +16,7 @@ RUN --mount=type=cache,target=/root/.cache/pip make static-deps
 RUN --mount=type=cache,target=/root/.cache/pip python -m pip wheel -w wheelhouse .
 
 FROM python:3.8-slim-bullseye
+WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1
 ENV TZ=UTC
@@ -28,7 +30,7 @@ RUN chmod +x /tini
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get -y install libpq5
-COPY --from=builder wheelhouse wheelhouse
+COPY --from=builder /app/wheelhouse wheelhouse
 
 RUN --mount=type=cache,target=/root/.cache/pip python -m pip --no-cache-dir install csvbase --no-index -f wheelhouse
 
