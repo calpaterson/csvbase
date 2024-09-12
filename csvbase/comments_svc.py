@@ -3,7 +3,7 @@
 import re
 import secrets
 from dataclasses import dataclass
-from typing import Sequence, Optional
+from typing import Mapping, Sequence, Optional
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
@@ -263,7 +263,7 @@ def _next_comment_id(sesh: Session, internal_thread_id: int) -> int:
 
 
 def set_references(
-    sesh: Session, thread: Thread, comment_id: int, references: list[str]
+    sesh: Session, thread: Thread, comment_id: int, references: Sequence[str]
 ) -> None:
     """Set the references for the given thread & comment_id.
 
@@ -282,7 +282,7 @@ def set_references(
     if len(referenced_comments) == 0:
         return
 
-    values: list[dict[str, int]] = [
+    values: Sequence[Mapping[str, int]] = [
         {
             "thread_id": thread.internal_thread_id,
             "comment_id": comment_id,
