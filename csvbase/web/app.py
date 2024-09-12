@@ -4,6 +4,7 @@ from datetime import timedelta
 from logging import getLogger
 from typing import (
     Any,
+    Dict,
     Mapping,
     Optional,
     Sequence,
@@ -177,7 +178,7 @@ def init_app() -> Flask:
         )
 
     @app.context_processor
-    def inject_ua() -> dict[str, Any]:
+    def inject_ua() -> Dict[str, Any]:
         # UA is occasionally good to know in a template
         return {"user_agent": user_agents.parse(request.headers.get("User-Agent", ""))}
 

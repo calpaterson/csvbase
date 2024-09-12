@@ -1,5 +1,6 @@
 import re
 import functools
+from typing import Sequence
 
 from marko import Markdown, inline
 from marko.ext.gfm import elements, renderer
@@ -96,6 +97,6 @@ def quote_markdown(md_str: str) -> str:
 REFERENCES_REGEX = re.compile(r"#\d+")
 
 
-def extract_references(md_str: str) -> list[str]:
+def extract_references(md_str: str) -> Sequence[str]:
     """Pull all references (as they are, textually) out of a comment."""
     return re.findall(REFERENCES_REGEX, md_str)
