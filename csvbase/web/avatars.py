@@ -1,4 +1,3 @@
-from datetime import timedelta
 from logging import getLogger
 from urllib.parse import urljoin
 import hashlib
