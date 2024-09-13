@@ -234,6 +234,17 @@ class DataLicence(Base):
     licence_name = mapped_column(satypes.String)
 
 
+class Licence(Base):
+    __tablename__ = "licences"
+    __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+
+    licence_id = mapped_column(
+        satypes.SmallInteger, primary_key=True, autoincrement=True
+    )
+    spdx_id = mapped_column(satypes.String, unique=True, nullable=False)
+    licence_name = mapped_column(satypes.String, nullable=False)
+
+
 class Praise(Base):
     __tablename__ = "praise"
     __table_args__ = (

@@ -6,8 +6,8 @@ from logging import getLogger
 import click
 from sqlalchemy.sql.expression import text
 
-from .value_objs import DataLicence, ContentType
-from .models import Base
+from .value_objs import DataLicence, ContentType, LICENCE_MAP
+from . import models
 from .logging import configure_logging
 from .config import load_config, default_config_file
 from csvbase import svc, comments_svc
@@ -32,7 +32,7 @@ def make_tables() -> None:
         sesh = get_sesh()
         sesh.execute(text("CREATE SCHEMA IF NOT EXISTS metadata"))
         sesh.execute(text("CREATE SCHEMA IF NOT EXISTS userdata"))
-        Base.metadata.create_all(bind=sesh.connection(), checkfirst=True)
+        models.Base.metadata.create_all(bind=sesh.connection(), checkfirst=True)
 
         dl_insert = text(
             """
@@ -136,3 +136,25 @@ def create_thread(creator: str, title: str) -> None:
         thread = comments_svc.create_thread(sesh, creator_user, title)
         sesh.commit()
     logger.info("Created thread: '%s'", thread.slug)
+
+
+@click.command("populate-licences")
+def populate_licences() -> None:
+    sesh = get_sesh()
+    app = init_app()
+    with app.app_context():
+        for spdx_id, licence in LICENCE_MAP.items():
+            licence_obj = (
+                sesh.query(models.Licence)
+                .filter(models.Licence.spdx_id == spdx_id)
+                .first()
+            )
+            if licence_obj is None:
+                licence_obj = models.Licence(
+                    spdx_id=spdx_id,
+                    licence_name=licence.name,
+                )
+                sesh.add(licence_obj)
+            licence_obj.licence_name = licence.name
+        sesh.commit()
+    logger.info("populated licences")

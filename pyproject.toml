@@ -14,6 +14,7 @@ csvbase-config = "csvbase.cli:config_cli"
 csvbase-update-stripe-subscriptions = "csvbase.cli:update_stripe_subscriptions"
 csvbase-repcache-populate = "csvbase.cli:repcache_populate"
 csvbase-create-thread = "csvbase.cli:create_thread"
+csvbase-populate-licences = "csvbase.cli:populate_licences"
 
 [tool.setuptools.packages.find]
 exclude = ["tests", "migrations"]
