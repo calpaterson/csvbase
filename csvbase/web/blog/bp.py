@@ -47,7 +47,7 @@ def post(post_id: int) -> Response:
     post_url = url_for("blog.post", post_id=post_id, _external=True)
     ld_json = make_ld_json(post_obj, post_url)
 
-    if post_obj.thread_slug is not None:
+    if post_obj.thread_slug:
         comment_page = comments_svc.get_comment_page(
             sesh, post_obj.thread_slug, start=1
         )

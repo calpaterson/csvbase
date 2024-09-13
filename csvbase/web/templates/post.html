@@ -2,6 +2,7 @@
 {% extends "blog_base.html" %}
 {% import 'comment_macros.html' as comment_macros %}
 {% import 'other_macros.html' as other_macros %}
+{% import 'captcha_macros.html' as captcha_macros %}
 
 {% block head %}
   {{ super() }}
@@ -30,6 +31,10 @@
 <script type="application/ld+json">
 {{ ld_json|safe }}
 </script>
+
+{% if current_user %}
+  {{ captcha_macros.turnstile_script_tag() }}
+{% endif %}
 
 {% endblock %}
 
@@ -87,7 +92,7 @@
         {% if max_comment_page_number > 1 %}
           {{ comment_macros.render_pagination(comment_page.thread.slug, 1, max_comment_page_number) }}
         {% endif %}
-        {{ comment_macros.render_submit_comment_form(comment_page.thread.sllug, current_user, "") }}
+        {{ comment_macros.render_submit_comment_form(comment_page.thread.slug, current_user, "") }}
       </div>
     </div>
     {% endif %}

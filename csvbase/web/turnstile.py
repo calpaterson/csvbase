@@ -35,12 +35,13 @@ def validate_turnstile_token(turnstile_token: str) -> None:
         logger.warning("turnstile key not set, not checking token")
         return
 
+    body = {
+        "secret": secret_key,
+        "response": turnstile_token,
+    }
     resp = http_sesh.post(
         VERIFY_URL,
-        data={
-            "secret": secret_key,
-            "response": turnstile_token,
-        },
+        data=body,
         timeout=TIMEOUT,
     )
     response_doc = resp.json()
