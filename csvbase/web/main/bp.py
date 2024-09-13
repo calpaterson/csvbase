@@ -288,18 +288,8 @@ class TableView(MethodView):
             status = 200
             message = f"upserted {username}/{table_name}"
         else:
-            # FIXME: this logic to check if the user *could* write to this
-            # table, if it existed, should be encapsulated somewhere else and
-            # re-used here
             if not am_user(username):
-                is_public = svc.is_public(sesh, username, table_name)
-                if is_public and am_a_user():
-                    raise exc.NotAllowedException()
-                elif is_public:
-                    raise exc.NotAuthenticatedException()
-                else:
-                    raise exc.TableDoesNotExistException(username, table_name)
-
+                raise exc.NotAllowedException()
             str_buf = get_user_str_buf()
             dialect, csv_columns = streams.peek_csv(str_buf)
             rows = table_io.csv_to_rows(str_buf, csv_columns, dialect)

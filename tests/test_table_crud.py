@@ -303,6 +303,20 @@ def test_create__with_a_blank_csv(client, test_user):
     }
 
 
+def test_create__under_another_user(sesh, client, test_user, crypt_context):
+    new_csv = "a,b,c"
+    table_name = random_string()
+    other_user = make_user(sesh, crypt_context)
+    sesh.commit()
+    resp = client.put(
+        f"/{test_user.username}/{table_name}",
+        data=new_csv,
+        headers={"Authorization": other_user.basic_auth(), "Content-Type": "text/csv"},
+    )
+    assert resp.status_code == 403
+    assert resp.json == {"error": "that's not allowed"}
+
+
 def test_create__blank_column_name(client, test_user):
     new_csv = """a,,c
 1,2,3"""
