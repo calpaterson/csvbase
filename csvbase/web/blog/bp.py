@@ -58,6 +58,7 @@ def post(post_id: int) -> Response:
     else:
         comment_page = None
         max_comment_page_number = None
+        max_comment_id = None
 
     response = make_response(
         render_template(
