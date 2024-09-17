@@ -35,7 +35,7 @@ def test_new_blank_table_form(client, query, kwargs):
     _, template_kwargs = pickle.loads(resp.data)
     template_kwargs.pop("ColumnType")
     template_kwargs.pop("action_url")
-    template_kwargs.pop("licences")
+    template_kwargs.pop("ordered_licences")
     template_kwargs.pop("table_name")
     template_kwargs.pop("method")
     assert template_kwargs == kwargs

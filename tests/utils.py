@@ -22,7 +22,6 @@ from werkzeug.datastructures import MultiDict
 from csvbase.userdata import PGUserdataAdapter
 from csvbase import svc
 from csvbase.value_objs import (
-    DataLicence,
     Table,
     User,
     Column,
@@ -101,7 +100,7 @@ def create_table(
     table_name=None,
     is_public=True,
     caption="",
-    licence=DataLicence.ALL_RIGHTS_RESERVED,
+    licence=None,
 ) -> Table:
     if table_name is None:
         table_name = random_string()
