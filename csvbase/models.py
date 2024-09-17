@@ -158,11 +158,13 @@ class Table(Base):
         nullable=False,
         index=True,
     )
+
+    # FIXME: deprecated
     licence_id = mapped_column(
         satypes.SmallInteger,
-        ForeignKey("metadata.data_licences.licence_id"),
-        nullable=False,
+        nullable=True,
     )
+
     table_name = mapped_column(satypes.String, nullable=False, index=True)
     caption = mapped_column(
         satypes.String,
@@ -180,6 +182,7 @@ class Table(Base):
     )
 
     readme_obj = relationship("TableReadme", uselist=False, backref="table")
+    licence_obj = relationship("TableLicence", uselist=False, backref="table")
 
     praise_objs = relationship("Praise", uselist=True, backref="table_objs")
     backend_obj = relationship("TableBackend", uselist=False, backref="table_objs")
@@ -243,6 +246,20 @@ class Licence(Base):
     )
     spdx_id = mapped_column(satypes.String, unique=True, nullable=False)
     licence_name = mapped_column(satypes.String, nullable=False)
+
+
+class TableLicence(Base):
+    __tablename__ = "table_licences"
+    __table_args__ = (METADATA_SCHEMA_TABLE_ARG,)
+
+    table_uuid = mapped_column(
+        PGUUID, ForeignKey("metadata.tables.table_uuid"), primary_key=True, unique=True
+    )
+    licence_id = mapped_column(
+        satypes.SmallInteger,
+        ForeignKey("metadata.licences.licence_id"),
+        primary_key=True,
+    )
 
 
 class Praise(Base):

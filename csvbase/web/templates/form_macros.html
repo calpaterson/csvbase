@@ -10,3 +10,19 @@
     </div>
   {% endif %}
 {% endmacro %}
+
+
+{% macro render_licence_combobox(ordered_licences, current_licence=None) %}
+  <div class="col-auto">
+    <label for="licence-select" class="col-form-label">Licence</label>
+  </div>
+  <div class="col-auto">
+    <select class="form-select" name="licence">
+      <option value="csvbase-unspecified">Unspecified</option>
+      {% for licence in ordered_licences %}
+        <option value="{{ licence.spdx_id }}" {% if current_licence.spdx_id == licence.spdx_id %}selected{% endif %}>{{ licence.name }} {% if licence.recommended %}(Recommended){% endif %}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-text">(Optionally) Specify which licence this data is released under.</div>
+{% endmacro %}

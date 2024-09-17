@@ -60,6 +60,8 @@ from ..func import (
     am_user_or_400,
     ensure_not_read_only,
     handle_app_level_404_and_405,
+    licence_form_field_to_licence,
+    ORDERED_LICENCES,
 )
 from ... import exc, svc, streams, table_io
 from ...json import value_to_json, json_to_row
@@ -72,7 +74,6 @@ from ...value_objs import (
     Column,
     ColumnType,
     ContentType,
-    DataLicence,
     KeySet,
     Page,
     PythonType,
@@ -294,14 +295,15 @@ class TableView(MethodView):
             dialect, csv_columns = streams.peek_csv(str_buf)
             rows = table_io.csv_to_rows(str_buf, csv_columns, dialect)
             is_public = request.args.get("public", default=False, type=bool)
+            licence = licence_form_field_to_licence(request.form.get("licence", None))
             table_uuid = svc.create_table_metadata(
                 sesh,
                 user.user_uuid,
                 table_name,
                 is_public,
                 "",
-                DataLicence.ALL_RIGHTS_RESERVED,
-                Backend.POSTGRES,
+                backend=Backend.POSTGRES,
+                licence=licence,
             )
             backend.create_table(table_uuid, csv_columns)
             table = svc.get_table(sesh, username, table_name)
@@ -775,7 +777,7 @@ class CopyView(MethodView):
             new_table_name,
             is_public,
             existing_table.caption,
-            existing_table.data_licence,
+            existing_table.licence,
             Backend.POSTGRES,
         )
 
@@ -813,7 +815,6 @@ def table_details(username: str, table_name: str) -> Response:
         table_readme_md,
         username=username,
         page_title=f"Schema & Details: {username}/{table_name}",
-        DataLicence=DataLicence,
     )
 
 
@@ -832,7 +833,7 @@ def table_settings(username: str, table_name: str) -> Response:
         table_readme_md,
         username=username,
         page_title=f"Settings: {username}/{table_name}",
-        DataLicence=DataLicence,
+        ordered_licences=ORDERED_LICENCES,
     )
 
 
@@ -847,12 +848,12 @@ def post_table_settings(username: str, table_name: str) -> Response:
         is_public = False
     else:
         is_public = True
-    data_licence = DataLicence(request.form.get("data-licence", type=int))
+    licence = licence_form_field_to_licence(request.form.get("licence", None))
 
     readme_markdown = request.form.get("table-readme-markdown", "")
     svc.set_readme_markdown(sesh, table.table_uuid, readme_markdown)
 
-    svc.update_table_metadata(sesh, table.table_uuid, is_public, caption, data_licence)
+    svc.update_table_metadata(sesh, table.table_uuid, is_public, caption, licence)
     svc.mark_table_changed(sesh, table.table_uuid)
     sesh.commit()
 
@@ -1586,11 +1587,15 @@ def page_to_json_dict(table: Table, page: Page) -> Dict[str, Any]:
 
 def table_to_json_dict(table: Table, page: Optional[Page] = None) -> Dict[str, Any]:
     """Converts a table to a dict (including first page) for JSON."""
+    if table.licence is not None:
+        licence = table.licence.spdx_id
+    else:
+        licence = None
     rv = {
         "name": table.table_name,
         "is_public": table.is_public,
         "caption": table.caption,
-        "data_licence": table.data_licence.short_render(),
+        "licence": licence,
         "created": table.created.isoformat(),
         "last_changed": table.last_changed.isoformat(),
         "columns": [

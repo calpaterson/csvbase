@@ -25,7 +25,7 @@ from flask_babel import get_locale, dates
 
 from .. import exc, sentry, svc
 from ..config import get_config
-from ..value_objs import User, Table, Comment
+from ..value_objs import User, Table, Comment, Licence, LICENCE_MAP
 from .turnstile import get_turnstile_token_from_form, validate_turnstile_token
 
 logger = getLogger(__name__)
@@ -298,3 +298,18 @@ def handle_app_level_404_and_405(
         resp = jsonify(doc)
     resp.status_code = e.code
     return resp
+
+
+def licence_form_field_to_licence(spdx_id: Optional[str]) -> Optional[Licence]:
+    """Convenience function to avoid copying+pasting this common logic"""
+    # they didn't set anything
+    if spdx_id == "csvbase-unspecified":
+        return None
+    return Licence.from_spdx_id(spdx_id) if spdx_id is not None else None
+
+
+# Licences in the order that should be seen in the combobox
+ORDERED_LICENCES = sorted(
+    LICENCE_MAP.values(),
+    key=lambda licence: (0 if licence.recommended else 1, licence.name),
+)

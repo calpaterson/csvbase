@@ -154,11 +154,11 @@ class Table:
     table_name: str
     is_public: bool
     caption: str
-    data_licence: "DataLicence"
     columns: Sequence["Column"]
     created: datetime
     row_count: RowCount
     last_changed: datetime
+    licence: Optional["Licence"]
     key: Optional[Sequence["Column"]]
     upstream: Optional["GitUpstream"] = None
 
@@ -179,10 +179,6 @@ class Table:
 
     def ref(self) -> str:
         return f"{self.username}/{self.table_name}"
-
-    @property
-    def licence(self) -> Optional["Licence"]:
-        return Licence.from_data_licence(self.data_licence)
 
 
 @dataclass
@@ -259,23 +255,11 @@ class DataLicence(enum.Enum):
     ODBL = 4
     OGL = 5
 
-    def render(self) -> str:
-        return _DATA_LICENCE_PP_MAP[self]
 
-    def short_render(self) -> str:
-        return _DATA_LICENCE_SHORT_MAP[self]
-
-    def is_free(self) -> bool:
-        return self.value > 1
-
-
-OKFN_RECOMMENDED = {
+RECOMMENDED_LICENCES = {
     "CC0-1.0",
-    "PDDL-1.0",
     "CC-BY-4.0",
-    "ODC-By-1.0",
     "CC-BY-SA-4.0",
-    "ODbL-1.0",
 }
 
 
@@ -292,8 +276,13 @@ class Licence:
         return _DATA_LICENCE_TO_LICENCE_MAP.get(data_licence, None)
 
     @property
-    def okfn_recommended(self) -> bool:
-        return self.spdx_id in OKFN_RECOMMENDED
+    def recommended(self) -> bool:
+        return self.spdx_id in RECOMMENDED_LICENCES
+
+    @staticmethod
+    def from_spdx_id(spdx_id: str) -> "Licence":
+        # FIXME: handle missing?
+        return LICENCE_MAP[spdx_id]
 
 
 def build_licence_map() -> Iterable[Tuple[str, Licence]]:
@@ -319,24 +308,6 @@ _DATA_LICENCE_TO_LICENCE_MAP = {
     DataLicence.ODC_BY: LICENCE_MAP["ODC-By-1.0"],
     DataLicence.ODBL: LICENCE_MAP["ODbL-1.0"],
     DataLicence.OGL: LICENCE_MAP["OGL-UK-3.0"],
-}
-
-_DATA_LICENCE_PP_MAP = {
-    DataLicence.UNKNOWN: "Unknown",
-    DataLicence.ALL_RIGHTS_RESERVED: "All rights reserved",
-    DataLicence.PDDL: "PDDL (public domain)",
-    DataLicence.ODC_BY: "ODB-By (attribution required)",
-    DataLicence.ODBL: "ODbl (attribution & sharealike)",
-    DataLicence.OGL: "Open Government Licence",
-}
-
-_DATA_LICENCE_SHORT_MAP = {
-    DataLicence.UNKNOWN: "Unknown",
-    DataLicence.ALL_RIGHTS_RESERVED: "All rights reserved",
-    DataLicence.PDDL: "Public domain",
-    DataLicence.ODC_BY: "ODB-By",
-    DataLicence.ODBL: "ODbl",
-    DataLicence.OGL: "OGL",
 }
 
 
