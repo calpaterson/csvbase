@@ -5,6 +5,7 @@ from logging import getLogger
 
 import click
 from sqlalchemy.sql.expression import text
+from sqlalchemy.dialects.postgresql import insert as pginsert
 
 from .value_objs import DataLicence, ContentType, LICENCE_MAP
 from . import models
@@ -143,18 +144,17 @@ def populate_licences() -> None:
     sesh = get_sesh()
     app = init_app()
     with app.app_context():
-        for spdx_id, licence in LICENCE_MAP.items():
-            licence_obj = (
-                sesh.query(models.Licence)
-                .filter(models.Licence.spdx_id == spdx_id)
-                .first()
-            )
-            if licence_obj is None:
-                licence_obj = models.Licence(
-                    spdx_id=spdx_id,
-                    licence_name=licence.name,
-                )
-                sesh.add(licence_obj)
-            licence_obj.licence_name = licence.name
+        insert_stmt = pginsert(models.Licence)
+        upsert_stmt = insert_stmt.on_conflict_do_update(
+            index_elements=["spdx_id"],
+            set_=dict(licence_name=insert_stmt.excluded.licence_name),
+        )
+        sesh.execute(
+            upsert_stmt,
+            [
+                {"spdx_id": licence.spdx_id, "licence_name": licence.name}
+                for licence in LICENCE_MAP.values()
+            ],
+        )
         sesh.commit()
     logger.info("populated licences")
