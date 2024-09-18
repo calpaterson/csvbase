@@ -31,7 +31,7 @@ from . import exc, models, table_io
 from .userdata import PGUserdataAdapter
 from .value_objs import (
     Column,
-    DataLicence,
+    Licence,
     Row,
     Table,
     User,
@@ -218,8 +218,23 @@ def get_table(sesh: Session, username: str, table_name: str) -> Table:
         .filter(models.UniqueColumn.table_uuid == table_model.table_uuid)
         .scalar()
     )
+    spdx_id: Optional[str] = (
+        sesh.query(models.Licence.spdx_id)
+        .join(
+            models.TableLicence,
+            models.TableLicence.licence_id == models.Licence.licence_id,
+        )
+        .filter(models.TableLicence.table_uuid == table_model.table_uuid)
+        .scalar()
+    )
     return _make_table(
-        user.username, table_model, columns, row_count, source, unique_column_names
+        user.username,
+        table_model,
+        columns,
+        row_count,
+        source,
+        unique_column_names,
+        spdx_id,
     )
 
 
@@ -267,7 +282,7 @@ def create_table_metadata(
     table_name: str,
     is_public: bool,
     caption: str,
-    licence: DataLicence,
+    licence: Optional[Licence],
     backend: Backend,
 ) -> UUID:
     """Creates the metadata structures for a table (but not the table itself) -
@@ -289,8 +304,18 @@ def create_table_metadata(
     )
     table_obj.public = is_public
     table_obj.caption = caption
-    table_obj.licence_id = licence.value
     sesh.add(table_obj)
+    if licence is not None:
+        licence_obj = (
+            sesh.query(models.Licence)
+            .filter(models.Licence.spdx_id == licence.spdx_id)
+            .one()
+        )
+        sesh.add(
+            models.TableLicence(
+                table_uuid=table_uuid, licence_id=licence_obj.licence_id
+            )
+        )
     return table_uuid
 
 
@@ -352,14 +377,30 @@ def update_table_metadata(
     table_uuid: UUID,
     is_public: bool,
     caption: str,
-    licence: DataLicence,
+    licence: Optional[Licence],
 ) -> None:
     # If we have a table uuid, the table must exist
     table_obj = cast(models.Table, sesh.get(models.Table, table_uuid))
 
     table_obj.public = is_public
     table_obj.caption = caption
-    table_obj.licence_id = licence.value
+    if licence is None:
+        sesh.query(models.TableLicence).filter(
+            models.TableLicence.table_uuid == table_uuid
+        ).delete()
+    else:
+        licence_obj = (
+            sesh.query(models.Licence)
+            .filter(models.Licence.spdx_id == licence.spdx_id)
+            .one()
+        )
+        insert_stmt = pginsert(models.TableLicence).values(
+            table_uuid=table_uuid, licence_id=licence_obj.licence_id
+        )
+        upsert_stmt = insert_stmt.on_conflict_do_update(
+            index_elements=["table_uuid"], set_={"licence_id": licence_obj.licence_id}
+        )
+        sesh.execute(upsert_stmt)
 
 
 def get_readme_markdown(sesh: Session, table_uuid: UUID) -> Optional[str]:
@@ -626,9 +667,24 @@ def table_page(
             .filter(models.UniqueColumn.table_uuid == table_model.table_uuid)
             .scalar()
         )
+        spdx_id: Optional[str] = (
+            sesh.query(models.Licence.spdx_id)
+            .join(
+                models.TableLicence,
+                models.TableLicence.licence_id == models.Licence.licence_id,
+            )
+            .filter(models.TableLicence.table_uuid == table_model.table_uuid)
+            .scalar()
+        )
         tables.append(
             _make_table(
-                username, table_model, columns, row_count, source, unique_column_names
+                username,
+                table_model,
+                columns,
+                row_count,
+                source,
+                unique_column_names,
+                spdx_id,
             )
         )
 
@@ -654,25 +710,27 @@ def _make_table(
     row_count: RowCount,
     source: Optional[models.GitUpstream],
     unique_column_names: Optional[Sequence[str]],
+    spdx_id: Optional[str],
 ) -> Table:
     """Make a Table object from inputs"""
     if unique_column_names is not None:
         key = [c for c in columns if c in unique_column_names]
     else:
         key = None
+    licence = Licence.from_spdx_id(spdx_id) if spdx_id is not None else None
     return Table(
         table_uuid=table_model.table_uuid,
         username=username,
         table_name=table_model.table_name,
         is_public=table_model.public,
         caption=table_model.caption,
-        data_licence=DataLicence(table_model.licence_id),
         columns=columns,
         created=table_model.created,
         row_count=row_count,
         last_changed=table_model.last_changed,
         upstream=_make_source(source),
         key=key,
+        licence=licence,
     )
 
 
@@ -712,16 +770,18 @@ SELECT
     username,
     table_name,
     caption,
-    licence_id,
     created,
-    last_changed
+    last_changed,
+    spdx_id
 FROM
     metadata.tables AS t
     JOIN metadata.users AS u on t.user_uuid = u.user_uuid
+    LEFT JOIN metadata.table_licences AS tl using (table_uuid)
+    LEFT JOIN metadata.licences AS l ON tl.licence_id = l.licence_id
     LEFT JOIN metadata.praise USING (table_uuid)
 WHERE public
 GROUP BY
-    table_uuid, username
+    table_uuid, username, spdx_id
 ORDER BY
     count(praise_id) / extract(epoch FROM now() - created) DESC,
     created DESC
@@ -730,15 +790,7 @@ LIMIT :n;
     )
     backend = PGUserdataAdapter(sesh)
     rp = sesh.execute(stmt, dict(n=n))
-    for (
-        table_uuid,
-        username,
-        table_name,
-        caption,
-        licence_id,
-        created,
-        last_changed,
-    ) in rp:
+    for table_uuid, username, table_name, caption, created, last_changed, spdx_id in rp:
         columns = backend.get_columns(table_uuid)
         unique_column_names = (
             sesh.query(func.array_agg(models.UniqueColumn.column_name))
@@ -749,18 +801,19 @@ LIMIT :n;
             key = [c for c in columns if c in unique_column_names]
         else:
             key = None
+        licence = Licence.from_spdx_id(spdx_id) if spdx_id is not None else None
         table = Table(
             table_uuid,
             username,
             table_name,
             True,
             caption,
-            DataLicence(licence_id),
             columns,
             created,
             backend.count(table_uuid),
             last_changed,
             key=key,
+            licence=licence,
         )
         yield table
 
@@ -933,12 +986,19 @@ def record_copy(sesh: Session, existing_uuid: UUID, new_uuid: UUID) -> None:
 def git_tables(sesh: Session) -> Iterable[Tuple[Table, GitUpstream]]:
     """Return all external tables that come from git."""
     rows = (
-        sesh.query(models.Table, models.User.username, models.GitUpstream)
+        sesh.query(
+            models.Table,
+            models.User.username,
+            models.GitUpstream,
+            models.Licence.spdx_id,
+        )
         .join(models.User, models.User.user_uuid == models.Table.user_uuid)
         .join(
             models.GitUpstream,
             models.Table.table_uuid == models.GitUpstream.table_uuid,
         )
+        .join(models.TableLicence)
+        .join(models.Licence)
         .where(~models.GitUpstream.https_repo_url.like("https://example.com%"))
     )
     backend = PGUserdataAdapter(sesh)
@@ -950,6 +1010,15 @@ def git_tables(sesh: Session) -> Iterable[Tuple[Table, GitUpstream]]:
             .filter(models.UniqueColumn.table_uuid == table_model.table_uuid)
             .scalar()
         )
+        spdx_id: Optional[str] = (
+            sesh.query(models.Licence.spdx_id)
+            .join(
+                models.TableLicence,
+                models.TableLicence.licence_id == models.Licence.licence_id,
+            )
+            .filter(models.TableLicence.table_uuid == table_model.table_uuid)
+            .scalar()
+        )
         table = _make_table(
             username,
             table_model,
@@ -957,6 +1026,7 @@ def git_tables(sesh: Session) -> Iterable[Tuple[Table, GitUpstream]]:
             row_count,
             git_upstream_model,
             unique_column_names,
+            spdx_id,
         )
         ext_source = cast(GitUpstream, table.upstream)
         yield (table, ext_source)

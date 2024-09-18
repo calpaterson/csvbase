@@ -14,7 +14,11 @@ from flask.views import MethodView
 from flask import Blueprint, redirect, render_template, url_for, request
 from werkzeug.wrappers.response import Response
 
-from ..func import get_current_user_or_401
+from ..func import (
+    get_current_user_or_401,
+    licence_form_field_to_licence,
+    ORDERED_LICENCES,
+)
 from ... import exc, svc, streams, table_io, temp
 from ...sesh import get_sesh
 from ...userdata import PGUserdataAdapter
@@ -23,7 +27,6 @@ from ...value_objs import (
     Column,
     ColumnType,
     Encoding,
-    DataLicence,
     Backend,
     GitUpstream,
 )
@@ -40,7 +43,7 @@ def paste() -> str:
     return render_template(
         "new-table.html",
         method="paste",
-        DataLicence=DataLicence,
+        ordered_licences=ORDERED_LICENCES,
         action_url=url_for("create_table.new_table_form_submission"),
         page_title="Paste a new table",
     )
@@ -51,7 +54,7 @@ def upload_file() -> str:
     return render_template(
         "new-table.html",
         method="upload-file",
-        DataLicence=DataLicence,
+        ordered_licences=ORDERED_LICENCES,
         Encoding=Encoding,
         action_url=url_for("create_table.new_table_form_submission"),
         page_title="Upload a new table",
@@ -96,7 +99,7 @@ class CreateTableFromGit(MethodView):
             "create-table-git.html",
             method="git",
             action_url=url_for("create_table.from_git"),
-            DataLicence=DataLicence,
+            ordered_licences=ORDERED_LICENCES,
             branch="main",  # a nice default
         )
 
@@ -113,7 +116,7 @@ class CreateTableFromGit(MethodView):
             with streams.rewind(git_file.filelike):
                 file_id = temp.store_temp_file(git_file.filelike)
 
-                data_licence = DataLicence(request.form.get("data-licence", type=int))
+        licence = licence_form_field_to_licence(request.form.get("licence", None))
         github_source = GitUpstream(
             last_modified=git_file.version.last_changed,
             last_sha=bytes.fromhex(git_file.version.version_id),
@@ -127,7 +130,7 @@ class CreateTableFromGit(MethodView):
             "table_name": form["table-name"],
             "file_id": file_id,
             "is_public": not private,
-            "data_licence": data_licence.value,
+            "licence": licence,
             "columns": [[c.name, c.type_.value] for c in columns],
         }
         token = secrets.token_urlsafe()
@@ -181,13 +184,14 @@ class CreateTableConfirm(MethodView):
             columns.append(Column(column_name, column_type))
 
         table_name = confirm_package["table_name"]
+        licence = licence_form_field_to_licence(request.form.get("licence", None))
         table_uuid = svc.create_table_metadata(
             sesh,
             current_user.user_uuid,
             table_name,
             confirm_package["is_public"],
             "",
-            DataLicence(confirm_package["data_licence"]),
+            licence,
             Backend.POSTGRES,
         )
         unique_columns = [
@@ -250,14 +254,14 @@ def new_table_form_submission() -> Response:
     csv_buf: UserSubmittedCSVData
 
     is_public = not private
-    data_licence = DataLicence(request.form.get("data-licence", type=int))
+    licence = licence_form_field_to_licence(request.form.get("licence"))
     table_uuid = svc.create_table_metadata(
         sesh,
         current_user.user_uuid,
         table_name,
         is_public,
         "",
-        data_licence,
+        licence,
         Backend.POSTGRES,
     )
 
@@ -328,7 +332,7 @@ def blank_table() -> str:
         "new-blank-table.html",
         method="blank",
         action_url=url_for("create_table.blank_table_form_post"),
-        DataLicence=DataLicence,
+        ordered_licences=ORDERED_LICENCES,
         cols=cols,
         ColumnType=ColumnType,
         table_name=table_name,
@@ -361,7 +365,7 @@ def blank_table_form_post() -> Response:
             break
         index += 1
     table_name = request.form["table-name"]
-    licence = DataLicence(request.form.get("data-licence", type=int))
+    licence = licence_form_field_to_licence(request.form.get("licence", None))
     if "private" in request.form:
         is_public = False
     else:

@@ -35,7 +35,7 @@ def test_new_blank_table_form(client, query, kwargs):
     _, template_kwargs = pickle.loads(resp.data)
     template_kwargs.pop("ColumnType")
     template_kwargs.pop("action_url")
-    template_kwargs.pop("DataLicence")
+    template_kwargs.pop("ordered_licences")
     template_kwargs.pop("table_name")
     template_kwargs.pop("method")
     assert template_kwargs == kwargs
@@ -44,7 +44,9 @@ def test_new_blank_table_form(client, query, kwargs):
 @pytest.mark.parametrize("url", ["/new-table", "/new-table/blank"])
 def test_uploading_a_table__invalid_name(client, url, test_user):
     with current_user(test_user):
-        resp = client.post(url, data={"table-name": "some table", "data-licence": 1})
+        resp = client.post(
+            url, data={"table-name": "some table", "licence": "CC-BY-SA-4.0"}
+        )
 
     assert resp.status_code == 400
     assert resp.json == {"error": "that table name is invalid"}
@@ -57,7 +59,7 @@ def test_uploading_a_table__over_quota(client, test_user):
             data={
                 "table-name": "private-table-1",
                 "private": "on",
-                "data-licence": "1",
+                "licence": "CC-BY-SA-4.0",
                 "csv-file": (FileStorage(BytesIO(b"a,b,c\n1,2,3"), "test.csv")),
             },
             content_type="multipart/form-data",
@@ -70,7 +72,7 @@ def test_uploading_a_table__over_quota(client, test_user):
             data={
                 "table-name": "private-table-2",
                 "private": "on",
-                "data-licence": "1",
+                "licence": "CC-BY-SA-4.0",
                 "csv-file": (FileStorage(BytesIO(b"a,b,c\n1,2,3"), "test.csv")),
             },
             content_type="multipart/form-data",
@@ -85,7 +87,7 @@ def test_uploading_a_table(client, test_user):
             "/new-table",
             data={
                 "table-name": table_name,
-                "data-licence": "1",
+                "licence": "CC-BY-SA-4.0",
                 "csv-file": (FileStorage(BytesIO(b"a,b,c\n1,2,3"), "test.csv")),
             },
             content_type="multipart/form-data",
@@ -118,7 +120,7 @@ def test_uploading_a_table__csvbase_row_ids(client, test_user, ten_rows):
             "/new-table",
             data={
                 "table-name": new_table_name,
-                "data-licence": "1",
+                "licence": "CC-BY-SA-4.0",
                 "csv-file": (FileStorage(csv_buf_for_upload, "test.csv")),
             },
             content_type="multipart/form-data",
@@ -164,7 +166,7 @@ def test_uploading_a_table__encoding(
             "/new-table",
             data={
                 "table-name": table_name,
-                "data-licence": "1",
+                "licence": "CC-BY-SA-4.0",
                 "encoding": encoding.value,
                 "csv-file": (FileStorage(BytesIO(csv_data), "test.csv")),
             },
@@ -196,7 +198,7 @@ def test_uploading_a_table__wrong_encoding(
             "/new-table",
             data={
                 "table-name": table_name,
-                "data-licence": "1",
+                "licence": "CC-BY-SA-4.0",
                 "encoding": encoding.value,
                 "csv-file": (FileStorage(BytesIO(csv_data), "test.csv")),
             },
@@ -214,7 +216,7 @@ def test_blank_table(client, test_user):
                 "col-name-1": "test",
                 "col-type-1": "TEXT",
                 "table-name": random_string(),
-                "data-licence": 1,
+                "licence": "CC-BY-SA-4.0",
                 "private": "on",
             },
         )
@@ -230,7 +232,7 @@ def test_blank_table__over_quota(client, test_user):
                 "col-name-1": "test",
                 "col-type-1": "TEXT",
                 "table-name": random_string(),
-                "data-licence": 1,
+                "licence": "CC-BY-SA-4.0",
                 "private": "on",
             },
         )
@@ -243,7 +245,7 @@ def test_blank_table__over_quota(client, test_user):
                 "col-name-1": "test",
                 "col-type-1": "TEXT",
                 "table-name": random_string(),
-                "data-licence": 1,
+                "licence": "CC-BY-SA-4.0",
                 "private": "on",
             },
         )
@@ -262,7 +264,7 @@ def test_second_blank_table__into_subscription_quota(sesh, client, test_user):
                 "col-name-1": "test",
                 "col-type-1": "TEXT",
                 "table-name": random_string(),
-                "data-licence": 1,
+                "licence": "CC-BY-SA-4.0",
                 "private": "on",
             },
         )
@@ -275,7 +277,7 @@ def test_second_blank_table__into_subscription_quota(sesh, client, test_user):
                 "col-name-1": "test",
                 "col-type-1": "TEXT",
                 "table-name": random_string(),
-                "data-licence": 1,
+                "licence": "CC-BY-SA-4.0",
                 "private": "on",
             },
         )

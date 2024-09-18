@@ -401,7 +401,7 @@ def test_read__happy(client, ten_rows, test_user, content_type):
             "name": ten_rows.table_name,
             "is_public": True,
             "caption": "Roman numerals",
-            "data_licence": "All rights reserved",
+            "licence": None,
             "columns": [
                 {"name": "csvbase_row_id", "type": "integer"},
                 {

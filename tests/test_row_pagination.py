@@ -9,11 +9,11 @@ from csvbase.userdata import PGUserdataAdapter
 from csvbase.value_objs import (
     Column,
     ColumnType,
-    DataLicence,
     KeySet,
     Page,
     Table,
     Backend,
+    Licence,
 )
 
 from .utils import random_string
@@ -32,8 +32,8 @@ def letters_table(test_user, module_sesh) -> Table:
         table_name,
         True,
         "",
-        DataLicence.ALL_RIGHTS_RESERVED,
-        Backend.POSTGRES,
+        backend=Backend.POSTGRES,
+        licence=None,
     )
     backend = PGUserdataAdapter(module_sesh)
     backend.create_table(table_uuid, columns)
@@ -139,8 +139,8 @@ def test_pagination_under_the_bottom(sesh, test_user):
         table_name,
         False,
         "",
-        DataLicence.OGL,
-        Backend.POSTGRES,
+        backend=Backend.POSTGRES,
+        licence=Licence.from_spdx_id("OGL-UK-3.0"),
     )
     backend = PGUserdataAdapter(sesh)
     backend.create_table(table_uuid, columns=[x_column])
@@ -170,8 +170,8 @@ def test_paging_on_empty_table(sesh, test_user):
         table_name,
         False,
         "",
-        DataLicence.OGL,
-        Backend.POSTGRES,
+        backend=Backend.POSTGRES,
+        licence=Licence.from_spdx_id("OGL-UK-3.0"),
     )
     backend = PGUserdataAdapter(sesh)
     backend.create_table(table_uuid, columns=[Column("x", ColumnType.INTEGER)])

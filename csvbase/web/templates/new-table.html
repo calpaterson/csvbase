@@ -91,17 +91,7 @@
             </div>
 
             <div class="mb-3 row g-3">
-              <div class="col-auto">
-                <label for="licence-select" class="col-form-label">Data licence</label>
-              </div>
-              <div class="col-auto">
-                <select class="form-select" name="data-licence">
-                  {% for data_licence in DataLicence %}
-                    <option {% if data_licence == DataLicence.ALL_RIGHTS_RESERVED %}selected{% endif %}
-                            value="{{ data_licence.value }}">{{ data_licence.render() }}</option>
-                          {% endfor %}
-                </select>
-              </div>
+              {{ form_macros.render_licence_combobox(ordered_licences) }}
             </div>
 
             {% if not current_user %}

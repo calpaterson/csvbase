@@ -7,7 +7,6 @@ from csvbase.value_objs import (
     GitUpstream,
     Licence,
     DataLicence,
-    LICENCE_MAP,
 )
 from csvbase.conv import from_string_to_python
 
@@ -121,10 +120,10 @@ def test_git_upstream__gh_link(repo_url, branch, path, expected):
     [
         (DataLicence.UNKNOWN, None),
         (DataLicence.ALL_RIGHTS_RESERVED, None),
-        (DataLicence.PDDL, LICENCE_MAP["PDDL-1.0"]),
-        (DataLicence.ODC_BY, LICENCE_MAP["ODC-By-1.0"]),
-        (DataLicence.ODBL, LICENCE_MAP["ODbL-1.0"]),
-        (DataLicence.OGL, LICENCE_MAP["OGL-UK-3.0"]),
+        (DataLicence.PDDL, Licence.from_spdx_id("PDDL-1.0")),
+        (DataLicence.ODC_BY, Licence.from_spdx_id("ODC-By-1.0")),
+        (DataLicence.ODBL, Licence.from_spdx_id("ODbL-1.0")),
+        (DataLicence.OGL, Licence.from_spdx_id("OGL-UK-3.0")),
     ],
 )
 def test_licence_from_data_licence(data_licence, expected_licence):
@@ -134,9 +133,11 @@ def test_licence_from_data_licence(data_licence, expected_licence):
 @pytest.mark.parametrize(
     "licence, recommended",
     [
-        (LICENCE_MAP["ODC-By-1.0"], True),
-        (LICENCE_MAP["AGPL-3.0-or-later"], False),
+        (Licence.from_spdx_id("ODC-By-1.0"), False),
+        (Licence.from_spdx_id("ODC-By-1.0"), False),
+        (Licence.from_spdx_id("AGPL-3.0-or-later"), False),
+        (Licence.from_spdx_id("CC0-1.0"), True),
     ],
 )
 def test_licence_okfn_recommended(licence, recommended):
-    assert licence.okfn_recommended is recommended
+    assert licence.recommended is recommended

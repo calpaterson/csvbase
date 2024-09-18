@@ -7,7 +7,7 @@ from csvbase import exc
 from csvbase.svc import get_table, create_table_metadata, user_by_name
 from csvbase.config import get_config
 from csvbase.userdata import PGUserdataAdapter
-from csvbase.value_objs import Column, ColumnType, KeySet, Row, DataLicence, Backend
+from csvbase.value_objs import Column, ColumnType, KeySet, Row, Backend
 
 from .value_objs import Post
 
@@ -94,9 +94,9 @@ def make_blog_table(sesh: Session) -> None:
         user.user_uuid,
         table_name,
         False,
-        "",
-        DataLicence.ALL_RIGHTS_RESERVED,
-        Backend.POSTGRES,
+        caption="",
+        licence=None,
+        backend=Backend.POSTGRES,
     )
     backend = PGUserdataAdapter(sesh)
     backend.create_table(table_uuid, BLOG_COLUMNS)

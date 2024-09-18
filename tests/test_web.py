@@ -12,7 +12,6 @@ from csvbase.value_objs import (
     Column,
     ContentType,
     Table,
-    DataLicence,
     RowCount,
     KeySet,
 )
@@ -59,12 +58,12 @@ def test_table_view_etag():
             table_name="a-table",
             is_public=False,
             caption="",
-            data_licence=DataLicence.ALL_RIGHTS_RESERVED,
             columns=[a],
             created=datetime(2018, 1, 3, 9),
             row_count=RowCount(0, 0),
             last_changed=t[1],
             key=None,
+            licence=None,
         )
         for t in table_tuples
     ]
