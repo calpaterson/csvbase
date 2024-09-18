@@ -1365,7 +1365,6 @@ def robots() -> Response:
     sitemap_url = url_for("csvbase.sitemap", _external=True)
     robots_doc = f"Sitemap: {sitemap_url}"
     resp = make_response(robots_doc)
-    resp.cache_control.public = True
     resp.cache_control.max_age = int(timedelta(days=1).total_seconds())
     return resp
 
@@ -1389,7 +1388,6 @@ def sitemap() -> Response:
     )
     resp = make_response(render_template("sitemap.xml", urls=table_urls))
     resp.mimetype = "application/xml"
-    resp.cache_control.public = True
     resp.cache_control.max_age = int(timedelta(days=1).total_seconds())
     return resp
 

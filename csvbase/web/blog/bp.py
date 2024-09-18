@@ -89,7 +89,6 @@ def rss() -> Response:
     response = Response(feed, mimetype="application/rss+xml")
     cc = response.cache_control
     # RSS feed updates need to be picked up in reasonable period of time
-    cc.public = True
     cc.max_age = int(timedelta(days=1).total_seconds())
     return response
 
