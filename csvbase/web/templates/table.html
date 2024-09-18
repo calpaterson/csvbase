@@ -34,7 +34,7 @@
                    > <a
           href="{{ url_for('csvbase.user', username=table.username) }}">{{ table.username }}</a> / <a
           href="{{ url_for('csvbase.table_view', username=table.username, table_name=table.table_name) }}"
-          >{{ table.table_name }}</a> {# {{ data_licence_badge(table.data_licence) }} {{ privacy_badge(table) }} #}</h1>
+          >{{ table.table_name }}</a></h1>
       </div>
     </div>
 
@@ -46,7 +46,7 @@
           {%- else -%}
             {{ table_macros.render_row_count(table) }} rows
           {%- endif -%}
-          , last changed {{ value_macros.render_human_datetime(table.last_changed) }} ago
+          , last changed {{ value_macros.render_human_datetime(table.last_changed) }} ago{% if table.licence %}<span>, licensed under </span><span data-bs-toggle="tooltip" title="{{ table.licence.name }}">{{table.licence.spdx_id}}</span>{% endif %}
         </span>
       </div>
       <div class="col-4 text-end d-md-none">
