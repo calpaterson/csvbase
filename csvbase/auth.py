@@ -5,7 +5,7 @@ from typing import Union
 from typing_extensions import Literal
 from uuid import UUID
 
-from sqlalchemy import cast, types as satypes
+from sqlalchemy import types as satypes
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import select, literal_column, union_all
 
@@ -56,7 +56,7 @@ def ensure_table_access(
 
     # Users's current permissions
     table_permissions = _build_table_permissions_subselect(
-        sesh, current_user.user_uuid
+        sesh, current_user.user_uuid  # type: ignore
     ).subquery()
 
     # Check that user has access to do what they are currently doing
