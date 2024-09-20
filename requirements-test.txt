@@ -1,4 +1,4 @@
-aiostmpd~=1.4.6
+aiosmtpd~=1.4.6
 black~=24.3.0
 bpython~=0.24
 cssselect~=1.2.0
