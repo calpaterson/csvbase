@@ -11,6 +11,7 @@ from sqlalchemy import create_engine
 from aiosmtpd.controller import Controller
 
 from csvbase import svc
+from csvbase.email import get_smtp_host_port
 from csvbase.web.app import init_app
 from csvbase.config import get_config
 from csvbase.db import get_db_url
@@ -18,6 +19,7 @@ from csvbase.userdata import PGUserdataAdapter
 from csvbase.value_objs import Column, ColumnType, Table
 
 from .utils import make_user, create_table, local_only_gitsource
+from .email_utils import StoringHandler
 
 
 @pytest.fixture(scope="session")
@@ -134,19 +136,11 @@ def requests_mocker():
         yield mocker
 
 
-class StoringHandler:
-    def __init__(self):
-        self.received = []
-
-    async def handle_DATA(self, server, session, envelope) -> str:
-        self.recieved.append(None)
-        return "250 Message accepted for delivery"
-
-
 @pytest.fixture(scope="function")
 def mock_smtpd():
     handler = StoringHandler()
-    controller = Controller(handler)
+    _, port = get_smtp_host_port()
+    controller = Controller(handler, port=port)
     controller.start()
     yield handler
     controller.stop()
