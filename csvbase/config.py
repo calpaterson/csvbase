@@ -26,6 +26,8 @@ class Config:
     stripe_price_id: Optional[str]
     enable_datadog: bool
     x_accel_redirect: bool
+    smtp_host: Optional[str]
+    memcache_server: Optional[str]
 
     # configuration for Cloudflare turnstile (a captcha tool)
     turnstile_site_key: Optional[str]
@@ -62,6 +64,8 @@ def load_config(config_file: Path) -> Config:
         x_accel_redirect=as_dict.get("x_accel_redirect", False),
         turnstile_site_key=as_dict.get("turnstile_site_key"),
         turnstile_secret_key=as_dict.get("turnstile_secret_key"),
+        smtp_host=as_dict.get("smtp_host"),
+        memcache_server=as_dict.get("memcache_server"),
     )
 
 

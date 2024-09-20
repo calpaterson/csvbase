@@ -8,6 +8,7 @@ import pytest
 from passlib.context import CryptContext
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
+from aiosmtpd.controller import Controller
 
 from csvbase import svc
 from csvbase.web.app import init_app
@@ -131,3 +132,21 @@ def local_repos_path(tmpdir):
 def requests_mocker():
     with requests_mock.Mocker() as mocker:
         yield mocker
+
+
+class StoringHandler:
+    def __init__(self):
+        self.received = []
+
+    async def handle_DATA(self, server, session, envelope) -> str:
+        self.recieved.append(None)
+        return "250 Message accepted for delivery"
+
+
+@pytest.fixture(scope="function")
+def mock_smtpd():
+    handler = StoringHandler()
+    controller = Controller(handler)
+    controller.start()
+    yield handler
+    controller.stop()
