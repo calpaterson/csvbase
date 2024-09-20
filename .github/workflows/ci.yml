@@ -34,6 +34,7 @@ jobs:
         stripe_price_id = "price_123"
         turnstile_site_key = "1x00000000000000000000AA"
         turnstile_secret_key = "1x0000000000000000000000000000000A"
+        smtp_host = "localhost:2525"
         EOF
     - name: Set up Python 3.9
       uses: actions/setup-python@v5
