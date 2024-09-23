@@ -1,6 +1,8 @@
+import typing
 from logging import getLogger
 import time
 from email import message_from_bytes
+from email.message import EmailMessage
 import email.policy
 
 from csvbase.email import get_smtp_host_port
@@ -12,23 +14,30 @@ logger = getLogger(__name__)
 
 class StoringHandler:
     def __init__(self):
-        self.received = []
+        self.received: dict[str, EmailMessage] = {}
         self.sleep_duration = 0.01
 
     async def handle_DATA(self, server, session, envelope) -> str:
-        message = message_from_bytes(
-            envelope.original_content, policy=email.policy.default
+        message = typing.cast(
+            EmailMessage,
+            message_from_bytes(
+                envelope.original_content,
+                _class=EmailMessage,
+                policy=email.policy.default,
+            ),
         )
-        self.received.append(message)
+        self.received[message["Message-ID"]] = message
         logger.info("Received message: '%s'", message)
         return "250 Message accepted for delivery"
 
-    def join(self) -> None:
-        """Wait until at least one email has arrived (and been parsed)"""
+    def join(self, expected: int = 1) -> None:
+        """Wait until at least the expected number of emails have arrived (and been parsed)"""
         for _ in range(10):
-            if len(self.received) > 0:
+            if len(self.received) == expected:
                 return None
-            logger.warning("No email has arrived, sleeping for %f", self.sleep_duration)
+            logger.warning(
+                "Not enough email has arrived, sleeping for %f", self.sleep_duration
+            )
             time.sleep(self.sleep_duration)
         else:
             raise RuntimeError("no email was delivered")
