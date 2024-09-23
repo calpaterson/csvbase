@@ -990,15 +990,12 @@ def git_tables(sesh: Session) -> Iterable[Tuple[Table, GitUpstream]]:
             models.Table,
             models.User.username,
             models.GitUpstream,
-            models.Licence.spdx_id,
         )
         .join(models.User, models.User.user_uuid == models.Table.user_uuid)
         .join(
             models.GitUpstream,
             models.Table.table_uuid == models.GitUpstream.table_uuid,
         )
-        .join(models.TableLicence)
-        .join(models.Licence)
         .where(~models.GitUpstream.https_repo_url.like("https://example.com%"))
     )
     backend = PGUserdataAdapter(sesh)
