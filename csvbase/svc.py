@@ -1082,7 +1082,7 @@ def generate_email_verification_code(sesh: Session, user_uuid: UUID) -> bytes:
 
     too_soon = timedelta(minutes=1)
     last_sent: Optional[datetime] = user_email_obj.verification_email_last_sent
-    if last_sent is not None and (last_send - now) < too_soon:
+    if last_sent is not None and (last_sent - now) < too_soon:
         raise RuntimeError("too soon to resend")
 
     user_email_obj.verification_email_last_sent = now
@@ -1090,8 +1090,7 @@ def generate_email_verification_code(sesh: Session, user_uuid: UUID) -> bytes:
     if expiry is not None and expiry > now:
         return user_email_obj.verification_code
 
-    # FIXME: setting this longer causes header folding issues
-    code = secrets.token_bytes(8)
+    code = secrets.token_bytes()
     user_email_obj.verification_code = code
     user_email_obj.verification_code_expiry = now + timedelta(days=1)
     return code

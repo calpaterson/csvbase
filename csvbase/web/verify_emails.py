@@ -25,7 +25,9 @@ def send_verification_email() -> Response:
         urlsafe_code: str = base64.urlsafe_b64encode(verification_code).decode("utf-8")
 
         verification_url = url_for(
-            "verify_emails.verify_email", verification_code=urlsafe_code
+            "verify_emails.verify_email",
+            urlsafe_email_verification_code=urlsafe_code,
+            _external=True,
         )
 
         em = EmailMessage()
@@ -47,10 +49,12 @@ def send_verification_email() -> Response:
         email.send(em)
         return redirect(url_for("verify_emails.send_verification_email"))
     else:
-        return make_response(render_template("email-verification-sent.html", user=current_user))
+        return make_response(
+            render_template("email-verification-sent.html", user=current_user)
+        )
 
 
-@bp.route("/verify-email/{urlsafe_email_verification_code}", methods=["GET"])
+@bp.route("/verify-email/<urlsafe_email_verification_code>", methods=["GET"])
 def verify_email(urlsafe_email_verification_code: str) -> Response:
     sesh = get_sesh()
     current_user = get_current_user_or_401()

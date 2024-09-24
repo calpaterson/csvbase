@@ -26,7 +26,10 @@ class StoringHandler:
                 policy=email.policy.default,
             ),
         )
-        self.received[message["Message-ID"]] = message
+        # the message id needs to be stripped here, I think because of a bug in
+        # the stdlib where whitespace is being put in front long fields when
+        # they are wrapped
+        self.received[message["Message-ID"].strip()] = message
         logger.info("Received message: '%s'", message)
         return "250 Message accepted for delivery"
 
