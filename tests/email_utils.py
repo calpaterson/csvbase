@@ -27,8 +27,9 @@ class StoringHandler:
             ),
         )
         # the message id needs to be stripped here, I think because of a bug in
-        # the stdlib where whitespace is being put in front long fields when
-        # they are wrapped
+        # the stdlib where whitespace is being left in front of long fields
+        # when they are unwrapped
+        # https://github.com/python/cpython/issues/124452
         self.received[message["Message-ID"].strip()] = message
         logger.info("Received message: '%s'", message)
         return "250 Message accepted for delivery"
