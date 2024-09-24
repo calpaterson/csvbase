@@ -1,6 +1,10 @@
+import base64
+import re
+
 from lxml import etree
 import pytest
 
+from csvbase import svc, models
 from csvbase.value_objs import ContentType
 
 from .utils import make_user, current_user
@@ -58,3 +62,25 @@ def test_user_view__other(app, sesh, client, test_user, ten_rows, accept):
     assert resp.status_code == 200
     if accept is ContentType.JSON:
         assert resp.json is not None
+
+
+def test_verify_email_address(sesh, client, test_user, mock_smtpd):
+    test_user.email = "example@example.com"
+    svc.update_user(sesh, test_user)
+    sesh.commit()
+    with current_user(test_user):
+        verify_email_post = client.post("/verify-email")
+        assert verify_email_post.status_code == 302
+        verify_email_get = client.get(verify_email_post.headers["Location"])
+        assert verify_email_get.status_code == 200
+
+    mock_smtpd.join()
+    user_email_obj = sesh.get(models.UserEmail, test_user.user_uuid)
+    urlsafe_code: str = base64.urlsafe_b64encode(user_email_obj.verification_code).decode("utf-8")
+    expected_message_id = f"<verify-email-{urlsafe_code}@localhost>"
+    mock_smtpd.join()
+    assert expected_message_id in mock_smtpd.received.keys()
+
+    # email = mock_smtpd.received[expected_message_id]
+    # match = re.search("https://[^ ]+", email.get_body())
+    # assert False

@@ -4,6 +4,7 @@ from smtplib import SMTP
 from email.message import EmailMessage
 import urllib.parse
 import contextlib
+import email.policy
 
 from csvbase.config import get_config
 
@@ -34,10 +35,16 @@ def email_is_enabled() -> bool:
     return get_config().smtp_host is not None
 
 
-def send(message: EmailMessage, smtp_sesh: Optional[SMTP] = None) -> None:
-    """Send an email."""
+def validate(message: EmailMessage) -> None:
+    """Check that this email meets the requirements for outgoing emails."""
     if "message-id" not in message:
         raise RuntimeError("Must set a message id")
+    message.policy = email.policy.default
+
+
+def send(message: EmailMessage, smtp_sesh: Optional[SMTP] = None) -> None:
+    """Send an email."""
+    validate(message)
     if email_is_enabled():
         if smtp_sesh is None:
             with make_smtp_sesh() as smtp_sesh:
@@ -58,8 +65,7 @@ class Outbox:
         self.stack: list[EmailMessage] = []
 
     def enqueue(self, message: EmailMessage) -> None:
-        if "message-id" not in message:
-            raise RuntimeError("Must set a message id")
+        validate(message)
         self.stack.append(message)
 
     def flush(self) -> None:

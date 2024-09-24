@@ -1,4 +1,5 @@
 graft csvbase/web/templates
+graft csvbase/web/email
 graft csvbase/web/billing/templates
 graft csvbase/web/static
 graft csvbase/web/faq/entries

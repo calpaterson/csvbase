@@ -1,0 +1,15 @@
+{# -*- mode: jinja2 -*- #}
+{% extends "app_base.html" %}
+
+{% block main %}
+  <div class="container">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <h1>Verification email sent</h1>
+
+        <p>Click the link in the email sent to {{user.email}}.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

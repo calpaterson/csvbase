@@ -2,7 +2,7 @@ import binascii
 import re
 import secrets
 from contextlib import closing
-from datetime import datetime, timezone, date
+from datetime import datetime, timezone, date, timedelta
 from logging import getLogger
 from typing import Iterable, Optional, Sequence, Tuple, cast, List, Union
 from uuid import UUID, uuid4
@@ -1069,3 +1069,45 @@ def populate_repcache(
         else:
             table_io.rows_to_csv(columns, rows, buf=rep_file)
     logger.info("populated repcache for %s@%s", table.ref(), table.last_changed)
+
+
+def generate_email_verification_code(sesh: Session, user_uuid: UUID) -> bytes:
+    """Generate an email verification code."""
+    user_email_obj = sesh.get(models.UserEmail, user_uuid)
+    if user_email_obj is None:
+        raise RuntimeError("no email set")
+    now = datetime.now(timezone.utc)
+    if user_email_obj.verified:
+        raise RuntimeError("already verified")
+
+    too_soon = timedelta(minutes=1)
+    last_sent: Optional[datetime] = user_email_obj.verification_email_last_sent
+    if last_sent is not None and (last_send - now) < too_soon:
+        raise RuntimeError("too soon to resend")
+
+    user_email_obj.verification_email_last_sent = now
+    expiry: Optional[datetime] = user_email_obj.verification_code_expiry
+    if expiry is not None and expiry > now:
+        return user_email_obj.verification_code
+
+    # FIXME: setting this longer causes header folding issues
+    code = secrets.token_bytes(8)
+    user_email_obj.verification_code = code
+    user_email_obj.verification_code_expiry = now + timedelta(days=1)
+    return code
+
+
+def verify_email(sesh: Session, user_uuid: UUID, code: bytes) -> None:
+    user_email_obj = sesh.get(models.UserEmail, user_uuid)
+    if user_email_obj is None:
+        raise RuntimeError("no email set")
+    now = datetime.now(timezone.utc)
+    if user_email_obj.verified:
+        raise RuntimeError("already verified")
+    if user_email_obj.verification_code_expiry < now:
+        raise RuntimeError("code expired")
+
+    if code != user_email_obj.verification_code:
+        raise RuntimeError("codes don't match!")
+
+    user_email_obj.verified = now

@@ -1,0 +1,9 @@
+{# -*- mode: jinja2 -*- #}
+Hi {{user.username}},
+
+Please click the following link to verify your email address:
+
+    {{ verification_url }}
+
+Regards,
+csvbase

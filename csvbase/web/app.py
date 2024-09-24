@@ -50,6 +50,7 @@ from .func import is_browser, is_url, get_current_user
 from .billing import bp as billing_bp
 from .main.bp import bp as main_bp
 from .avatars import bp as avatar_bp
+from .verify_emails import bp as verify_emails_bp
 from .main.create_table import bp as create_table_bp
 from ..value_objs import ContentType, ROW_ID_COLUMN
 from ..bgwork.core import initialise_celery
@@ -146,6 +147,7 @@ def init_app() -> Flask:
     app.register_blueprint(main_bp)
     app.register_blueprint(create_table_bp)
     app.register_blueprint(avatar_bp)
+    app.register_blueprint(verify_emails_bp)
 
     billing_bp.init_blueprint(app)
 

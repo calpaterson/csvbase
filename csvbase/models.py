@@ -101,6 +101,14 @@ class UserEmail(Base):
     email_address = mapped_column(
         satypes.String(length=200), nullable=False, index=True
     )
+    verification_code = mapped_column(satypes.LargeBinary, nullable=True)
+    verification_code_expiry = mapped_column(
+        satypes.DateTime(timezone=True), nullable=True
+    )
+    verification_email_last_sent = mapped_column(
+        satypes.DateTime(timezone=True), nullable=True
+    )
+    verified = mapped_column(satypes.DateTime(timezone=True), nullable=True)
 
 
 class APIKey(Base):
