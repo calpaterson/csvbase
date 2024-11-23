@@ -86,13 +86,10 @@ def run_migrations_online() -> None:
 def include_name(name, type_, parent_names):
     # This is necessary to fast skip the massive userdata schema when running
     # locally to auto-generate migrations as a starting point
-    if type == "schema":
-        return name == "metadata"
+    if parent_names.get("schema_name") == "userdata":
+        return False
     else:
-        if parent_names.get("schema_name") == "userdata":
-            return False
-        else:
-            return True
+        return True
 
 
 if context.is_offline_mode():

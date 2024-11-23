@@ -10,7 +10,7 @@ pygments~=2.17.1
 pytest-flask~=1.3.0
 pytest~=8.1.1
 requests-mock~=1.12.1
-ruff~=0.4.4
+ruff~=0.8.0
 types-bleach==5.0.2
 types-cryptography
 types-setuptools==65.1.0
