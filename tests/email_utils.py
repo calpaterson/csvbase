@@ -8,27 +8,35 @@ import email.policy
 from csvbase.email import get_smtp_host_port
 
 from aiosmtpd.controller import Controller
+from aiosmtpd.smtp import SMTP, Session, Envelope
 
 logger = getLogger(__name__)
 
 
 class StoringHandler:
+    """A handler for aiosmtp which just stores emails (as stdlib EmailMessage
+    objects) in a instance dict.
+
+    """
+
     def __init__(self):
         self.received: dict[str, EmailMessage] = {}
         self.sleep_duration = 0.01
 
-    async def handle_DATA(self, server, session, envelope) -> str:
+    async def handle_DATA(
+        self, server: SMTP, session: Session, envelope: Envelope
+    ) -> str:
         message = typing.cast(
             EmailMessage,
             message_from_bytes(
-                envelope.original_content,
+                envelope.original_content or b"",
                 _class=EmailMessage,
                 policy=email.policy.default,
             ),
         )
-        # the message id needs to be stripped here, I think because of a bug in
-        # the stdlib where whitespace is being left in front of long fields
-        # when they are unwrapped
+        # the message id needs to be stripped here, due to a bug in the stdlib
+        # where whitespace is being left in front of long fields when they are
+        # unwrapped
         # https://github.com/python/cpython/issues/124452
         self.received[message["Message-ID"].strip()] = message
         logger.info("Received message: '%s'", message)
