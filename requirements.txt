@@ -1,7 +1,7 @@
 alembic[tz]==1.13.1
 argon2-cffi==23.1.0
-bleach==6.1.0
-charset-normalizer==3.2.0
+bleach==6.2.0
+charset-normalizer==3.4.0
 celery[redis]==5.4.0
 click==8.1.7
 ddtrace==2.8.1
@@ -20,8 +20,8 @@ jinja2-humanize-extension==0.4.0
 marko[codehilite]==2.0.3
 passlib==1.7.4
 pgcopy==1.6.0
-platformdirs==4.2.0
-psycopg2==2.9.9
+platformdirs==4.3.6
+psycopg2==2.9.10
 pyarrow==17.0.0
 pydantic==2.7.0
 requests==2.32.3
