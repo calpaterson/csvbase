@@ -1,11 +1,16 @@
+import socket
 import typing
 from logging import getLogger
 import time
 from email import message_from_bytes
 from email.message import EmailMessage
 import email.policy
+from unittest.mock import patch
+import contextlib
+from typing import Generator
 
 from csvbase.email import get_smtp_host_port
+from csvbase.config import get_config
 
 from aiosmtpd.controller import Controller
 from aiosmtpd.smtp import SMTP, Session, Envelope
@@ -46,6 +51,7 @@ class StoringHandler:
         """Wait until at least the expected number of emails have arrived (and been parsed)"""
         for _ in range(10):
             if len(self.received) == expected:
+                logger.info("Received {self.recieved} emails")
                 return None
             logger.warning(
                 "Not enough email has arrived, sleeping for %f", self.sleep_duration
@@ -53,6 +59,25 @@ class StoringHandler:
             time.sleep(self.sleep_duration)
         else:
             raise RuntimeError("no email was delivered")
+
+
+def get_free_local_port() -> int:
+    """Returns a (currently) free local port.
+
+    Not 100% effective, but very effective.  Used to prevent problems with the
+    same port being used twice in tests.
+
+    """
+    with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(('', 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return s.getsockname()[1]
+
+@contextlib.contextmanager
+def randomise_smtp_port() -> Generator[None, None, None]:
+    free_local_port = get_free_local_port()
+    with patch.object(get_config(), "smtp_host", f"localhost:{free_local_port}"):
+        yield
 
 
 if __name__ == "__main__":

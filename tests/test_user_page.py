@@ -64,7 +64,8 @@ def test_user_view__other(app, sesh, client, test_user, ten_rows, accept):
         assert resp.json is not None
 
 
-def test_verify_email_address(sesh, client, test_user, mock_smtpd):
+def test_verify_email_address__happy_path(sesh, client, test_user, mock_smtpd):
+    """Test verifying an email address"""
     test_user.email = "example@example.com"
     svc.update_user(sesh, test_user)
     sesh.commit()
@@ -75,16 +76,19 @@ def test_verify_email_address(sesh, client, test_user, mock_smtpd):
         assert verify_email_get.status_code == 200
 
     mock_smtpd.join()
+
     user_email_obj = sesh.get(models.UserEmail, test_user.user_uuid)
     urlsafe_code: str = base64.urlsafe_b64encode(
         user_email_obj.verification_code
     ).decode("utf-8")
     expected_message_id = f"<verify-email-{urlsafe_code}@localhost>"
-    mock_smtpd.join()
 
     email = mock_smtpd.received[expected_message_id]
     match_obj = re.search(re.compile(r"https?://[^\s]+"), email.get_content())
     verify_url = match_obj.group()  # type: ignore
+
+    assert verify_url.startswith("http"), "should be an absolute url"
+
     with current_user(test_user):
         resp = client.get(verify_url)
     assert resp.status_code == 200

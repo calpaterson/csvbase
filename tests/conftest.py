@@ -19,7 +19,7 @@ from csvbase.userdata import PGUserdataAdapter
 from csvbase.value_objs import Column, ColumnType, Table
 
 from .utils import make_user, create_table, local_only_gitsource
-from .email_utils import StoringHandler
+from .email_utils import StoringHandler, randomise_smtp_port
 
 
 @pytest.fixture(scope="session")
@@ -138,9 +138,10 @@ def requests_mocker():
 
 @pytest.fixture(scope="function")
 def mock_smtpd():
-    handler = StoringHandler()
-    _, port = get_smtp_host_port()
-    controller = Controller(handler, port=port)
-    controller.start()
-    yield handler
-    controller.stop()
+    with randomise_smtp_port():
+        handler = StoringHandler()
+        _, port = get_smtp_host_port()
+        controller = Controller(handler, port=port)
+        controller.start()
+        yield handler
+        controller.stop()

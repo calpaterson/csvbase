@@ -41,8 +41,7 @@ def send_verification_email() -> Response:
         em["Subject"] = "Verify your email address"
         em["To"] = email_address
         em["From"] = f"csvbase@{request.host}"
-        message_id = f"<verify-email-{urlsafe_code}@{request.host}>"
-        em["Message-ID"] = message_id
+        em["Message-ID"] = f"<verify-email-{urlsafe_code}@{request.host}>"
 
         email.validate(em)
         sesh.commit()
