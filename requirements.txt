@@ -32,5 +32,5 @@ systemd-python==235; sys_platform == "linux"
 toml==0.10.2
 typing-extensions==4.10.0
 user-agents==2.2.0
-werkzeug==3.0.3
+werkzeug==3.0.6
 xlsxwriter==3.2.0
