@@ -1,8 +1,12 @@
+networks:
+  csvbase:
+    name: csvbase
+
 services:
-  csvbase_postgres:
+  postgres:
     image: postgres:13
     ports:
-      - "7432:5432"
+      - "5432:5432"
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: csvbase
@@ -16,25 +20,25 @@ services:
       timeout: 5s
       retries: 5
 
-  csvbase_migrations:
+  migrations:
     build:
       context: .
     environment:
       CSVBASE_TOML: |
-        db_url = "postgresql://postgres:password@csvbase_postgres:5432/csvbase"
+        db_url = "postgresql://postgres:password@postgres:5432/csvbase"
     networks:
       csvbase:
     command:
       /bin/bash -c "echo \"$$CSVBASE_TOML\" > ~/.csvbase.toml && alembic upgrade head"
     depends_on:
-      csvbase_postgres:
+      postgres:
         condition: service_healthy
 
   csvbase:
     build: .
     environment:
       CSVBASE_TOML: |
-        db_url = "postgresql://postgres:password@csvbase_postgres:5432/csvbase"
+        db_url = "postgresql://postgres:password@postgres:5432/csvbase"
     command:
       /bin/bash -c "echo \"$$CSVBASE_TOML\" > ~/.csvbase.toml && gunicorn 'csvbase.web.app:init_app()' -b :6001"
     ports:
@@ -42,12 +46,7 @@ services:
     networks:
       csvbase:
     depends_on:
-      csvbase_postgres:
+      postgres:
         condition: service_healthy
-      csvbase_migrations:
+      migrations:
         condition: service_completed_successfully
-
-
-networks:
-  csvbase:
-    driver: bridge
