@@ -16,4 +16,4 @@ types-cryptography
 types-setuptools==65.1.0
 types-toml==0.10.8.5
 types-requests~=2.32.0
-celery-types
+celery-types==0.22.0
