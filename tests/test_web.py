@@ -151,7 +151,7 @@ def test_security_headers(client):
 
     assert (
         resp.headers["Content-Security-Policy"]
-        == "default-src 'self' https://challenges.cloudflare.com; object-src 'none'; img-src * data:; media-src *; form-action 'self'; base-uri 'self'; frame-ancestors 'none';"
+        == "default-src 'self' https://challenges.cloudflare.com; object-src 'none'; img-src * data:; media-src *; base-uri 'self'; frame-ancestors 'none';"
     )
 
 

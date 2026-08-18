@@ -296,11 +296,11 @@ def init_app() -> Flask:
         # - no objects (flash/etc)
         # - allow external images and data uri images
         # - allow external media (videos)
-        # - form posts must go to site
+        # - NOT form-action self as that is enforced differently on different browsers
         # - base-uri must be site
         # - no framing
         response.headers["Content-Security-Policy"] = (
-            "default-src 'self' https://challenges.cloudflare.com; object-src 'none'; img-src * data:; media-src *; form-action 'self'; base-uri 'self'; frame-ancestors 'none';"
+            "default-src 'self' https://challenges.cloudflare.com; object-src 'none'; img-src * data:; media-src *; base-uri 'self'; frame-ancestors 'none';"
         )
 
         return response
