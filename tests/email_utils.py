@@ -69,9 +69,10 @@ def get_free_local_port() -> int:
 
     """
     with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(('', 0))
+        s.bind(("", 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
+
 
 @contextlib.contextmanager
 def randomise_smtp_port() -> Generator[None, None, None]:
