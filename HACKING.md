@@ -31,7 +31,7 @@ pip install -e .[tests]
 and anaconda:
 
 ```sh
-conda create -n csvbase python=3.8
+conda create -n csvbase python=3.9
 conda activate csvbase
 pip install -e .[tests]
 ```

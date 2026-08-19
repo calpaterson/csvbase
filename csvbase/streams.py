@@ -210,7 +210,7 @@ class rewind:
 
     def __init__(
         self,
-        stream: TellableAndSeekable,
+        stream: Union[TellableAndSeekable, codecs.StreamReader],
         to: int = os.SEEK_SET,
         allow_seekback: bool = False,
     ) -> None:

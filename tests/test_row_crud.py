@@ -530,9 +530,8 @@ def test_update__etag_matches(client, test_user, ten_rows):
     assert False
 
 
-@pytest.mark.xfail(reason="not implemented")
 def test_update__etag_doesnt_match(client, test_user, ten_rows):
-    resp = client.put(  # noqa: F841
+    resp = client.put(
         f"/{test_user.username}/{ten_rows.table_name}",
         json={
             "row_id": 1,
@@ -546,6 +545,7 @@ def test_update__etag_doesnt_match(client, test_user, ten_rows):
         },
         headers={},
     )
+    assert resp.status_code == 401, resp.data
 
 
 def test_update__row_does_not_exist(client, ten_rows, test_user):

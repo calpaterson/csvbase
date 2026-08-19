@@ -4,7 +4,7 @@ bleach==6.2.0
 charset-normalizer==3.4.0
 celery[redis]==5.4.0
 click==8.1.7
-ddtrace==2.8.1
+ddtrace==2.19.0
 giturlparse==0.12.0
 importlib_resources==6.4.0
 python-dateutil==2.9.0
@@ -22,15 +22,15 @@ passlib==1.7.4
 pgcopy==1.6.0
 platformdirs==4.3.6
 psycopg2==2.9.10
-pyarrow==17.0.0
-pydantic==2.7.0
+pyarrow==18.0.0
+pydantic==2.8.0
 requests==2.32.3
 sentry-sdk[flask]==1.45.0
 sqlalchemy==2.0.32
 stripe==10.7.0
 systemd-python==235; sys_platform == "linux"
 toml==0.10.2
-typing-extensions==4.10.0
+typing-extensions==4.12.2
 user-agents==2.2.0
 werkzeug==3.0.6
 xlsxwriter==3.2.0

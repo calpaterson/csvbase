@@ -287,9 +287,11 @@ class Licence:
 
 def build_licence_map() -> Iterable[Tuple[str, Licence]]:
     """Builds a map of SPDX id to Licence"""
-    with importlib_resources.files("csvbase").joinpath("data/spdx-licences.csv").open(
-        "r"
-    ) as spdx_licences_f:
+    with (
+        importlib_resources.files("csvbase")
+        .joinpath("data/spdx-licences.csv")
+        .open("r") as spdx_licences_f
+    ):
         reader = csv.DictReader(spdx_licences_f)
         for row in reader:
             licence = Licence(

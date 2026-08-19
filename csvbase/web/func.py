@@ -118,7 +118,7 @@ def format_timedelta(
         if is_aware:
             now = datetime.now(timezone.utc)
         else:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
         datetime_or_timedelta = now - datetime_or_timedelta
     return dates.format_timedelta(
         datetime_or_timedelta,

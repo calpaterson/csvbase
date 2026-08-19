@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     env:
       GITHUB_ACTIONS: 'yes'
@@ -36,10 +36,12 @@ jobs:
         turnstile_secret_key = "1x0000000000000000000000000000000A"
         smtp_host = "localhost:2525"
         EOF
-    - name: Set up Python 3.9
+    - name: Set up Python 3.9 and 3.13
       uses: actions/setup-python@v5
       with:
-        python-version: 3.9
+        python-version: |
+          3.9
+          3.13
     - name: Install required ubuntu packages
       run: sudo apt-get update && sudo apt-get install -y libsystemd-dev postgresql-client
     - name: Create schemas
@@ -48,7 +50,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('setup.py') }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
         restore-keys: |
           ${{ runner.os }}-pip-
     - name: Install tox

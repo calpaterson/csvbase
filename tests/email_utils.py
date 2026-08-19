@@ -36,7 +36,7 @@ class StoringHandler:
             message_from_bytes(
                 envelope.original_content or b"",
                 _class=EmailMessage,
-                policy=email.policy.default,
+                policy=email.policy.default,  # type: ignore[arg-type]
             ),
         )
         # the message id needs to be stripped here, due to a bug in the stdlib
