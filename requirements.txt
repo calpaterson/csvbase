@@ -4,7 +4,7 @@ bleach==6.2.0
 charset-normalizer==3.4.0
 celery[redis]==5.4.0
 click==8.1.7
-ddtrace==2.19.0
+ddtrace==4.15.6
 giturlparse==0.12.0
 importlib_resources==6.4.0
 python-dateutil==2.9.0
